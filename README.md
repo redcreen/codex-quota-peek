@@ -181,6 +181,9 @@ open "dist/CodexQuotaPeek.app"
 1. 产品化设置体验
    已完成第一步：从菜单层级设置升级成独立 `Preferences...` 窗口。后续新的高级设置也会优先放到这里。
 
+   当前已记录的体验问题：
+   `Preferences...` 窗口的排版仍然不够成熟，信息密度、留白和区块对齐需要重做。
+
 2. 数据源策略可配置
    计划增加 `Auto / Prefer API / Prefer local logs` 这样的策略，让用户更清楚当前值为什么来自这个来源。
 
@@ -190,7 +193,10 @@ open "dist/CodexQuotaPeek.app"
 4. 主动通知
    计划加入低额度、超平均节奏、即将重置等通知，让产品从“查看工具”变成“提醒助手”。
 
-5. 发布与工程化
+5. 应用语言切换
+   计划增加应用内 `English / 中文` 切换，默认英文。README 已经双语，下一步是把菜单、偏好设置和提示文案也真正本地化。
+
+6. 发布与工程化
    持续完善自动测试、构建、发布、版本管理和 changelog，让项目更稳定，也更适合别人长期安装使用。
 
 ### 制作过程
@@ -416,6 +422,9 @@ To grow this project into a more sustainable product, the current roadmap is:
 1. Product-grade settings
    The first step is already done: settings now live in a standalone `Preferences...` window instead of a stacked submenu. Future advanced controls will go there too.
 
+   Recorded UX issue:
+   the current `Preferences...` layout still needs a real design pass. Spacing, grouping, and section alignment are not polished enough yet.
+
 2. Configurable source strategy
    Planned options include `Auto`, `Prefer API`, and `Prefer local logs` so users can choose the balance between freshness and local stability.
 
@@ -425,7 +434,10 @@ To grow this project into a more sustainable product, the current roadmap is:
 4. Proactive notifications
    Add alerts for low remaining quota, above-average pacing, and upcoming resets so the app becomes a helper, not just a viewer.
 
-5. Release and engineering polish
+5. App language switching
+   Add an in-app `English / Chinese` language toggle with English as the default. The README is already bilingual; the app UI should follow.
+
+6. Release and engineering polish
    Keep improving tests, packaging, releases, versioning, and changelogs so the project is easier to maintain and easier for others to install.
 
 ### Build Process
