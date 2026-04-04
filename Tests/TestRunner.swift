@@ -114,6 +114,45 @@ func testAutomaticRefreshAllowsLogsAfterTheyCatchUp() {
     expect(preferred.snapshot.rateLimits.primary?.remainingPercent == 93, "fresh logs replace API snapshot when newer")
 }
 
+func testAutomaticRefreshPrefersAPIWhenLogsShowOlderResetWindow() {
+    let recentAPI = CodexQuotaFetchResult(
+        snapshot: CodexQuotaSnapshot(
+            planType: "pro",
+            rateLimits: RateLimits(
+                allowed: true,
+                limitReached: false,
+                primary: makeWindow(usedPercent: 5, windowMinutes: 300, resetAfterSeconds: 120, resetAt: 2_500),
+                secondary: makeWindow(usedPercent: 8, windowMinutes: 10080, resetAfterSeconds: 3600, resetAt: 9_000)
+            ),
+            credits: nil
+        ),
+        source: .api,
+        sourceDate: Date()
+    )
+    let staleLogs = CodexQuotaFetchResult(
+        snapshot: CodexQuotaSnapshot(
+            planType: "pro",
+            rateLimits: RateLimits(
+                allowed: true,
+                limitReached: false,
+                primary: makeWindow(usedPercent: 17, windowMinutes: 300, resetAfterSeconds: 120, resetAt: 2_400),
+                secondary: makeWindow(usedPercent: 12, windowMinutes: 10080, resetAfterSeconds: 3600, resetAt: 8_900)
+            ),
+            credits: nil
+        ),
+        source: .realtimeLogs,
+        sourceDate: Date().addingTimeInterval(3)
+    )
+
+    let preferred = QuotaRefreshPolicy.preferredResult(
+        fetchedResult: staleLogs,
+        mode: .automatic,
+        lastSuccessfulAPIResult: recentAPI
+    )
+
+    expect(preferred.source == .api, "automatic refresh keeps API when logs belong to an older reset window")
+}
+
 func testManualRefreshDoesNotForceCachedAPIOverFetchedLogs() {
     let recentAPI = makeResult(
         source: .api,
@@ -166,7 +205,7 @@ func testDisplayPresentationUsesPaceMarkersAndSourceText() {
     expect(presentation.line2 == "W 90%", "status line omits markers when pace is normal")
     expect(presentation.sourceText == "Source: API", "presentation keeps source text")
     expect(presentation.creditsText == "233.93 left", "presentation formats credits")
-    expect(presentation.paceMessage == "Session above average", "presentation shortens pace message")
+    expect(presentation.paceMessage == "5 hours above average", "presentation shortens pace message")
 }
 
 func testRelativeUpdatedAtLabels() {
@@ -182,9 +221,11 @@ func testQuotaDisplayColorThresholds() {
     expect(QuotaDisplayPolicy.colorLevel(forPercentText: "29%!!") == .critical, "below thirty percent is red tier")
     let split = QuotaDisplayPolicy.splitPercentComponents("95%!!")
     expect(split.0 == "95%" && split.1 == "!!", "percent text splits into value and pace marker")
-    expect(QuotaDisplayPolicy.menuWindowTitle(for: "5 hours") == "Session", "session menu title is user friendly")
-    expect(QuotaDisplayPolicy.menuWindowTitle(for: "1 week") == "Weekly", "weekly menu title is user friendly")
+    expect(QuotaDisplayPolicy.menuWindowTitle(for: "5 hours") == "5 hours", "five-hour menu title stays explicit")
+    expect(QuotaDisplayPolicy.menuWindowTitle(for: "7 days") == "7 days", "seven-day menu title stays explicit")
     expect(QuotaDisplayPolicy.progressBar(forPercentText: "50%", slots: 10) == "█████░░░░░", "progress bar reflects remaining percent")
+    let segments = QuotaDisplayPolicy.progressSegments(forPercentText: "49%!!", slots: 10)
+    expect(segments.filled == 5 && segments.exceeded == 2 && segments.empty == 3, "progress segments reserve colored overflow markers")
 }
 
 func testAuthSnapshotStoreReadsSavedAccountMetadata() {
@@ -241,6 +282,7 @@ struct TestRunner {
         testRealtimeLogRowParsingUsesSQLitePipeSeparator()
         testAutomaticRefreshPrefersRecentAPIOverOlderLogs()
         testAutomaticRefreshAllowsLogsAfterTheyCatchUp()
+        testAutomaticRefreshPrefersAPIWhenLogsShowOlderResetWindow()
         testManualRefreshDoesNotForceCachedAPIOverFetchedLogs()
         testDisplayPresentationUsesPaceMarkersAndSourceText()
         testRelativeUpdatedAtLabels()

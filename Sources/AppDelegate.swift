@@ -276,7 +276,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         primaryItem.tag = MenuTag.primary
         primaryItem.isEnabled = false
 
-        let secondaryItem = NSMenuItem(title: "1 week: -- | --", action: nil, keyEquivalent: "")
+        let secondaryItem = NSMenuItem(title: "7 days: -- | --", action: nil, keyEquivalent: "")
         secondaryItem.tag = MenuTag.secondary
         secondaryItem.isEnabled = false
 
@@ -642,7 +642,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             )
         } else {
             item(MenuTag.secondary)?.attributedTitle = styledQuotaRow(
-                label: "1 week",
+                label: "7 days",
                 percent: "--",
                 reset: "--"
             )
@@ -828,7 +828,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let title = QuotaDisplayPolicy.menuWindowTitle(for: label)
         let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
         let (percentValue, percentMarker) = splitPercentComponents(percent)
-        let progressBar = QuotaDisplayPolicy.progressBar(forPercentText: percent)
+        let progressBar = styledProgressBar(forPercentText: percent, font: font)
         let header = NSMutableAttributedString(
             string: title,
             attributes: [
@@ -836,22 +836,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 .foregroundColor: NSColor.labelColor
             ]
         )
-        header.append(
-            NSAttributedString(
-                string: "\n\(progressBar)",
-                attributes: [
-                    .font: font,
-                    .foregroundColor: quotaColor(for: percent)
-                ]
-            )
-        )
+        header.append(NSAttributedString(string: "\n"))
+        header.append(progressBar)
 
         let detail = NSMutableAttributedString(
-            string: "\n\(percentValue)\(percentMarker.isEmpty ? "" : percentMarker) left",
+            string: "\n\(percentValue)",
             attributes: [
                 .font: NSFont.systemFont(ofSize: 11, weight: .medium),
                 .foregroundColor: quotaColor(for: percent)
             ]
+        )
+        if !percentMarker.isEmpty {
+            detail.append(
+                NSAttributedString(
+                    string: " \(percentMarker) ",
+                    attributes: [
+                        .font: NSFont.systemFont(ofSize: 11, weight: .semibold),
+                        .foregroundColor: paceColor(for: percentMarker)
+                    ]
+                )
+            )
+        } else {
+            detail.append(NSAttributedString(string: " ", attributes: [
+                .font: NSFont.systemFont(ofSize: 11, weight: .medium),
+                .foregroundColor: quotaColor(for: percent)
+            ]))
+        }
+        detail.append(
+            NSAttributedString(
+                string: "left",
+                attributes: [
+                    .font: NSFont.systemFont(ofSize: 11, weight: .medium),
+                    .foregroundColor: quotaColor(for: percent)
+                ]
+            )
         )
         detail.append(
             NSAttributedString(
@@ -864,6 +882,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
         header.append(detail)
         return header
+    }
+
+    private func styledProgressBar(forPercentText percentText: String, font: NSFont) -> NSAttributedString {
+        let segments = QuotaDisplayPolicy.progressSegments(forPercentText: percentText)
+        let bar = NSMutableAttributedString()
+
+        if segments.filled > 0 {
+            bar.append(
+                NSAttributedString(
+                    string: String(repeating: "█", count: segments.filled),
+                    attributes: [
+                        .font: font,
+                        .foregroundColor: quotaColor(for: percentText)
+                    ]
+                )
+            )
+        }
+
+        if segments.exceeded > 0 {
+            let marker = percentText.filter { $0 == "!" }
+            bar.append(
+                NSAttributedString(
+                    string: String(repeating: "▓", count: segments.exceeded),
+                    attributes: [
+                        .font: font,
+                        .foregroundColor: paceColor(for: marker)
+                    ]
+                )
+            )
+        }
+
+        if segments.empty > 0 {
+            bar.append(
+                NSAttributedString(
+                    string: String(repeating: "░", count: segments.empty),
+                    attributes: [
+                        .font: font,
+                        .foregroundColor: NSColor.tertiaryLabelColor
+                    ]
+                )
+            )
+        }
+
+        return bar
     }
 
     private func splitPercentComponents(_ percentText: String) -> (String, String) {
@@ -888,6 +950,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return NSColor.systemYellow
         }
         return NSColor.systemGreen
+    }
+
+    private func paceColor(for marker: String) -> NSColor {
+        marker == "!!" ? NSColor.systemRed : NSColor.systemYellow
     }
 
     private func styledPaceNotice(_ text: String, severity: StatusPresentation.PaceSeverity) -> NSAttributedString {

@@ -267,7 +267,7 @@ struct StatusPresentation {
         case 300:
             return "5 hours"
         case 10080:
-            return "1 week"
+            return "7 days"
         case let minutes?:
             if minutes % 1440 == 0 {
                 return "\(minutes / 1440) days"
