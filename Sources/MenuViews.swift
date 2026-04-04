@@ -99,6 +99,53 @@ final class MenuValueRowView: NSView {
     }
 }
 
+final class MenuInfoRowView: NSView {
+    private let leftLabel = NSTextField(labelWithString: "--")
+    private let rightLabel = NSTextField(labelWithString: "--")
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        setup()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setup()
+    }
+
+    private func setup() {
+        frame = NSRect(x: 0, y: 0, width: 252, height: 24)
+
+        for label in [leftLabel, rightLabel] {
+            label.translatesAutoresizingMaskIntoConstraints = false
+            label.backgroundColor = .clear
+            label.font = NSFont.systemFont(ofSize: 11, weight: .regular)
+        }
+
+        leftLabel.textColor = .secondaryLabelColor
+        rightLabel.textColor = .labelColor
+        rightLabel.alignment = .right
+        rightLabel.lineBreakMode = .byTruncatingMiddle
+
+        addSubview(leftLabel)
+        addSubview(rightLabel)
+
+        NSLayoutConstraint.activate([
+            leftLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            leftLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+
+            rightLabel.leadingAnchor.constraint(greaterThanOrEqualTo: leftLabel.trailingAnchor, constant: 8),
+            rightLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            rightLabel.centerYAnchor.constraint(equalTo: centerYAnchor)
+        ])
+    }
+
+    func update(label: String, value: String) {
+        leftLabel.stringValue = label
+        rightLabel.stringValue = value
+    }
+}
+
 final class MenuActionRowView: NSView {
     private let button: NSButton
     private let shortcutLabel = NSTextField(labelWithString: "")

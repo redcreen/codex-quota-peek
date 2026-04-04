@@ -1,5 +1,11 @@
 import Foundation
 
+struct CodexAccountInfo {
+    let displayName: String
+    let email: String?
+    let planDisplayName: String
+}
+
 final class CodexQuotaProvider {
     private let fileManager = FileManager.default
     private let decoder = JSONDecoder()
@@ -21,6 +27,29 @@ final class CodexQuotaProvider {
             code: 1,
             userInfo: [NSLocalizedDescriptionKey: "No Codex rate limit data found in ~/.codex."]
         )
+    }
+
+    func loadAccountInfo() -> CodexAccountInfo? {
+        let authURL = homeDirectory.appendingPathComponent(".codex/auth.json")
+        guard let data = try? Data(contentsOf: authURL),
+              let auth = try? decoder.decode(CodexAuthFile.self, from: data) else {
+            return nil
+        }
+
+        let payload = decodeJWTPayload(token: auth.tokens.idToken) ?? decodeJWTPayload(token: auth.tokens.accessToken)
+        let displayName = payload?.name?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let email = payload?.email?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let plan = payload?.auth?.chatgptPlanType?.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let finalName = [displayName, email].compactMap { (value: String?) -> String? in
+            guard let value, !value.isEmpty else { return nil }
+            return value
+        }.first
+
+        let finalPlan = plan.map { Self.humanizePlan($0) } ?? "Unknown"
+
+        guard let finalName else { return nil }
+        return CodexAccountInfo(displayName: finalName, email: email, planDisplayName: finalPlan)
     }
 
     private func latestFromRealtimeLogs() throws -> CodexQuotaSnapshot? {
@@ -170,6 +199,30 @@ final class CodexQuotaProvider {
 
         return output
     }
+
+    private func decodeJWTPayload(token: String?) -> JWTClaims? {
+        guard let token else { return nil }
+        let parts = token.split(separator: ".")
+        guard parts.count >= 2 else { return nil }
+
+        var payload = String(parts[1])
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+
+        while payload.count % 4 != 0 {
+            payload.append("=")
+        }
+
+        guard let data = Data(base64Encoded: payload) else { return nil }
+        return try? decoder.decode(JWTClaims.self, from: data)
+    }
+
+    private static func humanizePlan(_ plan: String) -> String {
+        plan
+            .split(separator: "_")
+            .map { $0.prefix(1).uppercased() + $0.dropFirst().lowercased() }
+            .joined(separator: " ")
+    }
 }
 
 private struct RateLimitEvent: Decodable {
@@ -229,5 +282,39 @@ private struct ArchivedRateLimits: Decodable {
 
     func toRateLimits() -> RateLimits {
         RateLimits(allowed: nil, limitReached: nil, primary: primary, secondary: secondary)
+    }
+}
+
+private struct CodexAuthFile: Decodable {
+    let tokens: AuthTokens
+}
+
+private struct AuthTokens: Decodable {
+    let idToken: String?
+    let accessToken: String?
+
+    enum CodingKeys: String, CodingKey {
+        case idToken = "id_token"
+        case accessToken = "access_token"
+    }
+}
+
+private struct JWTClaims: Decodable {
+    let name: String?
+    let email: String?
+    let auth: JWTAuthClaims?
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case email
+        case auth = "https://api.openai.com/auth"
+    }
+}
+
+private struct JWTAuthClaims: Decodable {
+    let chatgptPlanType: String?
+
+    enum CodingKeys: String, CodingKey {
+        case chatgptPlanType = "chatgpt_plan_type"
     }
 }

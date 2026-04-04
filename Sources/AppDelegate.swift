@@ -7,6 +7,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let badgeView = StatusBadgeView(frame: NSRect(x: 0, y: 0, width: 56, height: 24))
     private let menu = NSMenu()
     private let headerView = MenuHeaderView()
+    private let accountInfoView = MenuInfoRowView()
+    private let planInfoView = MenuInfoRowView()
     private let primaryRowView = MenuValueRowView()
     private let secondaryRowView = MenuValueRowView()
     private lazy var refreshRowView = MenuActionRowView(title: "Refresh Now", target: self, action: #selector(refreshNow(_:)))
@@ -59,6 +61,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let titleItem = NSMenuItem()
         titleItem.view = headerView
 
+        let accountItem = NSMenuItem()
+        accountItem.view = accountInfoView
+
+        let planItem = NSMenuItem()
+        planItem.view = planInfoView
+
         let primaryItem = NSMenuItem()
         primaryItem.view = primaryRowView
         primaryItem.isEnabled = false
@@ -80,6 +88,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.items = [
             titleItem,
+            accountItem,
+            planItem,
+            .separator(),
             primaryItem,
             secondaryItem,
             .separator(),
@@ -93,7 +104,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func refresh() {
         do {
             let snapshot = try provider.loadSnapshot()
-            let presentation = StatusPresentation(snapshot: snapshot, generatedAt: Date())
+            let accountInfo = provider.loadAccountInfo()
+            let presentation = StatusPresentation(snapshot: snapshot, accountInfo: accountInfo, generatedAt: Date())
             apply(presentation)
         } catch {
             apply(.unavailable(error.localizedDescription))
@@ -109,6 +121,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.button?.toolTip = presentation.tooltip
         statusItem.length = image.size.width
 
+        accountInfoView.update(
+            label: presentation.accountRow?.label ?? "Account",
+            value: presentation.accountRow?.value ?? "--"
+        )
+        planInfoView.update(
+            label: presentation.planRow?.label ?? "Plan",
+            value: presentation.planRow?.value ?? "--"
+        )
         primaryRowView.update(
             label: presentation.primaryRow?.label ?? "5 hours",
             percent: presentation.primaryRow?.percentText ?? "--",

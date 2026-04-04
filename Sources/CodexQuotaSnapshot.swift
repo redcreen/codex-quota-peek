@@ -48,6 +48,11 @@ struct LimitWindow: Decodable {
 }
 
 struct StatusPresentation {
+    struct AccountRow {
+        let label: String
+        let value: String
+    }
+
     struct MenuRow {
         let label: String
         let percentText: String
@@ -57,13 +62,25 @@ struct StatusPresentation {
     let line1: String
     let line2: String
     let tooltip: String
+    let accountRow: AccountRow?
+    let planRow: AccountRow?
     let primaryRow: MenuRow?
     let secondaryRow: MenuRow?
 
-    init(line1: String, line2: String, tooltip: String, primaryRow: MenuRow? = nil, secondaryRow: MenuRow? = nil) {
+    init(
+        line1: String,
+        line2: String,
+        tooltip: String,
+        accountRow: AccountRow? = nil,
+        planRow: AccountRow? = nil,
+        primaryRow: MenuRow? = nil,
+        secondaryRow: MenuRow? = nil
+    ) {
         self.line1 = line1
         self.line2 = line2
         self.tooltip = tooltip
+        self.accountRow = accountRow
+        self.planRow = planRow
         self.primaryRow = primaryRow
         self.secondaryRow = secondaryRow
     }
@@ -82,12 +99,18 @@ struct StatusPresentation {
         )
     }
 
-    init(snapshot: CodexQuotaSnapshot, generatedAt: Date) {
+    init(snapshot: CodexQuotaSnapshot, accountInfo: CodexAccountInfo?, generatedAt: Date) {
         let primary = snapshot.rateLimits.primary
         let secondary = snapshot.rateLimits.secondary
 
         line1 = primary.map { "H \($0.remainingPercent)%" } ?? "H --"
         line2 = secondary.map { "W \($0.remainingPercent)%" } ?? "W --"
+        accountRow = accountInfo.map {
+            AccountRow(label: "Account", value: $0.displayName)
+        }
+        planRow = accountInfo.map {
+            AccountRow(label: "Plan", value: $0.planDisplayName)
+        }
         primaryRow = primary.map {
             MenuRow(
                 label: StatusPresentation.windowLabel(for: $0),
@@ -104,6 +127,13 @@ struct StatusPresentation {
         }
 
         var parts: [String] = []
+        if let accountInfo {
+            parts.append("Account: \(accountInfo.displayName)")
+            if let email = accountInfo.email {
+                parts.append("Email: \(email)")
+            }
+            parts.append("Plan: \(accountInfo.planDisplayName)")
+        }
         if let plan = snapshot.planType {
             parts.append("Plan: \(plan)")
         }
