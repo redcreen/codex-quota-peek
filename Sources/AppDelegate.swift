@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let headerView = MenuHeaderView()
     private let primaryRowView = MenuValueRowView()
     private let secondaryRowView = MenuValueRowView()
+    private lazy var refreshRowView = MenuActionRowView(title: "Refresh Now", target: self, action: #selector(refreshNow(_:)))
     private var refreshTimer: Timer?
     private var lastPresentation = StatusPresentation.loading
 
@@ -66,8 +67,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         secondaryItem.isEnabled = false
         secondaryItem.tag = 1002
 
-        let refreshItem = NSMenuItem(title: "Refresh Now", action: #selector(refreshNow(_:)), keyEquivalent: "r")
-        refreshItem.target = self
+        let refreshItem = NSMenuItem()
+        refreshItem.view = refreshRowView
 
         let copyItem = NSMenuItem(title: "Copy Details", action: #selector(copyDetails(_:)), keyEquivalent: "c")
         copyItem.target = self

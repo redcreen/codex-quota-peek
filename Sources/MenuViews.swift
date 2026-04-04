@@ -98,3 +98,36 @@ final class MenuValueRowView: NSView {
         timeLabel.stringValue = time
     }
 }
+
+final class MenuActionRowView: NSView {
+    private let button: NSButton
+
+    init(title: String, target: AnyObject?, action: Selector?) {
+        self.button = NSButton(title: title, target: target, action: action)
+        super.init(frame: NSRect(x: 0, y: 0, width: 260, height: 30))
+        setup()
+    }
+
+    required init?(coder: NSCoder) {
+        return nil
+    }
+
+    private func setup() {
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.isBordered = false
+        button.bezelStyle = .inline
+        button.font = NSFont.systemFont(ofSize: 13, weight: .regular)
+        button.contentTintColor = .labelColor
+        button.alignment = .left
+        button.setButtonType(.momentaryChange)
+
+        addSubview(button)
+
+        NSLayoutConstraint.activate([
+            button.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            button.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
+            button.topAnchor.constraint(equalTo: topAnchor, constant: 2),
+            button.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -2)
+        ])
+    }
+}
