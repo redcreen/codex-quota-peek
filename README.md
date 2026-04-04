@@ -85,6 +85,55 @@ open "dist/CodexQuotaPeek.app"
 5. 修复旧快照误匹配、解析失败回退等问题
 6. 最后补上可直接分发的 `.app` 和 `.zip`
 
+#### 关键输入模板
+
+下面这组输入是本项目真正起作用的核心需求。别人如果想用 Codex 复现一个完整版本，可以直接参考这种表达方式：
+
+1. 产品目标  
+   帮我做一个 mac 的状态栏工具，显示 Codex 的限额；每分钟更新一次；像参考图那样展示。
+
+2. 交互反馈  
+   现在的问题是显示还是空值。  
+   目前显示还是不对。  
+   状态栏显示还是 88，但是实际是 86。
+
+3. 命名要求  
+   项目名字需要改一下，帮我想个名字，然后帮我改掉。  
+   名字改成 `Codex Quota Peek`。
+
+4. 发布要求  
+   帮我发到我的 GitHub 上，需要自动创建 repo，public。  
+   检查下代码里，不要有我的私人信息。  
+   把它做成一个可以下载直接使用的 app，然后把 app 发布到 GitHub 上。
+
+5. 文档要求  
+   使用说明补一下；用中英文；可以切换语言的说明；解决问题；使用方法；工作原理；制作过程。
+
+6. 菜单细化要求  
+   需要图标后，把时间给出来。  
+   菜单里显示窗口时长、剩余额度、重置时间。
+
+#### 为什么这组输入有效
+
+这组输入之所以能驱动 Codex 做出完整成品，是因为它覆盖了一个真实产品从头到尾最关键的五部分：
+
+- 目标：做什么
+- 样式：长什么样
+- 反馈：哪里不对
+- 发布：怎么交付
+- 文档：怎么让别人看懂和使用
+
+如果只给“帮我做一个状态栏工具”，通常只能得到一个初版 demo。  
+但如果把上面这些输入逐步补齐，Codex 就能继续把项目推进到：
+
+- 可运行
+- 可调试
+- 可修 bug
+- 可重命名
+- 可打包
+- 可发布
+- 可文档化
+
 ### 仓库内容
 
 - `Sources/`：Swift 源码
@@ -175,6 +224,55 @@ This project was built from scratch. The main steps were:
 5. Add the richer dropdown menu with percentage and reset time
 6. Fix stale snapshot matching and parsing edge cases
 7. Package the final `.app` and distributable `.zip`
+
+#### Key Prompt Inputs
+
+The following inputs were the most important prompts used to drive this project to a complete result. If someone wants to recreate a similar full app with Codex, this structure is a strong starting point:
+
+1. Product goal  
+   Build a macOS menu bar utility that shows Codex quota limits, refreshes automatically, and follows a visual reference.
+
+2. Iterative bug feedback  
+   The app still shows empty values.  
+   The display is still incorrect.  
+   The menu bar shows 88, but the real value is 86.
+
+3. Naming direction  
+   Suggest a better project name and rename the app.  
+   Final name: `Codex Quota Peek`.
+
+4. Publishing requirements  
+   Publish it to GitHub as a public repository.  
+   Check that the code does not contain private information.  
+   Package it as a directly downloadable app.
+
+5. Documentation requirements  
+   Add bilingual usage docs.  
+   Include language switching notes, solved problems, usage, working principle, and build process.
+
+6. Menu refinement  
+   Add an icon and show time information in the dropdown.  
+   Show window duration, remaining quota, and reset time.
+
+#### Why These Inputs Work
+
+These prompts work well because they cover the full lifecycle of a real product instead of only the first coding step:
+
+- goal
+- visual expectation
+- bug feedback
+- release requirements
+- documentation requirements
+
+If you only ask for “a menu bar app,” Codex will usually produce an initial prototype.  
+If you keep adding the kinds of inputs above, it can continue all the way through:
+
+- implementation
+- debugging
+- renaming
+- packaging
+- publishing
+- documentation
 
 ### Repository Contents
 
