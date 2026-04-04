@@ -28,11 +28,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let accountsStart = 2000
     }
 
-    private enum RefreshMode {
-        case automatic
-        case apiManual
-    }
-
     private enum PreferenceKey {
         static let showColors = "showColors"
         static let showPaceAlert = "showPaceAlert"
@@ -313,7 +308,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updatePreferenceMenuItems()
     }
 
-    private func refreshAsync(mode: RefreshMode) {
+    private func refreshAsync(mode: QuotaRefreshMode) {
         let provider = self.provider
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
@@ -327,7 +322,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                         return try provider.loadSnapshotUsingAPI()
                     }
                 }()
-                let result = resolvePreferredResult(fetchedResult, for: mode)
+        let result = resolvePreferredResult(fetchedResult, for: mode)
                 let accountInfo = provider.loadAccountInfo()
                 presentation = StatusPresentation(
                     snapshot: result.snapshot,
@@ -353,24 +348,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func resolvePreferredResult(
         _ fetchedResult: CodexQuotaFetchResult,
-        for mode: RefreshMode
+        for mode: QuotaRefreshMode
     ) -> CodexQuotaFetchResult {
+        let preferred = QuotaRefreshPolicy.preferredResult(
+            fetchedResult: fetchedResult,
+            mode: mode,
+            lastSuccessfulAPIResult: lastSuccessfulAPIResult
+        )
         if fetchedResult.source == .api {
             lastSuccessfulAPIResult = fetchedResult
-            return fetchedResult
         }
-
-        guard mode == .automatic, let recentAPI = lastSuccessfulAPIResult else {
-            return fetchedResult
-        }
-
-        let fetchedDate = fetchedResult.sourceDate ?? .distantPast
-        let apiDate = recentAPI.sourceDate ?? .distantPast
-        if fetchedDate < apiDate {
-            return recentAPI
-        }
-
-        return fetchedResult
+        return preferred
     }
 
     @objc

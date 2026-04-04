@@ -157,6 +157,17 @@ final class CodexQuotaProvider {
         return results
     }
 
+    static func parseRealtimeLogRow(_ row: String) -> CodexQuotaFetchResult? {
+        let provider = CodexQuotaProvider()
+        let parts = row.split(separator: "|", maxSplits: 1, omittingEmptySubsequences: false)
+        guard parts.count == 2 else { return nil }
+        let timestamp = Double(parts[0]).map(Date.init(timeIntervalSince1970:))
+        guard let snapshot = try? provider.decodeSnapshotIfPossible(fromLogBody: String(parts[1])) else {
+            return nil
+        }
+        return CodexQuotaFetchResult(snapshot: snapshot, source: .realtimeLogs, sourceDate: timestamp)
+    }
+
     private func latestFromUsageAPI() throws -> CodexQuotaFetchResult? {
         guard let auth = loadAuthFile(),
               let accessToken = auth.tokens.accessToken,
@@ -224,11 +235,8 @@ final class CodexQuotaProvider {
         }
 
         for candidate in output.split(separator: "\n") {
-            let parts = candidate.split(separator: "|", maxSplits: 1, omittingEmptySubsequences: false)
-            guard parts.count == 2 else { continue }
-            let timestamp = Double(parts[0]).map(Date.init(timeIntervalSince1970:))
-            if let snapshot = try decodeSnapshotIfPossible(fromLogBody: String(parts[1])) {
-                return CodexQuotaFetchResult(snapshot: snapshot, source: .realtimeLogs, sourceDate: timestamp)
+            if let parsed = Self.parseRealtimeLogRow(String(candidate)) {
+                return parsed
             }
         }
 

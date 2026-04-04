@@ -73,6 +73,12 @@ A lightweight macOS menu bar app for checking the latest Codex quota usage at a 
 ./scripts/package_release.sh
 ```
 
+运行回归测试：
+
+```bash
+./scripts/test.sh
+```
+
 构建完成后可直接运行：
 
 ```bash
@@ -207,6 +213,7 @@ open "dist/CodexQuotaPeek.app"
 
 - `Sources/`：Swift 源码
 - `scripts/build_app.sh`：构建 `.app`
+- `scripts/test.sh`：运行回归测试
 - `scripts/package_release.sh`：打包 zip 发布文件
 - `release/CodexQuotaPeek-mac.zip`：可直接下载使用的应用压缩包
 
