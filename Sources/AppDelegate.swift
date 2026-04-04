@@ -80,14 +80,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc
     private func toggleMenu(_ sender: Any?) {
         if isMenuOpen {
-            statusItem.menu = nil
-            statusItem.button?.performClick(nil)
+            menu.cancelTracking()
             return
         }
 
-        statusItem.menu = menu
-        statusItem.button?.performClick(nil)
-        statusItem.menu = nil
+        statusItem.button?.highlight(true)
+        statusItem.popUpMenu(menu)
+        statusItem.button?.highlight(false)
     }
 
     private func configureMenu() {
