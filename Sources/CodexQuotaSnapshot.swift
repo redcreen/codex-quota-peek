@@ -165,7 +165,7 @@ struct StatusPresentation {
         }
         paceMessage = StatusPresentation.paceMessage(primary: primary, secondary: secondary)
         paceSeverity = StatusPresentation.paceSeverity(primary: primary, secondary: secondary)
-        updatedAtText = StatusPresentation.dateFormatter.string(from: generatedAt)
+        updatedAtText = StatusPresentation.relativeUpdatedAtLabel(for: generatedAt)
 
         var parts: [String] = []
         if let accountInfo {
@@ -296,5 +296,13 @@ struct StatusPresentation {
         case nil:
             return ""
         }
+    }
+
+    private static func relativeUpdatedAtLabel(for date: Date, now: Date = Date()) -> String {
+        let seconds = max(0, Int(now.timeIntervalSince(date)))
+        if seconds < 60 {
+            return "\(seconds)s"
+        }
+        return "\(seconds / 60)m"
     }
 }
