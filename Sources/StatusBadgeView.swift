@@ -65,13 +65,25 @@ final class StatusBadgeView: NSView {
         let parts = text.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: false)
         let prefix = parts.first.map(String.init) ?? text
         let suffix = parts.count > 1 ? String(parts[1]) : ""
+        let components = splitPercentComponents(suffix)
 
         prefix.draw(at: NSPoint(x: baseX, y: yOffset), withAttributes: prefixAttributes)
-        suffix.draw(
+        components.value.draw(
             at: NSPoint(x: baseX + prefixColumnWidth, y: yOffset),
             withAttributes: [
                 .font: NSFont.monospacedDigitSystemFont(ofSize: 8, weight: .semibold),
-                .foregroundColor: quotaColor(for: suffix)
+                .foregroundColor: quotaColor(for: components.value)
+            ]
+        )
+
+        guard !components.marker.isEmpty else { return }
+
+        let markerX = baseX + prefixColumnWidth + ceil(components.value.size(withAttributes: prefixAttributes).width)
+        components.marker.draw(
+            at: NSPoint(x: markerX, y: yOffset),
+            withAttributes: [
+                .font: NSFont.monospacedDigitSystemFont(ofSize: 8, weight: .bold),
+                .foregroundColor: paceColor(for: components.marker)
             ]
         )
     }
@@ -81,6 +93,12 @@ final class StatusBadgeView: NSView {
         let suffix = parts.count > 1 ? String(parts[1]) : ""
         let suffixWidth = ceil(suffix.size(withAttributes: prefixAttributes).width)
         return prefixColumnWidth + suffixWidth
+    }
+
+    private func splitPercentComponents(_ text: String) -> (value: String, marker: String) {
+        let marker = text.filter { $0 == "!" }
+        let value = text.replacingOccurrences(of: "!", with: "")
+        return (value, marker)
     }
 
     private func quotaColor(for text: String) -> NSColor {
@@ -100,6 +118,13 @@ final class StatusBadgeView: NSView {
             return NSColor(calibratedRed: 0.98, green: 0.83, blue: 0.28, alpha: 1.0)
         }
         return NSColor(calibratedRed: 0.43, green: 0.93, blue: 0.58, alpha: 1.0)
+    }
+
+    private func paceColor(for marker: String) -> NSColor {
+        guard showsColors else { return .white }
+        return marker == "!!"
+            ? NSColor(calibratedRed: 1.0, green: 0.34, blue: 0.32, alpha: 1.0)
+            : NSColor(calibratedRed: 0.98, green: 0.83, blue: 0.28, alpha: 1.0)
     }
 
     private func invalidateLayout() {
