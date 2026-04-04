@@ -6,8 +6,13 @@ enum QuotaRefreshPolicy {
     static func preferredResult(
         fetchedResult: CodexQuotaFetchResult,
         mode: QuotaRefreshMode,
-        lastSuccessfulAPIResult: CodexQuotaFetchResult?
+        lastSuccessfulAPIResult: CodexQuotaFetchResult?,
+        lastAcceptedResult: CodexQuotaFetchResult?
     ) -> CodexQuotaFetchResult {
+        if let lastAcceptedResult, shouldKeepLastAccepted(lastAcceptedResult, over: fetchedResult) {
+            return lastAcceptedResult
+        }
+
         if fetchedResult.source == .api {
             return fetchedResult
         }
@@ -29,6 +34,19 @@ enum QuotaRefreshPolicy {
         return fetchedResult
     }
 
+    private static func shouldKeepLastAccepted(
+        _ lastAcceptedResult: CodexQuotaFetchResult,
+        over fetchedResult: CodexQuotaFetchResult
+    ) -> Bool {
+        snapshotLooksStale(
+            fetchedResult.snapshot.rateLimits.primary,
+            comparedTo: lastAcceptedResult.snapshot.rateLimits.primary
+        ) || snapshotLooksStale(
+            fetchedResult.snapshot.rateLimits.secondary,
+            comparedTo: lastAcceptedResult.snapshot.rateLimits.secondary
+        )
+    }
+
     private static func shouldPreferAPIResult(
         _ apiResult: CodexQuotaFetchResult,
         over fetchedResult: CodexQuotaFetchResult
@@ -43,14 +61,23 @@ enum QuotaRefreshPolicy {
     }
 
     private static func windowLooksStale(_ fetched: LimitWindow?, comparedTo api: LimitWindow?) -> Bool {
-        guard let api else { return false }
+        snapshotLooksStale(fetched, comparedTo: api)
+    }
+
+    private static func snapshotLooksStale(_ fetched: LimitWindow?, comparedTo current: LimitWindow?) -> Bool {
+        guard let current else { return false }
         guard let fetched else { return true }
 
-        if let fetchedResetAt = fetched.resetAt, let apiResetAt = api.resetAt, fetchedResetAt < apiResetAt {
-            return true
+        if let fetchedResetAt = fetched.resetAt, let currentResetAt = current.resetAt {
+            if fetchedResetAt < currentResetAt {
+                return true
+            }
+            if fetchedResetAt > currentResetAt {
+                return false
+            }
         }
 
-        return false
+        return fetched.remainingPercent > current.remainingPercent
     }
 }
 

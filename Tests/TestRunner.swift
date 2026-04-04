@@ -83,7 +83,8 @@ func testAutomaticRefreshPrefersRecentAPIOverOlderLogs() {
     let preferred = QuotaRefreshPolicy.preferredResult(
         fetchedResult: staleLogs,
         mode: .automatic,
-        lastSuccessfulAPIResult: recentAPI
+        lastSuccessfulAPIResult: recentAPI,
+        lastAcceptedResult: nil
     )
 
     expect(preferred.source == .api, "automatic refresh keeps newer API snapshot over stale logs")
@@ -107,7 +108,8 @@ func testAutomaticRefreshAllowsLogsAfterTheyCatchUp() {
     let preferred = QuotaRefreshPolicy.preferredResult(
         fetchedResult: freshLogs,
         mode: .automatic,
-        lastSuccessfulAPIResult: recentAPI
+        lastSuccessfulAPIResult: recentAPI,
+        lastAcceptedResult: nil
     )
 
     expect(preferred.source == .realtimeLogs, "automatic refresh accepts logs after they catch up")
@@ -147,7 +149,8 @@ func testAutomaticRefreshPrefersAPIWhenLogsShowOlderResetWindow() {
     let preferred = QuotaRefreshPolicy.preferredResult(
         fetchedResult: staleLogs,
         mode: .automatic,
-        lastSuccessfulAPIResult: recentAPI
+        lastSuccessfulAPIResult: recentAPI,
+        lastAcceptedResult: nil
     )
 
     expect(preferred.source == .api, "automatic refresh keeps API when logs belong to an older reset window")
@@ -170,7 +173,8 @@ func testManualRefreshDoesNotForceCachedAPIOverFetchedLogs() {
     let preferred = QuotaRefreshPolicy.preferredResult(
         fetchedResult: fallbackLogs,
         mode: .apiManual,
-        lastSuccessfulAPIResult: recentAPI
+        lastSuccessfulAPIResult: recentAPI,
+        lastAcceptedResult: nil
     )
 
     expect(preferred.source == .realtimeLogs, "manual refresh uses fetched fallback result if API is unavailable")
@@ -286,6 +290,46 @@ func testRefreshRequestGateOnlyAppliesLatestRequest() {
     expect(gate.shouldApply(second), "latest refresh request is allowed to apply")
 }
 
+func testAutomaticRefreshDoesNotRegressWithinSameResetWindow() {
+    let currentAccepted = CodexQuotaFetchResult(
+        snapshot: CodexQuotaSnapshot(
+            planType: "pro",
+            rateLimits: RateLimits(
+                allowed: true,
+                limitReached: false,
+                primary: makeWindow(usedPercent: 27, windowMinutes: 300, resetAfterSeconds: 100, resetAt: 5_000),
+                secondary: makeWindow(usedPercent: 14, windowMinutes: 10080, resetAfterSeconds: 100, resetAt: 9_000)
+            ),
+            credits: nil
+        ),
+        source: .realtimeLogs,
+        sourceDate: Date(timeIntervalSince1970: 3_000)
+    )
+    let regressedLogs = CodexQuotaFetchResult(
+        snapshot: CodexQuotaSnapshot(
+            planType: "pro",
+            rateLimits: RateLimits(
+                allowed: true,
+                limitReached: false,
+                primary: makeWindow(usedPercent: 17, windowMinutes: 300, resetAfterSeconds: 100, resetAt: 5_000),
+                secondary: makeWindow(usedPercent: 5, windowMinutes: 10080, resetAfterSeconds: 100, resetAt: 9_000)
+            ),
+            credits: nil
+        ),
+        source: .realtimeLogs,
+        sourceDate: Date(timeIntervalSince1970: 3_100)
+    )
+
+    let preferred = QuotaRefreshPolicy.preferredResult(
+        fetchedResult: regressedLogs,
+        mode: .automatic,
+        lastSuccessfulAPIResult: nil,
+        lastAcceptedResult: currentAccepted
+    )
+
+    expect(preferred.snapshot.rateLimits.secondary?.remainingPercent == 86, "same reset window does not regress to older higher remaining percent")
+}
+
 @main
 struct TestRunner {
     static func main() {
@@ -300,6 +344,7 @@ struct TestRunner {
         testAuthSnapshotStoreReadsSavedAccountMetadata()
         testCliHelpPrefersRefreshOverUpdate()
         testRefreshRequestGateOnlyAppliesLatestRequest()
+        testAutomaticRefreshDoesNotRegressWithinSameResetWindow()
         print("All tests passed.")
     }
 }

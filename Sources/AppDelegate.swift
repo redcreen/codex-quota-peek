@@ -59,6 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var shouldReopenMenuAfterRefresh = false
     private var feedbackHideWorkItem: DispatchWorkItem?
     private var lastSuccessfulAPIResult: CodexQuotaFetchResult?
+    private var lastAcceptedResult: CodexQuotaFetchResult?
     private var accountItemLookup: [Int: CodexKnownAccount] = [:]
     private var refreshRequestGate = RefreshRequestGate()
 
@@ -445,11 +446,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let preferred = QuotaRefreshPolicy.preferredResult(
             fetchedResult: fetchedResult,
             mode: mode,
-            lastSuccessfulAPIResult: lastSuccessfulAPIResult
+            lastSuccessfulAPIResult: lastSuccessfulAPIResult,
+            lastAcceptedResult: lastAcceptedResult
         )
         if fetchedResult.source == .api {
             lastSuccessfulAPIResult = fetchedResult
         }
+        lastAcceptedResult = preferred
         return preferred
     }
 
