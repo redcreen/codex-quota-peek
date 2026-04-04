@@ -45,6 +45,14 @@ A lightweight macOS menu bar app for checking the latest Codex quota usage at a 
 
 ### 使用方法
 
+#### 环境要求
+
+- 目前只支持 macOS
+- 菜单栏 app 最低要求：macOS 13.0+
+- CLI 目前同样只在 macOS 上验证和支持
+- 需要本机已安装并使用过 Codex，且存在 `~/.codex` 目录
+- CLI 会安装到当前 PATH 中可写的目录，例如 `/opt/homebrew/bin` 或 `~/.local/bin`
+
 #### 直接下载使用
 
 1. 在仓库中下载 `release/CodexQuotaPeek-mac.zip`
@@ -280,6 +288,14 @@ This app is built to solve a few practical issues:
 - You can spot when your current consumption pace is ahead of the average window pace
 
 ### How To Use
+
+#### Requirements
+
+- Currently supports macOS only
+- Minimum version for the menu bar app: macOS 13.0+
+- The CLI is also currently tested and supported on macOS only
+- Requires a local Codex setup with an existing `~/.codex` directory
+- The CLI installs into a writable directory already in your PATH, such as `/opt/homebrew/bin` or `~/.local/bin`
 
 #### Download and use directly
 
