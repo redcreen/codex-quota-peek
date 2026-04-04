@@ -50,7 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func configureMenu() {
-        let titleItem = NSMenuItem(title: "QuotaPeek", action: nil, keyEquivalent: "")
+        let titleItem = NSMenuItem(title: "Codex Quota Peek", action: nil, keyEquivalent: "")
         titleItem.isEnabled = false
 
         let detailsItem = NSMenuItem(title: "Loading...", action: nil, keyEquivalent: "")

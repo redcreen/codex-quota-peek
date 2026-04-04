@@ -17,7 +17,7 @@ final class CodexQuotaProvider {
             return archived
         }
         throw NSError(
-            domain: "QuotaPeek",
+            domain: "CodexQuotaPeek",
             code: 1,
             userInfo: [NSLocalizedDescriptionKey: "No Codex rate limit data found in ~/.codex."]
         )
@@ -86,7 +86,7 @@ final class CodexQuotaProvider {
         guard let jsonString = extractJSONObject(in: logBody, prefix: #"{"type":"codex.rate_limits""#),
               let data = jsonString.data(using: .utf8) else {
             throw NSError(
-                domain: "QuotaPeek",
+                domain: "CodexQuotaPeek",
                 code: 2,
                 userInfo: [NSLocalizedDescriptionKey: "Could not parse Codex rate limit event."]
             )
@@ -152,7 +152,7 @@ final class CodexQuotaProvider {
 
         guard process.terminationStatus == 0 else {
             throw NSError(
-                domain: "QuotaPeek",
+                domain: "CodexQuotaPeek",
                 code: Int(process.terminationStatus),
                 userInfo: [NSLocalizedDescriptionKey: error.isEmpty ? "sqlite3 exited with code \(process.terminationStatus)." : error]
             )
