@@ -3,6 +3,8 @@ import Darwin
 import Foundation
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+    private static let activeHourOptions = [8, 10, 12, 14, 16]
+
     private enum MenuTag {
         static let title = 100
         static let account = 101
@@ -174,7 +176,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc
     private func selectActiveHoursPerDay(_ sender: NSMenuItem) {
         let hours = sender.tag - MenuTag.activeHoursStart
-        guard (1...24).contains(hours) else { return }
+        guard Self.activeHourOptions.contains(hours) else { return }
         defaults.set(hours, forKey: PreferenceKey.activeHoursPerDay)
         updatePreferenceMenuItems()
         refreshAsync(mode: .automatic)
@@ -394,7 +396,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let activeHoursPerDayItem = NSMenuItem(title: "Active Hours / Day", action: nil, keyEquivalent: "")
         activeHoursPerDayItem.tag = MenuTag.activeHoursPerDay
         let activeHoursPerDayMenu = NSMenu(title: "Active Hours / Day")
-        for hours in 6...18 {
+        for hours in Self.activeHourOptions {
             let item = NSMenuItem(title: "\(hours) hours", action: #selector(selectActiveHoursPerDay(_:)), keyEquivalent: "")
             item.tag = MenuTag.activeHoursStart + hours
             item.target = self
@@ -778,7 +780,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item(MenuTag.showLastUpdated)?.state = showsLastUpdated ? .on : .off
         item(MenuTag.weeklyPacingFullWeek)?.state = selectedWeeklyPacingMode == .fullWeek24x7 ? .on : .off
         item(MenuTag.weeklyPacingActiveHours)?.state = selectedWeeklyPacingMode == .activeHoursCustom ? .on : .off
-        for hours in 6...18 {
+        for hours in Self.activeHourOptions {
             item(MenuTag.activeHoursStart + hours)?.state = selectedActiveHoursPerDay == hours ? .on : .off
         }
     }
@@ -1210,7 +1212,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private var selectedActiveHoursPerDay: Int {
-        min(max(defaults.integer(forKey: PreferenceKey.activeHoursPerDay), 6), 18)
+        let saved = defaults.integer(forKey: PreferenceKey.activeHoursPerDay)
+        return Self.activeHourOptions.contains(saved) ? saved : 16
     }
 }
 
