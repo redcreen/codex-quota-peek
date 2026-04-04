@@ -521,8 +521,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item(MenuTag.paceNotice)?.attributedTitle = styledMutedStatus("Pace normal")
         }
 
-        item(MenuTag.updatedAt)?.isHidden = !showsLastUpdated
-        item(MenuTag.updatedAt)?.attributedTitle = styledUpdatedAt(presentation.updatedAtText)
+        item(MenuTag.updatedAt)?.isHidden = false
+        item(MenuTag.updatedAt)?.attributedTitle = showsLastUpdated
+            ? styledUpdatedAt(presentation.updatedAtText)
+            : styledMutedStatus("Last updated hidden")
     }
 
     private func item(_ tag: Int) -> NSMenuItem? {
@@ -657,8 +659,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func styledQuotaRow(label: String, percent: String, reset: String) -> NSAttributedString {
         let paddedLabel = label.padding(toLength: 10, withPad: " ", startingAt: 0)
-        let paddedPercent = percent.leftPadding(toLength: 4)
         let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
+        let (percentValue, percentMarker) = splitPercentComponents(percent)
+        let paddedPercentValue = percentValue.leftPadding(toLength: 4)
+        let paddedPercentMarker = percentMarker.padding(toLength: 2, withPad: " ", startingAt: 0)
         let line = NSMutableAttributedString(
             string: "\(paddedLabel)  ",
             attributes: [
@@ -668,7 +672,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
         line.append(
             NSAttributedString(
-                string: paddedPercent,
+                string: paddedPercentValue,
+                attributes: [
+                    .font: font,
+                    .foregroundColor: quotaColor(for: percent)
+                ]
+            )
+        )
+        line.append(
+            NSAttributedString(
+                string: paddedPercentMarker,
                 attributes: [
                     .font: font,
                     .foregroundColor: quotaColor(for: percent)
@@ -685,6 +698,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             )
         )
         return line
+    }
+
+    private func splitPercentComponents(_ percentText: String) -> (String, String) {
+        let marker = percentText.filter { $0 == "!" }
+        let value = percentText.replacingOccurrences(of: "!", with: "")
+        return (value, marker)
     }
 
     private func quotaColor(for percentText: String) -> NSColor {
