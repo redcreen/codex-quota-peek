@@ -69,10 +69,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let button = statusItem.button {
             button.title = ""
             button.imagePosition = .imageOnly
+            button.target = self
+            button.action = #selector(toggleMenu(_:))
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
 
         menu.delegate = self
+    }
+
+    @objc
+    private func toggleMenu(_ sender: Any?) {
+        if isMenuOpen {
+            statusItem.menu = nil
+            statusItem.button?.performClick(nil)
+            return
+        }
+
         statusItem.menu = menu
+        statusItem.button?.performClick(nil)
+        statusItem.menu = nil
     }
 
     private func configureMenu() {
