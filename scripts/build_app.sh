@@ -8,8 +8,27 @@ CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
 EXECUTABLE="$MACOS_DIR/CodexQuotaPeek"
+ICON_PNG="$BUILD_DIR/AppIcon.png"
+ICONSET_DIR="$BUILD_DIR/AppIcon.iconset"
+ICON_ICNS="$RESOURCES_DIR/AppIcon.icns"
 
 mkdir -p "$BUILD_DIR" "$MACOS_DIR" "$RESOURCES_DIR"
+
+/usr/bin/swift "$ROOT_DIR/scripts/generate_icon.swift" "$ICON_PNG"
+
+rm -rf "$ICONSET_DIR"
+mkdir -p "$ICONSET_DIR"
+/usr/bin/sips -z 16 16 "$ICON_PNG" --out "$ICONSET_DIR/icon_16x16.png" >/dev/null
+/usr/bin/sips -z 32 32 "$ICON_PNG" --out "$ICONSET_DIR/icon_16x16@2x.png" >/dev/null
+/usr/bin/sips -z 32 32 "$ICON_PNG" --out "$ICONSET_DIR/icon_32x32.png" >/dev/null
+/usr/bin/sips -z 64 64 "$ICON_PNG" --out "$ICONSET_DIR/icon_32x32@2x.png" >/dev/null
+/usr/bin/sips -z 128 128 "$ICON_PNG" --out "$ICONSET_DIR/icon_128x128.png" >/dev/null
+/usr/bin/sips -z 256 256 "$ICON_PNG" --out "$ICONSET_DIR/icon_128x128@2x.png" >/dev/null
+/usr/bin/sips -z 256 256 "$ICON_PNG" --out "$ICONSET_DIR/icon_256x256.png" >/dev/null
+/usr/bin/sips -z 512 512 "$ICON_PNG" --out "$ICONSET_DIR/icon_256x256@2x.png" >/dev/null
+/usr/bin/sips -z 512 512 "$ICON_PNG" --out "$ICONSET_DIR/icon_512x512.png" >/dev/null
+cp "$ICON_PNG" "$ICONSET_DIR/icon_512x512@2x.png"
+/usr/bin/iconutil -c icns "$ICONSET_DIR" -o "$ICON_ICNS"
 
 /usr/bin/swiftc \
   -O \
@@ -35,6 +54,8 @@ cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
   <string>local.codexquotapeek</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
   <key>CFBundleName</key>
   <string>CodexQuotaPeek</string>
   <key>CFBundlePackageType</key>
