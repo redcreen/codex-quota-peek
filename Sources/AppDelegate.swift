@@ -19,7 +19,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let launchAtLogin = 112
         static let openCodexFolder = 113
         static let openLogsDatabase = 114
+        static let showColors = 115
+        static let showPaceAlert = 116
+        static let showLastUpdated = 117
         static let accountsStart = 2000
+    }
+
+    private enum PreferenceKey {
+        static let showColors = "showColors"
+        static let showPaceAlert = "showPaceAlert"
+        static let showLastUpdated = "showLastUpdated"
     }
 
     private let provider = CodexQuotaProvider()
@@ -27,6 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let badgeView = StatusBadgeView(frame: NSRect(x: 0, y: 0, width: 56, height: 24))
     private let menu = NSMenu()
     private let homeDirectory = FileManager.default.homeDirectoryForCurrentUser
+    private let defaults = UserDefaults.standard
     private var refreshTimer: Timer?
     private var lastPresentation = StatusPresentation.loading
     private var isMenuOpen = false
@@ -42,6 +52,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        defaults.register(defaults: [
+            PreferenceKey.showColors: true,
+            PreferenceKey.showPaceAlert: true,
+            PreferenceKey.showLastUpdated: true
+        ])
         configureStatusItem()
         configureMenu()
         setupFileWatchers()
@@ -86,6 +101,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSWorkspace.shared.activateFileViewerSelecting([
             homeDirectory.appendingPathComponent(".codex/logs_1.sqlite")
         ])
+    }
+
+    @objc
+    private func toggleShowColors(_ sender: Any?) {
+        defaults.set(!showsColors, forKey: PreferenceKey.showColors)
+        updatePreferenceMenuItems()
+        apply(lastPresentation)
+    }
+
+    @objc
+    private func toggleShowPaceAlert(_ sender: Any?) {
+        defaults.set(!showsPaceAlert, forKey: PreferenceKey.showPaceAlert)
+        updatePreferenceMenuItems()
+        apply(lastPresentation)
+    }
+
+    @objc
+    private func toggleShowLastUpdated(_ sender: Any?) {
+        defaults.set(!showsLastUpdated, forKey: PreferenceKey.showLastUpdated)
+        updatePreferenceMenuItems()
+        apply(lastPresentation)
     }
 
     @objc
@@ -177,6 +213,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         openLogsDatabaseItem.tag = MenuTag.openLogsDatabase
         openLogsDatabaseItem.target = self
 
+        let showColorsItem = NSMenuItem(title: "Show Colors", action: #selector(toggleShowColors(_:)), keyEquivalent: "")
+        showColorsItem.tag = MenuTag.showColors
+        showColorsItem.target = self
+
+        let showPaceAlertItem = NSMenuItem(title: "Show Pace Alert", action: #selector(toggleShowPaceAlert(_:)), keyEquivalent: "")
+        showPaceAlertItem.tag = MenuTag.showPaceAlert
+        showPaceAlertItem.target = self
+
+        let showLastUpdatedItem = NSMenuItem(title: "Show Last Updated", action: #selector(toggleShowLastUpdated(_:)), keyEquivalent: "")
+        showLastUpdatedItem.tag = MenuTag.showLastUpdated
+        showLastUpdatedItem.target = self
+
         let launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin(_:)), keyEquivalent: "")
         launchAtLoginItem.tag = MenuTag.launchAtLogin
         launchAtLoginItem.target = self
@@ -202,12 +250,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             copyItem,
             openCodexFolderItem,
             openLogsDatabaseItem,
+            showColorsItem,
+            showPaceAlertItem,
+            showLastUpdatedItem,
             launchAtLoginItem,
             .separator(),
             quitItem
         ]
 
         updateLaunchAtLoginMenuItem()
+        updatePreferenceMenuItems()
     }
 
     private func refreshAsync() {
@@ -366,6 +418,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         lastPresentation = presentation
         badgeView.line1 = presentation.line1
         badgeView.line2 = presentation.line2
+        badgeView.showsColors = showsColors
 
         let image = badgeView.renderedImage()
         statusItem.button?.image = image
@@ -421,7 +474,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             )
         }
 
-        if let paceMessage = presentation.paceMessage {
+        if showsPaceAlert, let paceMessage = presentation.paceMessage {
             item(MenuTag.paceNotice)?.isHidden = false
             item(MenuTag.paceNotice)?.attributedTitle = styledPaceNotice(
                 paceMessage,
@@ -432,6 +485,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item(MenuTag.paceNotice)?.title = ""
         }
 
+        item(MenuTag.updatedAt)?.isHidden = !showsLastUpdated
         item(MenuTag.updatedAt)?.attributedTitle = styledUpdatedAt(presentation.updatedAtText)
     }
 
@@ -441,6 +495,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func updateLaunchAtLoginMenuItem() {
         item(MenuTag.launchAtLogin)?.state = isLaunchAtLoginEnabled() ? .on : .off
+    }
+
+    private func updatePreferenceMenuItems() {
+        item(MenuTag.showColors)?.state = showsColors ? .on : .off
+        item(MenuTag.showPaceAlert)?.state = showsPaceAlert ? .on : .off
+        item(MenuTag.showLastUpdated)?.state = showsLastUpdated ? .on : .off
     }
 
     func menuWillOpen(_ menu: NSMenu) {
@@ -657,6 +717,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         return String(data: outputPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+    }
+
+    private var showsColors: Bool {
+        defaults.bool(forKey: PreferenceKey.showColors)
+    }
+
+    private var showsPaceAlert: Bool {
+        defaults.bool(forKey: PreferenceKey.showPaceAlert)
+    }
+
+    private var showsLastUpdated: Bool {
+        defaults.bool(forKey: PreferenceKey.showLastUpdated)
     }
 }
 

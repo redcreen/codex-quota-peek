@@ -1,6 +1,10 @@
 import AppKit
 
 final class StatusBadgeView: NSView {
+    var showsColors: Bool = true {
+        didSet { invalidateLayout() }
+    }
+
     var line1: String = "H --" {
         didSet { invalidateLayout() }
     }
@@ -80,6 +84,7 @@ final class StatusBadgeView: NSView {
     }
 
     private func quotaColor(for text: String) -> NSColor {
+        guard showsColors else { return .white }
         guard let percent = Int(
             text
                 .replacingOccurrences(of: "%", with: "")
