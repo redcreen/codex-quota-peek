@@ -280,6 +280,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             openLogsDatabaseItem,
             preferencesItem,
             .separator(),
+            .separator(),
             quitItem
         ]
 
