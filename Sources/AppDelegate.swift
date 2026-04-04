@@ -19,9 +19,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let launchAtLogin = 112
         static let openCodexFolder = 113
         static let openLogsDatabase = 114
-        static let showColors = 115
-        static let showPaceAlert = 116
-        static let showLastUpdated = 117
+        static let preferences = 115
+        static let showColors = 116
+        static let showPaceAlert = 117
+        static let showLastUpdated = 118
         static let accountsStart = 2000
     }
 
@@ -213,6 +214,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         openLogsDatabaseItem.tag = MenuTag.openLogsDatabase
         openLogsDatabaseItem.target = self
 
+        let preferencesItem = NSMenuItem(title: "Preferences", action: nil, keyEquivalent: "")
+        preferencesItem.tag = MenuTag.preferences
+
         let showColorsItem = NSMenuItem(title: "Show Colors", action: #selector(toggleShowColors(_:)), keyEquivalent: "")
         showColorsItem.tag = MenuTag.showColors
         showColorsItem.target = self
@@ -228,6 +232,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin(_:)), keyEquivalent: "")
         launchAtLoginItem.tag = MenuTag.launchAtLogin
         launchAtLoginItem.target = self
+
+        let preferencesMenu = NSMenu(title: "Preferences")
+        preferencesMenu.items = [
+            showColorsItem,
+            showPaceAlertItem,
+            showLastUpdatedItem,
+            .separator(),
+            launchAtLoginItem
+        ]
+        preferencesItem.submenu = preferencesMenu
 
         let quitItem = NSMenuItem(title: "Quit", action: #selector(quit(_:)), keyEquivalent: "q")
         quitItem.tag = MenuTag.quit
@@ -250,10 +264,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             copyItem,
             openCodexFolderItem,
             openLogsDatabaseItem,
-            showColorsItem,
-            showPaceAlertItem,
-            showLastUpdatedItem,
-            launchAtLoginItem,
+            preferencesItem,
             .separator(),
             quitItem
         ]
@@ -490,7 +501,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func item(_ tag: Int) -> NSMenuItem? {
-        menu.item(withTag: tag)
+        findItem(in: menu, tag: tag)
+    }
+
+    private func findItem(in menu: NSMenu, tag: Int) -> NSMenuItem? {
+        for item in menu.items {
+            if item.tag == tag {
+                return item
+            }
+            if let submenu = item.submenu, let match = findItem(in: submenu, tag: tag) {
+                return match
+            }
+        }
+        return nil
     }
 
     private func updateLaunchAtLoginMenuItem() {
