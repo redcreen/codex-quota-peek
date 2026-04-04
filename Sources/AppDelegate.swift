@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let quit = 107
         static let recentAccountsHeader = 108
         static let paceNotice = 109
+        static let updatedAt = 110
         static let accountsStart = 2000
     }
 
@@ -138,6 +139,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         paceNoticeItem.isEnabled = false
         paceNoticeItem.isHidden = true
 
+        let updatedAtItem = NSMenuItem(title: "Last updated: --", action: nil, keyEquivalent: "")
+        updatedAtItem.tag = MenuTag.updatedAt
+        updatedAtItem.isEnabled = false
+
         let refreshItem = NSMenuItem(title: "Refresh Now", action: #selector(refreshNow(_:)), keyEquivalent: "")
         refreshItem.tag = MenuTag.refresh
         refreshItem.target = self
@@ -160,6 +165,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             primaryItem,
             secondaryItem,
             paceNoticeItem,
+            updatedAtItem,
             .separator(),
             refreshItem,
             copyItem,
@@ -272,6 +278,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item(MenuTag.paceNotice)?.isHidden = true
             item(MenuTag.paceNotice)?.title = ""
         }
+
+        item(MenuTag.updatedAt)?.attributedTitle = styledUpdatedAt(presentation.updatedAtText)
     }
 
     private func item(_ tag: Int) -> NSMenuItem? {
@@ -417,6 +425,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             attributes: [
                 .font: NSFont.systemFont(ofSize: 11, weight: .medium),
                 .foregroundColor: severity == .critical ? NSColor.systemRed : NSColor.systemYellow
+            ]
+        )
+    }
+
+    private func styledUpdatedAt(_ text: String) -> NSAttributedString {
+        NSAttributedString(
+            string: "Last updated: \(text)",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11, weight: .regular),
+                .foregroundColor: NSColor.secondaryLabelColor
             ]
         )
     }

@@ -92,6 +92,7 @@ struct StatusPresentation {
     let secondaryRow: MenuRow?
     let paceMessage: String?
     let paceSeverity: PaceSeverity?
+    let updatedAtText: String
 
     init(
         line1: String,
@@ -102,7 +103,8 @@ struct StatusPresentation {
         primaryRow: MenuRow? = nil,
         secondaryRow: MenuRow? = nil,
         paceMessage: String? = nil,
-        paceSeverity: PaceSeverity? = nil
+        paceSeverity: PaceSeverity? = nil,
+        updatedAtText: String = "--"
     ) {
         self.line1 = line1
         self.line2 = line2
@@ -113,6 +115,7 @@ struct StatusPresentation {
         self.secondaryRow = secondaryRow
         self.paceMessage = paceMessage
         self.paceSeverity = paceSeverity
+        self.updatedAtText = updatedAtText
     }
 
     static let loading = StatusPresentation(
@@ -127,7 +130,8 @@ struct StatusPresentation {
             line2: "W --",
             tooltip: reason,
             paceMessage: nil,
-            paceSeverity: nil
+            paceSeverity: nil,
+            updatedAtText: "--"
         )
     }
 
@@ -161,6 +165,7 @@ struct StatusPresentation {
         }
         paceMessage = StatusPresentation.paceMessage(primary: primary, secondary: secondary)
         paceSeverity = StatusPresentation.paceSeverity(primary: primary, secondary: secondary)
+        updatedAtText = StatusPresentation.dateFormatter.string(from: generatedAt)
 
         var parts: [String] = []
         if let accountInfo {
