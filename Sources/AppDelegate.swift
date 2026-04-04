@@ -22,9 +22,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSApp.setActivationPolicy(.accessory)
         configureStatusItem()
         configureMenu()
-        refresh()
+        refreshAsync()
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-            self?.refresh()
+            self?.refreshAsync()
         }
     }
 
@@ -34,7 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc
     private func refreshNow(_ sender: Any?) {
-        refresh()
+        refreshAsync()
     }
 
     @objc
@@ -120,14 +120,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ]
     }
 
-    private func refresh() {
-        do {
-            let snapshot = try provider.loadSnapshot()
-            let accountInfo = provider.loadAccountInfo()
-            let presentation = StatusPresentation(snapshot: snapshot, accountInfo: accountInfo, generatedAt: Date())
-            apply(presentation)
-        } catch {
-            apply(.unavailable(error.localizedDescription))
+    private func refreshAsync() {
+        let provider = self.provider
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
+            let presentation: StatusPresentation
+            do {
+                let snapshot = try provider.loadSnapshot()
+                let accountInfo = provider.loadAccountInfo()
+                presentation = StatusPresentation(snapshot: snapshot, accountInfo: accountInfo, generatedAt: Date())
+            } catch {
+                presentation = .unavailable(error.localizedDescription)
+            }
+
+            DispatchQueue.main.async {
+                self.apply(presentation)
+            }
         }
     }
 
@@ -171,7 +179,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func menuWillOpen(_ menu: NSMenu) {
-        refresh()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            self?.refreshAsync()
+        }
     }
 
     private func rebuildAccountsMenu() {
