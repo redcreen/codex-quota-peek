@@ -36,7 +36,7 @@ enum WeeklyPacingMode: String, CaseIterable {
     var label: String {
         switch self {
         case .workWeek40:
-            return "Light"
+            return "Standard"
         case .balanced56:
             return "Balanced"
         case .heavy70:
@@ -48,14 +48,37 @@ enum WeeklyPacingMode: String, CaseIterable {
         "\(label) · \(title)"
     }
 
+    var summary: String {
+        switch self {
+        case .workWeek40:
+            return "Most sensitive. ! appears sooner."
+        case .balanced56:
+            return "Balanced pace alerts."
+        case .heavy70:
+            return "Least sensitive. ! appears later."
+        }
+    }
+
     func tooltipText() -> String {
-        "Weekly pace compares your usage against a \(weeklyHours)-hour work week."
+        "Compares weekly used % against a \(weeklyHours)-hour work week."
+    }
+
+    func detailedTooltipText() -> String {
+        "\(tooltipText()) \(summary) This only affects ! pace alerts, not % left."
     }
 }
 
 enum QuotaDisplayPolicy {
+    static let weeklyPacingSectionTitle = "Weekly ! Alert"
+    static let weeklyPacingHintTitle = "! appears when weekly usage is ahead of your selected pace."
+    static let weeklyPacingHintDetail = "40h warns sooner. 70h warns later. % left never changes."
+
     static func menuWindowTitle(for label: String) -> String {
         label
+    }
+
+    static func weeklyPaceExplanation(for mode: WeeklyPacingMode) -> String {
+        "! means weekly usage is ahead of your selected pace. We compare used % against how much of a \(mode.weeklyHours)-hour work week has elapsed. This only changes the weekly ! warning, not % left."
     }
 
     static func colorLevel(forPercentText percentText: String) -> QuotaDisplayColorLevel? {

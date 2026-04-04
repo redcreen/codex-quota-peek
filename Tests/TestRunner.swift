@@ -370,8 +370,8 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
         "70-hour pacing is never stricter than the lighter presets for the same weekly sample"
     )
     expect(
-        WeeklyPacingMode.workWeek40.menuTitle == "Light · 40h/week",
-        "light weekly workload title is explicit"
+        WeeklyPacingMode.workWeek40.menuTitle == "Standard · 40h/week",
+        "standard weekly workload title is explicit"
     )
     expect(
         WeeklyPacingMode.balanced56.menuTitle == "Balanced · 56h/week",
@@ -388,6 +388,18 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
     expect(
         WeeklyPacingMode.heavy70.tooltipText().contains("70-hour work week"),
         "weekly pacing tooltip reflects selected weekly workload"
+    )
+    expect(
+        QuotaDisplayPolicy.weeklyPacingHintTitle.contains("ahead of your selected pace"),
+        "weekly pacing hint explains what triggers the marker"
+    )
+    expect(
+        QuotaDisplayPolicy.weeklyPacingHintDetail.contains("% left never changes"),
+        "weekly pacing hint explains that presets do not change quota remaining"
+    )
+    expect(
+        QuotaDisplayPolicy.weeklyPaceExplanation(for: .balanced56).contains("56-hour work week"),
+        "weekly row explanation includes the selected weekly workload"
     )
 }
 

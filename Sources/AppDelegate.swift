@@ -34,6 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let weeklyPacing40 = 127
         static let weeklyPacing56 = 128
         static let weeklyPacing70 = 129
+        static let weeklyPacingHint = 130
         static let accountsStart = 2000
     }
 
@@ -369,21 +370,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         launchAtLoginItem.tag = MenuTag.launchAtLogin
         launchAtLoginItem.target = self
 
-        let weeklyPacingSectionItem = NSMenuItem(title: "Weekly Workload", action: nil, keyEquivalent: "")
+        let weeklyPacingSectionItem = NSMenuItem(title: QuotaDisplayPolicy.weeklyPacingSectionTitle, action: nil, keyEquivalent: "")
         weeklyPacingSectionItem.tag = MenuTag.weeklyPacingSection
         weeklyPacingSectionItem.isEnabled = false
+
+        let weeklyPacingHintItem = NSMenuItem(title: QuotaDisplayPolicy.weeklyPacingHintTitle, action: nil, keyEquivalent: "")
+        weeklyPacingHintItem.tag = MenuTag.weeklyPacingHint
+        weeklyPacingHintItem.isEnabled = false
+        weeklyPacingHintItem.toolTip = QuotaDisplayPolicy.weeklyPacingHintDetail
 
         let weeklyPacing40Item = NSMenuItem(title: WeeklyPacingMode.workWeek40.menuTitle, action: #selector(selectWeeklyPacingMode(_:)), keyEquivalent: "")
         weeklyPacing40Item.tag = MenuTag.weeklyPacing40
         weeklyPacing40Item.target = self
+        weeklyPacing40Item.toolTip = WeeklyPacingMode.workWeek40.detailedTooltipText()
 
         let weeklyPacing56Item = NSMenuItem(title: WeeklyPacingMode.balanced56.menuTitle, action: #selector(selectWeeklyPacingMode(_:)), keyEquivalent: "")
         weeklyPacing56Item.tag = MenuTag.weeklyPacing56
         weeklyPacing56Item.target = self
+        weeklyPacing56Item.toolTip = WeeklyPacingMode.balanced56.detailedTooltipText()
 
         let weeklyPacing70Item = NSMenuItem(title: WeeklyPacingMode.heavy70.menuTitle, action: #selector(selectWeeklyPacingMode(_:)), keyEquivalent: "")
         weeklyPacing70Item.tag = MenuTag.weeklyPacing70
         weeklyPacing70Item.target = self
+        weeklyPacing70Item.toolTip = WeeklyPacingMode.heavy70.detailedTooltipText()
 
         let preferencesMenu = NSMenu(title: "Preferences")
         preferencesMenu.items = [
@@ -392,6 +401,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             showLastUpdatedItem,
             .separator(),
             weeklyPacingSectionItem,
+            weeklyPacingHintItem,
             weeklyPacing40Item,
             weeklyPacing56Item,
             weeklyPacing70Item,
@@ -702,7 +712,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 paceText: showsPaceAlert ? secondary.paceText : nil,
                 paceSeverity: secondary.paceSeverity
             )
-            item(MenuTag.secondary)?.toolTip = selectedWeeklyPacingMode.tooltipText()
+            item(MenuTag.secondary)?.toolTip = weeklyPaceExplanation
         } else {
             item(MenuTag.secondary)?.attributedTitle = styledQuotaRow(
                 label: "7 days",
@@ -711,7 +721,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 paceText: nil,
                 paceSeverity: nil
             )
-            item(MenuTag.secondary)?.toolTip = selectedWeeklyPacingMode.tooltipText()
+            item(MenuTag.secondary)?.toolTip = weeklyPaceExplanation
         }
 
         item(MenuTag.paceNotice)?.isHidden = true
@@ -753,6 +763,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item(MenuTag.showColors)?.state = showsColors ? .on : .off
         item(MenuTag.showPaceAlert)?.state = showsPaceAlert ? .on : .off
         item(MenuTag.showLastUpdated)?.state = showsLastUpdated ? .on : .off
+        item(MenuTag.weeklyPacingSection)?.attributedTitle = styledPreferenceSection(QuotaDisplayPolicy.weeklyPacingSectionTitle)
+        item(MenuTag.weeklyPacingHint)?.attributedTitle = styledPreferenceHint(
+            QuotaDisplayPolicy.weeklyPacingHintTitle,
+            detail: QuotaDisplayPolicy.weeklyPacingHintDetail
+        )
         item(MenuTag.weeklyPacing40)?.state = selectedWeeklyPacingMode == .workWeek40 ? .on : .off
         item(MenuTag.weeklyPacing56)?.state = selectedWeeklyPacingMode == .balanced56 ? .on : .off
         item(MenuTag.weeklyPacing70)?.state = selectedWeeklyPacingMode == .heavy70 ? .on : .off
@@ -1107,6 +1122,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
     }
 
+    private func styledPreferenceSection(_ text: String) -> NSAttributedString {
+        NSAttributedString(
+            string: text,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11, weight: .semibold),
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
+    }
+
+    private func styledPreferenceHint(_ title: String, detail: String) -> NSAttributedString {
+        let result = NSMutableAttributedString(
+            string: title,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11, weight: .regular),
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
+        result.append(
+            NSAttributedString(
+                string: "\n\(detail)",
+                attributes: [
+                    .font: NSFont.systemFont(ofSize: 10, weight: .regular),
+                    .foregroundColor: NSColor.tertiaryLabelColor
+                ]
+            )
+        )
+        return result
+    }
+
     private func isLaunchAtLoginEnabled() -> Bool {
         let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "CodexQuotaPeek"
         let script = """
@@ -1182,6 +1227,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private var selectedWeeklyPacingMode: WeeklyPacingMode {
         WeeklyPacingMode(rawValue: defaults.string(forKey: PreferenceKey.weeklyPacingMode) ?? "") ?? .balanced56
+    }
+
+    private var weeklyPaceExplanation: String {
+        QuotaDisplayPolicy.weeklyPaceExplanation(for: selectedWeeklyPacingMode)
     }
 }
 
