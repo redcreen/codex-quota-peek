@@ -121,7 +121,7 @@ struct StatusPresentation {
         paceMessage: String? = nil,
         paceSeverity: PaceSeverity? = nil,
         updatedAtText: String = "--",
-        sourceText: String = "Current value from local logs",
+        sourceText: String = "Source: local logs",
         creditsText: String? = nil
     ) {
         self.line1 = line1
@@ -152,7 +152,7 @@ struct StatusPresentation {
             paceMessage: nil,
             paceSeverity: nil,
             updatedAtText: "--",
-            sourceText: "Current value unavailable",
+            sourceText: "Source: unavailable",
             creditsText: nil
         )
     }
@@ -196,11 +196,11 @@ struct StatusPresentation {
         creditsText = StatusPresentation.creditsText(for: snapshot.credits)
         switch source {
         case .api:
-            sourceText = "Current value from API"
+            sourceText = "Source: API"
         case .realtimeLogs:
-            sourceText = "Current value from local logs"
+            sourceText = "Source: local logs"
         case .archivedSessions:
-            sourceText = "Current value from archived sessions"
+            sourceText = "Source: archived logs"
         }
 
         var parts: [String] = []
@@ -296,17 +296,17 @@ struct StatusPresentation {
     private static func paceMessage(primary: LimitWindow?, secondary: LimitWindow?) -> String? {
         var labels: [String] = []
         if let primary, primary.isUsingFasterThanAverage {
-            labels.append(windowLabel(for: primary))
+            labels.append(QuotaDisplayPolicy.menuWindowTitle(for: windowLabel(for: primary)))
         }
         if let secondary, secondary.isUsingFasterThanAverage {
-            labels.append(windowLabel(for: secondary))
+            labels.append(QuotaDisplayPolicy.menuWindowTitle(for: windowLabel(for: secondary)))
         }
 
         guard !labels.isEmpty else { return nil }
         if labels.count == 1 {
-            return "\(labels[0]) usage is above the current window average"
+            return "\(labels[0]) above average"
         }
-        return labels.joined(separator: " + ") + " usage is above the current window average"
+        return labels.joined(separator: " + ") + " above average"
     }
 
     private static func paceSeverity(primary: LimitWindow?, secondary: LimitWindow?) -> PaceSeverity? {

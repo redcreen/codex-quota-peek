@@ -288,8 +288,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let updatedAtItem = NSMenuItem(title: "Last updated: --", action: nil, keyEquivalent: "")
         updatedAtItem.tag = MenuTag.updatedAt
         updatedAtItem.isEnabled = false
+        updatedAtItem.isHidden = true
 
-        let sourceItem = NSMenuItem(title: "Auto refresh uses local logs", action: nil, keyEquivalent: "")
+        let sourceItem = NSMenuItem(title: "Source: local logs", action: nil, keyEquivalent: "")
         sourceItem.tag = MenuTag.source
         sourceItem.isEnabled = false
 
@@ -302,7 +303,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         feedbackItem.isEnabled = false
         feedbackItem.isHidden = true
 
-        let refreshItem = NSMenuItem(title: "Refresh Now (API latest)", action: #selector(refreshNow(_:)), keyEquivalent: "")
+        let refreshItem = NSMenuItem(title: "Refresh Now (API)", action: #selector(refreshNow(_:)), keyEquivalent: "")
         refreshItem.tag = MenuTag.refresh
         refreshItem.target = self
 
@@ -603,11 +604,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         item(MenuTag.title)?.attributedTitle = styledTitle(
             title: "Codex",
-            subtitle: "Updated \(presentation.updatedAtText)"
+            subtitle: showsLastUpdated ? "Updated \(presentation.updatedAtText)" : ""
         )
         item(MenuTag.account)?.attributedTitle = styledHeadlineValue(
             presentation.accountRow?.value ?? "--",
-            color: .secondaryLabelColor
+            color: .labelColor
         )
         item(MenuTag.plan)?.attributedTitle = styledHeadlineValue(
             presentation.planRow?.value ?? "--",
@@ -659,10 +660,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item(MenuTag.paceNotice)?.attributedTitle = styledMutedStatus("Pace normal")
         }
 
-        item(MenuTag.updatedAt)?.isHidden = false
-        item(MenuTag.updatedAt)?.attributedTitle = showsLastUpdated
-            ? styledUpdatedAt(presentation.updatedAtText)
-            : styledMutedStatus("Last updated hidden")
+        item(MenuTag.updatedAt)?.isHidden = true
 
         item(MenuTag.source)?.isHidden = false
         item(MenuTag.source)?.attributedTitle = styledSource(presentation.sourceText)
@@ -894,7 +892,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func styledPaceNotice(_ text: String, severity: StatusPresentation.PaceSeverity) -> NSAttributedString {
         NSAttributedString(
-            string: "Pace alert: \(text)",
+            string: "Pace: \(text)",
             attributes: [
                 .font: NSFont.systemFont(ofSize: 11, weight: .medium),
                 .foregroundColor: severity == .critical ? NSColor.systemRed : NSColor.systemYellow
@@ -914,7 +912,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func styledSource(_ text: String) -> NSAttributedString {
         NSAttributedString(
-            string: "\(text) · auto refresh uses local logs",
+            string: text,
             attributes: [
                 .font: NSFont.systemFont(ofSize: 11, weight: .regular),
                 .foregroundColor: NSColor.secondaryLabelColor

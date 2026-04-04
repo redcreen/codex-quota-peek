@@ -164,8 +164,9 @@ func testDisplayPresentationUsesPaceMarkersAndSourceText() {
 
     expect(presentation.line1 == "H 35%!!", "status line shows critical pace marker")
     expect(presentation.line2 == "W 90%", "status line omits markers when pace is normal")
-    expect(presentation.sourceText == "Current value from API", "presentation keeps source text")
+    expect(presentation.sourceText == "Source: API", "presentation keeps source text")
     expect(presentation.creditsText == "233.93 left", "presentation formats credits")
+    expect(presentation.paceMessage == "Session above average", "presentation shortens pace message")
 }
 
 func testRelativeUpdatedAtLabels() {
