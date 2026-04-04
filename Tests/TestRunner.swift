@@ -454,12 +454,16 @@ func testNotificationPolicyTriggersOnlyOnEscalation() {
     let previous = QuotaNotificationSnapshot(
         sessionLevel: .none,
         weeklyLevel: .warning,
-        paceLevel: .none
+        paceLevel: .none,
+        sessionResetSoon: false,
+        weeklyResetSoon: false
     )
     let current = QuotaNotificationSnapshot(
         sessionLevel: .warning,
         weeklyLevel: .warning,
-        paceLevel: .critical
+        paceLevel: .critical,
+        sessionResetSoon: false,
+        weeklyResetSoon: false
     )
     let presentation = StatusPresentation(
         snapshot: makeSnapshot(primaryUsed: 55, secondaryUsed: 42),
@@ -481,7 +485,9 @@ func testNotificationPolicyStaysQuietForRepeatedState() {
     let current = QuotaNotificationSnapshot(
         sessionLevel: .warning,
         weeklyLevel: .none,
-        paceLevel: .warning
+        paceLevel: .warning,
+        sessionResetSoon: false,
+        weeklyResetSoon: false
     )
     let presentation = StatusPresentation(
         snapshot: makeSnapshot(primaryUsed: 52, secondaryUsed: 8),
@@ -497,6 +503,41 @@ func testNotificationPolicyStaysQuietForRepeatedState() {
     )
 
     expect(event == nil, "notification policy suppresses duplicate notifications for the same state")
+}
+
+func testNotificationPolicyEmitsResetReminderOnce() {
+    let now = Date()
+    let presentation = StatusPresentation(
+        line1: "H 90%",
+        line2: "W 80%",
+        tooltip: "",
+        primaryRow: StatusPresentation.MenuRow(
+            label: "5 hours",
+            percentText: "90%",
+            resetText: "15:23",
+            resetDate: now.addingTimeInterval(10 * 60),
+            isUsingFasterThanAverage: false,
+            paceText: nil,
+            paceSeverity: nil
+        ),
+        secondaryRow: StatusPresentation.MenuRow(
+            label: "7 days",
+            percentText: "80%",
+            resetText: "Apr 11",
+            resetDate: now.addingTimeInterval(24 * 60 * 60),
+            isUsingFasterThanAverage: false,
+            paceText: nil,
+            paceSeverity: nil
+        ),
+        language: .english
+    )
+
+    let current = QuotaNotificationPolicy.snapshot(from: presentation)
+    let firstEvent = QuotaNotificationPolicy.nextEvent(previous: nil, current: current, presentation: presentation)
+    let repeatedEvent = QuotaNotificationPolicy.nextEvent(previous: current, current: current, presentation: presentation)
+
+    expect(firstEvent?.title == "5-hour window resets soon", "notification policy emits upcoming 5-hour reset reminder")
+    expect(repeatedEvent == nil, "notification policy deduplicates reset reminders")
 }
 
 @main
@@ -522,6 +563,7 @@ testRelativeUpdatedAtLabels()
         testChineseLanguagePresentationLocalizesCoreLabels()
         testNotificationPolicyTriggersOnlyOnEscalation()
         testNotificationPolicyStaysQuietForRepeatedState()
+        testNotificationPolicyEmitsResetReminderOnce()
         print("All tests passed.")
     }
 }

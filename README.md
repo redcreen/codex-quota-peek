@@ -201,7 +201,7 @@ open "dist/CodexQuotaPeek.app"
    不只显示现在剩多少，还会补上最近一段时间的变化趋势，用来解释为什么会出现 `! / !!`。
 
 4. 主动通知
-   已完成第一步：低额度和新的 `! / !!` 节奏告警会触发 macOS 通知，而且会去重，避免每次刷新都重复提醒。后续可以继续补即将重置等更细的通知。
+   已完成当前阶段：低额度、新出现的 `! / !!` 节奏告警，以及窗口即将重置时，都会触发去重后的 macOS 通知，避免每次刷新都重复提醒。
 
 5. 应用语言切换
    已完成第一步：应用内已经支持 `English / 中文` 切换，默认英文。菜单、偏好设置和主要提示文案会跟随切换。CLI 目前仍默认英文。
@@ -459,7 +459,7 @@ To grow this project into a more sustainable product, the current roadmap is:
    The next layer is trend visibility: not just how much is left, but how usage has been moving and why `! / !!` appeared.
 
 4. Proactive notifications
-   The first step is now done: low remaining quota and newly triggered `! / !!` pace warnings can send deduplicated macOS notifications. Upcoming reset reminders can be added next.
+   The current stage is done: low remaining quota, newly triggered `! / !!` pace warnings, and upcoming reset windows can now send deduplicated macOS notifications.
 
 5. App language switching
    The first step is now done: the app includes an in-app `English / 中文` toggle with English as the default. The menu, preferences window, and core status copy now follow the selected language. The CLI still stays in English for now.

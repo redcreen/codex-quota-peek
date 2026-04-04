@@ -94,6 +94,7 @@ struct StatusPresentation {
         let label: String
         let percentText: String
         let resetText: String
+        let resetDate: Date?
         let isUsingFasterThanAverage: Bool
         let paceText: String?
         let paceSeverity: PaceSeverity?
@@ -195,6 +196,7 @@ struct StatusPresentation {
                 label: StatusPresentation.windowLabel(for: $0, language: language),
                 percentText: StatusPresentation.statusPercentText(for: $0),
                 resetText: StatusPresentation.resetLabel(for: $0),
+                resetDate: $0.resetDate,
                 isUsingFasterThanAverage: $0.isUsingFasterThanAverage,
                 paceText: StatusPresentation.inlinePaceText(for: $0, language: language),
                 paceSeverity: StatusPresentation.paceSeverity(for: $0)
@@ -205,6 +207,7 @@ struct StatusPresentation {
                 label: StatusPresentation.windowLabel(for: $0, language: language),
                 percentText: StatusPresentation.statusPercentText(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
                 resetText: StatusPresentation.resetLabel(for: $0),
+                resetDate: $0.resetDate,
                 isUsingFasterThanAverage: StatusPresentation.isUsingFasterThanAverage(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
                 paceText: StatusPresentation.inlinePaceText(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true, language: language),
                 paceSeverity: StatusPresentation.paceSeverity(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true)

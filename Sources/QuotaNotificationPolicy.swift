@@ -10,6 +10,8 @@ struct QuotaNotificationSnapshot: Equatable {
     let sessionLevel: QuotaNotificationLevel
     let weeklyLevel: QuotaNotificationLevel
     let paceLevel: QuotaNotificationLevel
+    let sessionResetSoon: Bool
+    let weeklyResetSoon: Bool
 }
 
 struct QuotaNotificationEvent: Equatable {
@@ -18,11 +20,16 @@ struct QuotaNotificationEvent: Equatable {
 }
 
 enum QuotaNotificationPolicy {
+    private static let sessionResetThreshold: TimeInterval = 15 * 60
+    private static let weeklyResetThreshold: TimeInterval = 12 * 60 * 60
+
     static func snapshot(from presentation: StatusPresentation) -> QuotaNotificationSnapshot {
         QuotaNotificationSnapshot(
             sessionLevel: level(for: presentation.primaryRow?.percentText),
             weeklyLevel: level(for: presentation.secondaryRow?.percentText),
-            paceLevel: paceLevel(for: presentation)
+            paceLevel: paceLevel(for: presentation),
+            sessionResetSoon: resetSoon(for: presentation.primaryRow?.resetDate, threshold: sessionResetThreshold),
+            weeklyResetSoon: resetSoon(for: presentation.secondaryRow?.resetDate, threshold: weeklyResetThreshold)
         )
     }
 
@@ -34,6 +41,8 @@ enum QuotaNotificationPolicy {
         let previousSession = previous?.sessionLevel ?? .none
         let previousWeekly = previous?.weeklyLevel ?? .none
         let previousPace = previous?.paceLevel ?? .none
+        let previousSessionResetSoon = previous?.sessionResetSoon ?? false
+        let previousWeeklyResetSoon = previous?.weeklyResetSoon ?? false
 
         if current.sessionLevel == .critical, previousSession != .critical {
             return QuotaNotificationEvent(
@@ -71,6 +80,18 @@ enum QuotaNotificationPolicy {
                 body: presentation.paceMessage.map { "\($0)." } ?? "Quota usage is ahead of your selected pace."
             )
         }
+        if current.sessionResetSoon, !previousSessionResetSoon {
+            return QuotaNotificationEvent(
+                title: "5-hour window resets soon",
+                body: "The 5-hour quota window resets in less than 15 minutes."
+            )
+        }
+        if current.weeklyResetSoon, !previousWeeklyResetSoon {
+            return QuotaNotificationEvent(
+                title: "7-day window resets soon",
+                body: "The 7-day quota window resets in less than 12 hours."
+            )
+        }
         return nil
     }
 
@@ -95,5 +116,11 @@ enum QuotaNotificationPolicy {
         case nil:
             return .none
         }
+    }
+
+    private static func resetSoon(for date: Date?, threshold: TimeInterval, now: Date = Date()) -> Bool {
+        guard let date else { return false }
+        let remaining = date.timeIntervalSince(now)
+        return remaining > 0 && remaining <= threshold
     }
 }
