@@ -6,6 +6,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let badgeView = StatusBadgeView(frame: NSRect(x: 0, y: 0, width: 56, height: 24))
     private let menu = NSMenu()
+    private let headerView = MenuHeaderView()
+    private let primaryRowView = MenuValueRowView()
+    private let secondaryRowView = MenuValueRowView()
     private var refreshTimer: Timer?
     private var lastPresentation = StatusPresentation.loading
 
@@ -50,12 +53,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func configureMenu() {
-        let titleItem = NSMenuItem(title: "Codex Quota Peek", action: nil, keyEquivalent: "")
-        titleItem.isEnabled = false
+        let titleItem = NSMenuItem()
+        titleItem.view = headerView
 
-        let detailsItem = NSMenuItem(title: "Loading...", action: nil, keyEquivalent: "")
-        detailsItem.isEnabled = false
-        detailsItem.tag = 1001
+        let primaryItem = NSMenuItem()
+        primaryItem.view = primaryRowView
+        primaryItem.isEnabled = false
+        primaryItem.tag = 1001
+
+        let secondaryItem = NSMenuItem()
+        secondaryItem.view = secondaryRowView
+        secondaryItem.isEnabled = false
+        secondaryItem.tag = 1002
 
         let refreshItem = NSMenuItem(title: "Refresh Now", action: #selector(refreshNow(_:)), keyEquivalent: "r")
         refreshItem.target = self
@@ -68,7 +77,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.items = [
             titleItem,
-            detailsItem,
+            primaryItem,
+            secondaryItem,
             .separator(),
             refreshItem,
             copyItem,
@@ -96,9 +106,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.button?.toolTip = presentation.tooltip
         statusItem.length = image.size.width
 
-        if let detailsItem = menu.item(withTag: 1001) {
-            detailsItem.title = presentation.line1 + " | " + presentation.line2
-            detailsItem.toolTip = presentation.tooltip
-        }
+        primaryRowView.update(
+            label: presentation.primaryRow?.label ?? "5 hours",
+            percent: presentation.primaryRow?.percentText ?? "--",
+            time: presentation.primaryRow?.resetText ?? "--"
+        )
+        secondaryRowView.update(
+            label: presentation.secondaryRow?.label ?? "1 week",
+            percent: presentation.secondaryRow?.percentText ?? "--",
+            time: presentation.secondaryRow?.resetText ?? "--"
+        )
     }
 }

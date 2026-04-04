@@ -48,14 +48,24 @@ struct LimitWindow: Decodable {
 }
 
 struct StatusPresentation {
+    struct MenuRow {
+        let label: String
+        let percentText: String
+        let resetText: String
+    }
+
     let line1: String
     let line2: String
     let tooltip: String
+    let primaryRow: MenuRow?
+    let secondaryRow: MenuRow?
 
-    init(line1: String, line2: String, tooltip: String) {
+    init(line1: String, line2: String, tooltip: String, primaryRow: MenuRow? = nil, secondaryRow: MenuRow? = nil) {
         self.line1 = line1
         self.line2 = line2
         self.tooltip = tooltip
+        self.primaryRow = primaryRow
+        self.secondaryRow = secondaryRow
     }
 
     static let loading = StatusPresentation(
@@ -78,6 +88,20 @@ struct StatusPresentation {
 
         line1 = primary.map { "P \($0.remainingPercent)%" } ?? "P --"
         line2 = secondary.map { "W \($0.remainingPercent)%" } ?? "W --"
+        primaryRow = primary.map {
+            MenuRow(
+                label: StatusPresentation.windowLabel(for: $0),
+                percentText: "\($0.remainingPercent)%",
+                resetText: StatusPresentation.resetLabel(for: $0)
+            )
+        }
+        secondaryRow = secondary.map {
+            MenuRow(
+                label: StatusPresentation.windowLabel(for: $0),
+                percentText: "\($0.remainingPercent)%",
+                resetText: StatusPresentation.resetLabel(for: $0)
+            )
+        }
 
         var parts: [String] = []
         if let plan = snapshot.planType {
@@ -105,4 +129,43 @@ struct StatusPresentation {
         formatter.timeStyle = .short
         return formatter
     }()
+
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
+
+    private static let shortDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.setLocalizedDateFormatFromTemplate("MMM d")
+        return formatter
+    }()
+
+    private static func windowLabel(for window: LimitWindow) -> String {
+        switch window.windowMinutes {
+        case 300:
+            return "5 hours"
+        case 10080:
+            return "1 week"
+        case let minutes?:
+            if minutes % 1440 == 0 {
+                return "\(minutes / 1440) days"
+            }
+            if minutes % 60 == 0 {
+                return "\(minutes / 60) hours"
+            }
+            return "\(minutes) min"
+        case nil:
+            return "Window"
+        }
+    }
+
+    private static func resetLabel(for window: LimitWindow) -> String {
+        guard let date = window.resetDate else { return "--" }
+        if let minutes = window.windowMinutes, minutes <= 1440 {
+            return timeFormatter.string(from: date)
+        }
+        return shortDateFormatter.string(from: date)
+    }
 }

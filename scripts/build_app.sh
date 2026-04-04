@@ -18,6 +18,7 @@ mkdir -p "$BUILD_DIR" "$MACOS_DIR" "$RESOURCES_DIR"
   "$ROOT_DIR/Sources/AppDelegate.swift" \
   "$ROOT_DIR/Sources/CodexQuotaSnapshot.swift" \
   "$ROOT_DIR/Sources/CodexQuotaProvider.swift" \
+  "$ROOT_DIR/Sources/MenuViews.swift" \
   "$ROOT_DIR/Sources/StatusBadgeView.swift" \
   -o "$EXECUTABLE"
 

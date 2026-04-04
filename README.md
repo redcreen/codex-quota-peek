@@ -1,11 +1,16 @@
 # Codex Quota Peek
 
-A tiny macOS menu bar app that reads the latest Codex rate limit event from `~/.codex` and shows the remaining primary and weekly quota as a two-line badge.
+A tiny macOS menu bar app that reads the latest Codex rate limit event from `~/.codex` and shows the remaining primary and weekly quota in the menu bar and a richer dropdown menu.
+
+## Download
+
+Download the packaged app from `release/CodexQuotaPeek-mac.zip`, unzip it, and open `CodexQuotaPeek.app`.
 
 ## Build
 
 ```bash
 ./scripts/build_app.sh
+./scripts/package_release.sh
 ```
 
 ## Run
@@ -16,8 +21,8 @@ open "dist/CodexQuotaPeek.app"
 
 ## Display
 
-- Top line: `P xx%` for the remaining primary window quota.
-- Bottom line: `W xx%` for the remaining weekly quota.
+- Menu bar badge: `P xx%` and `W xx%`
+- Dropdown menu: primary window, weekly window, remaining percentage, and reset time
 - Refresh interval: 60 seconds.
 
 ## Data sources
