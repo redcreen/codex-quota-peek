@@ -224,7 +224,7 @@ final class CodexQuotaProvider {
         }
 
         for candidate in output.split(separator: "\n") {
-            let parts = candidate.split(separator: "\t", maxSplits: 1, omittingEmptySubsequences: false)
+            let parts = candidate.split(separator: "|", maxSplits: 1, omittingEmptySubsequences: false)
             guard parts.count == 2 else { continue }
             let timestamp = Double(parts[0]).map(Date.init(timeIntervalSince1970:))
             if let snapshot = try decodeSnapshotIfPossible(fromLogBody: String(parts[1])) {
