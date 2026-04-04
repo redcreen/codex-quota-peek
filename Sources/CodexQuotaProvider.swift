@@ -1,5 +1,20 @@
 import Foundation
 
+enum CodexQuotaFetchSource: String {
+    case api = "API"
+    case realtimeLogs = "local logs"
+    case archivedSessions = "archived sessions"
+
+    var menuLabel: String {
+        rawValue
+    }
+}
+
+struct CodexQuotaFetchResult {
+    let snapshot: CodexQuotaSnapshot
+    let source: CodexQuotaFetchSource
+}
+
 struct CodexAccountInfo {
     let displayName: String
     let email: String?
@@ -24,14 +39,35 @@ final class CodexQuotaProvider {
     }
 
     func loadSnapshot() throws -> CodexQuotaSnapshot {
-        if let remote = try latestFromUsageAPI() {
-            return remote
-        }
+        try loadSnapshotForAutomaticRefresh().snapshot
+    }
+
+    func loadSnapshotForAutomaticRefresh() throws -> CodexQuotaFetchResult {
         if let live = try latestFromRealtimeLogs() {
-            return live
+            return CodexQuotaFetchResult(snapshot: live, source: .realtimeLogs)
         }
         if let archived = try latestFromArchivedSessions() {
-            return archived
+            return CodexQuotaFetchResult(snapshot: archived, source: .archivedSessions)
+        }
+        if let remote = try latestFromUsageAPI() {
+            return CodexQuotaFetchResult(snapshot: remote, source: .api)
+        }
+        throw NSError(
+            domain: "CodexQuotaPeek",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: "No Codex rate limit data found in ~/.codex."]
+        )
+    }
+
+    func loadSnapshotUsingAPI() throws -> CodexQuotaFetchResult {
+        if let remote = try latestFromUsageAPI() {
+            return CodexQuotaFetchResult(snapshot: remote, source: .api)
+        }
+        if let live = try latestFromRealtimeLogs() {
+            return CodexQuotaFetchResult(snapshot: live, source: .realtimeLogs)
+        }
+        if let archived = try latestFromArchivedSessions() {
+            return CodexQuotaFetchResult(snapshot: archived, source: .archivedSessions)
         }
         throw NSError(
             domain: "CodexQuotaPeek",

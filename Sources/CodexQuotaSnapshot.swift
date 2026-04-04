@@ -93,6 +93,7 @@ struct StatusPresentation {
     let paceMessage: String?
     let paceSeverity: PaceSeverity?
     let updatedAtText: String
+    let sourceText: String
 
     init(
         line1: String,
@@ -104,7 +105,8 @@ struct StatusPresentation {
         secondaryRow: MenuRow? = nil,
         paceMessage: String? = nil,
         paceSeverity: PaceSeverity? = nil,
-        updatedAtText: String = "--"
+        updatedAtText: String = "--",
+        sourceText: String = "Current value from local logs"
     ) {
         self.line1 = line1
         self.line2 = line2
@@ -116,6 +118,7 @@ struct StatusPresentation {
         self.paceMessage = paceMessage
         self.paceSeverity = paceSeverity
         self.updatedAtText = updatedAtText
+        self.sourceText = sourceText
     }
 
     static let loading = StatusPresentation(
@@ -131,11 +134,17 @@ struct StatusPresentation {
             tooltip: reason,
             paceMessage: nil,
             paceSeverity: nil,
-            updatedAtText: "--"
+            updatedAtText: "--",
+            sourceText: "Current value unavailable"
         )
     }
 
-    init(snapshot: CodexQuotaSnapshot, accountInfo: CodexAccountInfo?, generatedAt: Date) {
+    init(
+        snapshot: CodexQuotaSnapshot,
+        accountInfo: CodexAccountInfo?,
+        generatedAt: Date,
+        source: CodexQuotaFetchSource
+    ) {
         let primary = snapshot.rateLimits.primary
         let secondary = snapshot.rateLimits.secondary
 
@@ -166,6 +175,14 @@ struct StatusPresentation {
         paceMessage = StatusPresentation.paceMessage(primary: primary, secondary: secondary)
         paceSeverity = StatusPresentation.paceSeverity(primary: primary, secondary: secondary)
         updatedAtText = StatusPresentation.relativeUpdatedAtLabel(for: generatedAt)
+        switch source {
+        case .api:
+            sourceText = "Current value from API"
+        case .realtimeLogs:
+            sourceText = "Current value from local logs"
+        case .archivedSessions:
+            sourceText = "Current value from archived sessions"
+        }
 
         var parts: [String] = []
         if let accountInfo {
@@ -199,6 +216,7 @@ struct StatusPresentation {
         if let paceMessage {
             parts.append("Pace alert: \(paceMessage)")
         }
+        parts.append("Source: \(sourceText)")
         parts.append("Updated: \(StatusPresentation.dateFormatter.string(from: generatedAt))")
         tooltip = parts.joined(separator: "\n")
     }

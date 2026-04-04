@@ -24,7 +24,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let showPaceAlert = 117
         static let showLastUpdated = 118
         static let feedback = 119
+        static let source = 120
         static let accountsStart = 2000
+    }
+
+    private enum RefreshMode {
+        case automatic
+        case apiManual
     }
 
     private enum PreferenceKey {
@@ -63,10 +69,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         configureStatusItem()
         configureMenu()
         setupFileWatchers()
-        refreshAsync()
+        refreshAsync(mode: .automatic)
         refreshAccountsAsync()
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
-            self?.refreshAsync()
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { [weak self] _ in
+            self?.refreshAsync(mode: .automatic)
         }
     }
 
@@ -79,7 +85,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc
     private func refreshNow(_ sender: Any?) {
         shouldReopenMenuAfterRefresh = true
-        refreshAsync()
+        refreshAsync(mode: .apiManual)
     }
 
     @objc
@@ -211,6 +217,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updatedAtItem.tag = MenuTag.updatedAt
         updatedAtItem.isEnabled = false
 
+        let sourceItem = NSMenuItem(title: "Auto refresh uses local logs", action: nil, keyEquivalent: "")
+        sourceItem.tag = MenuTag.source
+        sourceItem.isEnabled = false
+
         let accountSwitchHintItem = NSMenuItem(
             title: "History only. Switching requires re-login in Terminal.",
             action: nil,
@@ -224,7 +234,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         feedbackItem.isEnabled = false
         feedbackItem.isHidden = true
 
-        let refreshItem = NSMenuItem(title: "Refresh Now", action: #selector(refreshNow(_:)), keyEquivalent: "")
+        let refreshItem = NSMenuItem(title: "Refresh Now (API latest)", action: #selector(refreshNow(_:)), keyEquivalent: "")
         refreshItem.tag = MenuTag.refresh
         refreshItem.target = self
 
@@ -286,6 +296,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             secondaryItem,
             paceNoticeItem,
             updatedAtItem,
+            sourceItem,
             .separator(),
             refreshItem,
             copyItem,
@@ -301,15 +312,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updatePreferenceMenuItems()
     }
 
-    private func refreshAsync() {
+    private func refreshAsync(mode: RefreshMode) {
         let provider = self.provider
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
             let presentation: StatusPresentation
             do {
-                let snapshot = try provider.loadSnapshot()
+                let result = try {
+                    switch mode {
+                    case .automatic:
+                        return try provider.loadSnapshotForAutomaticRefresh()
+                    case .apiManual:
+                        return try provider.loadSnapshotUsingAPI()
+                    }
+                }()
                 let accountInfo = provider.loadAccountInfo()
-                presentation = StatusPresentation(snapshot: snapshot, accountInfo: accountInfo, generatedAt: Date())
+                presentation = StatusPresentation(
+                    snapshot: result.snapshot,
+                    accountInfo: accountInfo,
+                    generatedAt: Date(),
+                    source: result.source
+                )
             } catch {
                 presentation = .unavailable(error.localizedDescription)
             }
@@ -422,7 +445,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func scheduleRefresh(delay: TimeInterval) {
         refreshWorkItem?.cancel()
         let workItem = DispatchWorkItem { [weak self] in
-            self?.refreshAsync()
+            self?.refreshAsync(mode: .automatic)
         }
         refreshWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
@@ -543,6 +566,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item(MenuTag.updatedAt)?.attributedTitle = showsLastUpdated
             ? styledUpdatedAt(presentation.updatedAtText)
             : styledMutedStatus("Last updated hidden")
+
+        item(MenuTag.source)?.isHidden = false
+        item(MenuTag.source)?.attributedTitle = styledSource(presentation.sourceText)
     }
 
     private func item(_ tag: Int) -> NSMenuItem? {
@@ -592,7 +618,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuWillOpen(_ menu: NSMenu) {
         isMenuOpen = true
-        refreshAsync()
+        refreshAsync(mode: .automatic)
         refreshAccountsAsync()
     }
 
@@ -756,6 +782,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func styledUpdatedAt(_ text: String) -> NSAttributedString {
         NSAttributedString(
             string: "Last updated: \(text)",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11, weight: .regular),
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
+    }
+
+    private func styledSource(_ text: String) -> NSAttributedString {
+        NSAttributedString(
+            string: "\(text) · auto refresh uses local logs",
             attributes: [
                 .font: NSFont.systemFont(ofSize: 11, weight: .regular),
                 .foregroundColor: NSColor.secondaryLabelColor
