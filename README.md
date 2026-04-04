@@ -279,6 +279,9 @@ open "dist/CodexQuotaPeek.app"
 - `scripts/build_app.sh`：构建 `.app`
 - `scripts/test.sh`：运行回归测试
 - `scripts/package_release.sh`：打包 zip 发布文件
+- `scripts/generate_release_notes.sh`：从 `CHANGELOG.md` 生成当前版本的发布说明
+- `VERSION`：当前应用版本号
+- `CHANGELOG.md`：版本变更记录
 - `release/CodexQuotaPeek-mac.zip`：可直接下载使用的应用压缩包
 
 ---
@@ -534,5 +537,8 @@ If you keep adding the kinds of inputs above, it can continue all the way throug
 
 - `Sources/`: Swift source code
 - `scripts/build_app.sh`: builds the `.app`
+- `scripts/generate_release_notes.sh`: generates release notes from `CHANGELOG.md`
 - `scripts/package_release.sh`: packages the zip release
+- `VERSION`: current app version
+- `CHANGELOG.md`: release history
 - `release/CodexQuotaPeek-mac.zip`: ready-to-download app archive
