@@ -20,14 +20,31 @@ func makeWindow(usedPercent: Double, windowMinutes: Int = 300, resetAfterSeconds
     )
 }
 
-func makeSnapshot(primaryUsed: Double, secondaryUsed: Double) -> CodexQuotaSnapshot {
+func makeSnapshot(
+    primaryUsed: Double,
+    secondaryUsed: Double,
+    primaryResetAt: TimeInterval = 1_775_291_731,
+    secondaryResetAt: TimeInterval = 1_775_291_731,
+    primaryResetAfterSeconds: Int = 120,
+    secondaryResetAfterSeconds: Int = 120
+) -> CodexQuotaSnapshot {
     CodexQuotaSnapshot(
         planType: "pro",
         rateLimits: RateLimits(
             allowed: true,
             limitReached: false,
-            primary: makeWindow(usedPercent: primaryUsed, windowMinutes: 300),
-            secondary: makeWindow(usedPercent: secondaryUsed, windowMinutes: 10080)
+            primary: makeWindow(
+                usedPercent: primaryUsed,
+                windowMinutes: 300,
+                resetAfterSeconds: primaryResetAfterSeconds,
+                resetAt: primaryResetAt
+            ),
+            secondary: makeWindow(
+                usedPercent: secondaryUsed,
+                windowMinutes: 10080,
+                resetAfterSeconds: secondaryResetAfterSeconds,
+                resetAt: secondaryResetAt
+            )
         ),
         credits: nil
     )
@@ -254,6 +271,49 @@ func testTrendSummaryMenuText() {
 func testSparklineSampling() {
     let line = CodexQuotaProvider.sparkline(values: [90, 88, 86, 82, 80, 78, 76, 74], points: 8)
     expect(line != nil && line?.count == 8, "sparkline renders fixed-width recent trend")
+}
+
+func testTrendRowsStayInsideCurrentResetWindow() {
+    let oldWeekly = CodexQuotaFetchResult(
+        snapshot: makeSnapshot(
+            primaryUsed: 10,
+            secondaryUsed: 38,
+            primaryResetAt: 2_000_000,
+            secondaryResetAt: 3_000_000
+        ),
+        source: .realtimeLogs,
+        sourceDate: Date(timeIntervalSince1970: 1_000)
+    )
+    let currentWeeklyEarly = CodexQuotaFetchResult(
+        snapshot: makeSnapshot(
+            primaryUsed: 12,
+            secondaryUsed: 22,
+            primaryResetAt: 2_100_000,
+            secondaryResetAt: 4_000_000
+        ),
+        source: .realtimeLogs,
+        sourceDate: Date(timeIntervalSince1970: 2_000)
+    )
+    let currentWeeklyLate = CodexQuotaFetchResult(
+        snapshot: makeSnapshot(
+            primaryUsed: 15,
+            secondaryUsed: 25,
+            primaryResetAt: 2_100_000,
+            secondaryResetAt: 4_000_000
+        ),
+        source: .realtimeLogs,
+        sourceDate: Date(timeIntervalSince1970: 3_000)
+    )
+
+    let weeklyRows = CodexQuotaProvider.rowsInCurrentWindow(
+        [oldWeekly, currentWeeklyEarly, currentWeeklyLate]
+    ) { $0.snapshot.rateLimits.secondary }
+
+    expect(weeklyRows.count == 2, "trend rows only keep entries from the current weekly reset window")
+    expect(
+        weeklyRows.allSatisfy { Int(($0.snapshot.rateLimits.secondary?.resetAt ?? 0).rounded()) == 4_000_000 },
+        "weekly trend rows exclude earlier reset windows like Apr 2"
+    )
 }
 
 func testRelativeUpdatedAtLabels() {
@@ -633,9 +693,10 @@ struct TestRunner {
 testManualRefreshDoesNotForceCachedAPIOverFetchedLogs()
 testSourceStrategyFetchPlans()
 testDisplayPresentationUsesPaceMarkersAndSourceText()
-testTrendSummaryMenuText()
-testSparklineSampling()
-testRelativeUpdatedAtLabels()
+    testTrendSummaryMenuText()
+    testSparklineSampling()
+    testTrendRowsStayInsideCurrentResetWindow()
+    testRelativeUpdatedAtLabels()
         testQuotaDisplayColorThresholds()
         testAuthSnapshotStoreReadsSavedAccountMetadata()
         testCliHelpPrefersRefreshOverUpdate()

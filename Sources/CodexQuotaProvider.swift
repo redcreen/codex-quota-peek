@@ -144,11 +144,7 @@ final class CodexQuotaProvider {
             .compactMap { Self.parseRealtimeLogRow(String($0)) }
             .sorted { ($0.sourceDate ?? .distantPast) < ($1.sourceDate ?? .distantPast) }
 
-        guard let latestDate = parsedRows.last?.sourceDate else { return nil }
-        let sessionCutoff = latestDate.addingTimeInterval(-(24 * 60 * 60))
-        let weeklyCutoff = latestDate.addingTimeInterval(-(7 * 24 * 60 * 60))
-
-        let sessionRows = parsedRows.filter { ($0.sourceDate ?? .distantPast) >= sessionCutoff }
+        let sessionRows = Self.rowsInCurrentWindow(parsedRows) { $0.snapshot.rateLimits.primary }
         let sessionLowRow = sessionRows
             .compactMap { row -> (Int, Date)? in
                 guard let percent = row.snapshot.rateLimits.primary?.remainingPercent,
@@ -166,7 +162,7 @@ final class CodexQuotaProvider {
             values: sessionRows.compactMap { $0.snapshot.rateLimits.primary?.remainingPercent }
         )
 
-        let weeklyRows = parsedRows.filter { ($0.sourceDate ?? .distantPast) >= weeklyCutoff }
+        let weeklyRows = Self.rowsInCurrentWindow(parsedRows) { $0.snapshot.rateLimits.secondary }
         let weeklyLowRow = weeklyRows
             .compactMap { row -> (Int, Date)? in
                 guard let percent = row.snapshot.rateLimits.secondary?.remainingPercent,
@@ -231,9 +227,28 @@ final class CodexQuotaProvider {
         }
     }
 
+    static func rowsInCurrentWindow(
+        _ rows: [CodexQuotaFetchResult],
+        window: (CodexQuotaFetchResult) -> LimitWindow?
+    ) -> [CodexQuotaFetchResult] {
+        guard let latest = rows.last,
+              let latestReset = window(latest).flatMap(Self.windowResetBucket) else {
+            return []
+        }
+        return rows.filter { row in
+            guard let reset = window(row).flatMap(Self.windowResetBucket) else { return false }
+            return reset == latestReset
+        }
+    }
+
     private static func deltaPoints(values: [Int]) -> Int? {
         guard let first = values.first, let last = values.last, values.count >= 2 else { return nil }
         return last - first
+    }
+
+    private static func windowResetBucket(_ window: LimitWindow) -> Int64? {
+        guard let resetAt = window.resetAt else { return nil }
+        return Int64(resetAt.rounded())
     }
 
     func loadAccountInfo() -> CodexAccountInfo? {
