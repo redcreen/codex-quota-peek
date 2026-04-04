@@ -582,11 +582,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
 
-        if pendingAccounts.isEmpty {
-            let emptyItem = NSMenuItem(title: "No accounts found", action: nil, keyEquivalent: "")
-            emptyItem.isEnabled = false
-            emptyItem.tag = MenuTag.accountsStart
-            menu.insertItem(emptyItem, at: headerIndex + 1)
+        let hasAccounts = !pendingAccounts.isEmpty
+        item(MenuTag.recentAccountsHeader)?.isHidden = !hasAccounts
+        item(MenuTag.accountSwitchHint)?.isHidden = !hasAccounts
+
+        guard hasAccounts else {
             return
         }
 
