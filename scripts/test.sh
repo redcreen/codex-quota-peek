@@ -13,6 +13,7 @@ mkdir -p "$BUILD_DIR"
   "$ROOT_DIR/Sources/CodexQuotaSnapshot.swift" \
   "$ROOT_DIR/Sources/CodexQuotaProvider.swift" \
   "$ROOT_DIR/Sources/QuotaDisplayPolicy.swift" \
+  "$ROOT_DIR/Sources/QuotaNotificationPolicy.swift" \
   "$ROOT_DIR/Sources/QuotaRefreshPolicy.swift" \
   "$ROOT_DIR/Sources/RefreshRequestGate.swift" \
   "$ROOT_DIR/Tests/TestRunner.swift" \

@@ -433,6 +433,55 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
     )
 }
 
+func testNotificationPolicyTriggersOnlyOnEscalation() {
+    let previous = QuotaNotificationSnapshot(
+        sessionLevel: .none,
+        weeklyLevel: .warning,
+        paceLevel: .none
+    )
+    let current = QuotaNotificationSnapshot(
+        sessionLevel: .warning,
+        weeklyLevel: .warning,
+        paceLevel: .critical
+    )
+    let presentation = StatusPresentation(
+        snapshot: makeSnapshot(primaryUsed: 55, secondaryUsed: 42),
+        accountInfo: nil,
+        generatedAt: Date(),
+        source: .realtimeLogs
+    )
+
+    let event = QuotaNotificationPolicy.nextEvent(
+        previous: previous,
+        current: current,
+        presentation: presentation
+    )
+
+    expect(event?.title == "5-hour quota warning", "notification policy emits first newly crossed threshold")
+}
+
+func testNotificationPolicyStaysQuietForRepeatedState() {
+    let current = QuotaNotificationSnapshot(
+        sessionLevel: .warning,
+        weeklyLevel: .none,
+        paceLevel: .warning
+    )
+    let presentation = StatusPresentation(
+        snapshot: makeSnapshot(primaryUsed: 52, secondaryUsed: 8),
+        accountInfo: nil,
+        generatedAt: Date(),
+        source: .api
+    )
+
+    let event = QuotaNotificationPolicy.nextEvent(
+        previous: current,
+        current: current,
+        presentation: presentation
+    )
+
+    expect(event == nil, "notification policy suppresses duplicate notifications for the same state")
+}
+
 @main
 struct TestRunner {
     static func main() {
@@ -453,6 +502,8 @@ testRelativeUpdatedAtLabels()
         testAutomaticRefreshDoesNotRegressWithinSameResetWindow()
         testStartupAPIRefreshFallsBackWithoutOverridingCurrentRules()
         testWeeklyPacingModeCanBeLooserThanFullWeek()
+        testNotificationPolicyTriggersOnlyOnEscalation()
+        testNotificationPolicyStaysQuietForRepeatedState()
         print("All tests passed.")
     }
 }

@@ -1,6 +1,7 @@
 import AppKit
 import Darwin
 import Foundation
+import UserNotifications
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private enum MenuTag {
@@ -38,6 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let showLastUpdated = "showLastUpdated"
         static let weeklyPacingMode = "weeklyPacingMode"
         static let sourceStrategy = "sourceStrategy"
+        static let notificationsEnabled = "notificationsEnabled"
     }
 
     private let provider = CodexQuotaProvider()
@@ -64,6 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var accountItemLookup: [Int: CodexKnownAccount] = [:]
     private var refreshRequestGate = RefreshRequestGate()
     private var hasTriggeredStartupAPIRefresh = false
+    private var lastNotificationSnapshot: QuotaNotificationSnapshot?
     private lazy var preferencesWindowController = makePreferencesWindowController()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -73,8 +76,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             PreferenceKey.showPaceAlert: true,
             PreferenceKey.showLastUpdated: true,
             PreferenceKey.weeklyPacingMode: WeeklyPacingMode.balanced56.rawValue,
-            PreferenceKey.sourceStrategy: QuotaSourceStrategy.auto.rawValue
+            PreferenceKey.sourceStrategy: QuotaSourceStrategy.auto.rawValue,
+            PreferenceKey.notificationsEnabled: true
         ])
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
         configureStatusItem()
         configureMenu()
         setupFileWatchers()
@@ -413,6 +418,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 }
                 self.apply(presentation)
                 completion?()
+                self.maybeSendNotification(for: presentation)
                 if self.shouldReopenMenuAfterRefresh {
                     self.shouldReopenMenuAfterRefresh = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
@@ -679,6 +685,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let sparklineText = presentation.sparklineText {
             item(MenuTag.sparkline)?.attributedTitle = styledSparkline(sparklineText)
         }
+    }
+
+    private func maybeSendNotification(for presentation: StatusPresentation) {
+        guard notificationsEnabled else { return }
+        let currentSnapshot = QuotaNotificationPolicy.snapshot(from: presentation)
+        let event = QuotaNotificationPolicy.nextEvent(
+            previous: lastNotificationSnapshot,
+            current: currentSnapshot,
+            presentation: presentation
+        )
+        lastNotificationSnapshot = currentSnapshot
+        guard let event else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = event.title
+        content.body = event.body
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "codex-quota-peek-\(event.title)",
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request)
     }
 
     private func item(_ tag: Int) -> NSMenuItem? {
@@ -1151,6 +1181,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         QuotaSourceStrategy(rawValue: defaults.string(forKey: PreferenceKey.sourceStrategy) ?? "") ?? .auto
     }
 
+    private var notificationsEnabled: Bool {
+        defaults.bool(forKey: PreferenceKey.notificationsEnabled)
+    }
+
     private var weeklyPaceExplanation: String {
         QuotaDisplayPolicy.weeklyPaceExplanation(for: selectedWeeklyPacingMode)
     }
@@ -1165,6 +1199,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         controller.onToggleShowLastUpdated = { [weak self] enabled in
             self?.setShowLastUpdated(enabled)
+        }
+        controller.onToggleNotifications = { [weak self] enabled in
+            self?.setNotificationsEnabled(enabled)
         }
         controller.onToggleLaunchAtLogin = { [weak self] enabled in
             self?.setLaunchAtLogin(enabled: enabled)
@@ -1186,7 +1223,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             showLastUpdated: showsLastUpdated,
             launchAtLogin: isLaunchAtLoginEnabled(),
             weeklyPacingMode: selectedWeeklyPacingMode,
-            sourceStrategy: selectedSourceStrategy
+            sourceStrategy: selectedSourceStrategy,
+            notificationsEnabled: notificationsEnabled
         ))
     }
 
@@ -1202,6 +1240,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         syncPreferencesWindow()
         refreshAsync(mode: .automatic)
         showFeedback("Source Strategy: \(strategy.title)")
+    }
+
+    private func setNotificationsEnabled(_ enabled: Bool) {
+        defaults.set(enabled, forKey: PreferenceKey.notificationsEnabled)
+        syncPreferencesWindow()
+        showFeedback("Notifications \(enabled ? "enabled" : "disabled")")
     }
 
     private func setShowPaceAlert(_ enabled: Bool) {

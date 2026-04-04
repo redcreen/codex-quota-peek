@@ -40,6 +40,7 @@ cp "$ICON_PNG" "$ICONSET_DIR/icon_512x512@2x.png"
   "$ROOT_DIR/Sources/CodexQuotaProvider.swift" \
   "$ROOT_DIR/Sources/PreferencesWindowController.swift" \
   "$ROOT_DIR/Sources/QuotaDisplayPolicy.swift" \
+  "$ROOT_DIR/Sources/QuotaNotificationPolicy.swift" \
   "$ROOT_DIR/Sources/QuotaRefreshPolicy.swift" \
   "$ROOT_DIR/Sources/RefreshRequestGate.swift" \
   "$ROOT_DIR/Sources/MenuViews.swift" \

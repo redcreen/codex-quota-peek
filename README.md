@@ -67,6 +67,7 @@ A lightweight macOS menu bar app for checking the latest Codex quota usage at a 
 - 状态栏显示 `H / W` 两个额度窗口
 - 绿色 / 黄色 / 红色额度提示
 - 超平均使用时显示 `! / !!`
+- 低额度和新出现的节奏告警支持 macOS 通知
 - 下拉菜单显示账号、套餐、重置时间、`Last updated`
 - `Refresh Now` 刷新后自动保持菜单交互连续
 - 已保存登录快照的账号可在菜单里直接切换
@@ -97,6 +98,15 @@ codexQuotaPeek accounts list
 
 ```bash
 ./scripts/test.sh
+```
+
+GitHub Actions 会在 `push` 和 `pull request` 时自动执行：
+
+```bash
+./scripts/test.sh
+./scripts/build_app.sh
+./scripts/build_cli.sh
+./scripts/package_release.sh
 ```
 
 安装 CLI：
@@ -191,13 +201,13 @@ open "dist/CodexQuotaPeek.app"
    不只显示现在剩多少，还会补上最近一段时间的变化趋势，用来解释为什么会出现 `! / !!`。
 
 4. 主动通知
-   计划加入低额度、超平均节奏、即将重置等通知，让产品从“查看工具”变成“提醒助手”。
+   已完成第一步：低额度和新的 `! / !!` 节奏告警会触发 macOS 通知，而且会去重，避免每次刷新都重复提醒。后续可以继续补即将重置等更细的通知。
 
 5. 应用语言切换
    计划增加应用内 `English / 中文` 切换，默认英文。README 已经双语，下一步是把菜单、偏好设置和提示文案也真正本地化。
 
 6. 发布与工程化
-   持续完善自动测试、构建、发布、版本管理和 changelog，让项目更稳定，也更适合别人长期安装使用。
+   已完成第一步：仓库现在带有 GitHub Actions，会自动跑测试、构建 app/CLI，并生成 zip 发布包 artifact。后续继续完善版本管理、Release 和 changelog。
 
 ### 制作过程
 
@@ -336,6 +346,7 @@ If macOS blocks the app the first time, allow it from `System Settings -> Privac
 - `H / W` quota windows in the menu bar
 - green / yellow / red quota coloring
 - `! / !!` pace markers when usage is ahead of average
+- macOS notifications for new low-quota and pace-warning states
 - dropdown details for account, plan, reset time, and `Last updated`
 - `Refresh Now` keeps the interaction flow smooth
 - standalone `Preferences...` window for display settings, weekly `!` behavior, and launch options
@@ -347,6 +358,22 @@ If macOS blocks the app the first time, allow it from `System Settings -> Privac
 
 ```bash
 ./scripts/build_app.sh
+./scripts/build_cli.sh
+./scripts/package_release.sh
+```
+
+Run regression tests with:
+
+```bash
+./scripts/test.sh
+```
+
+GitHub Actions automatically runs the same pipeline on every `push` and `pull request`:
+
+```bash
+./scripts/test.sh
+./scripts/build_app.sh
+./scripts/build_cli.sh
 ./scripts/package_release.sh
 ```
 
@@ -432,13 +459,13 @@ To grow this project into a more sustainable product, the current roadmap is:
    The next layer is trend visibility: not just how much is left, but how usage has been moving and why `! / !!` appeared.
 
 4. Proactive notifications
-   Add alerts for low remaining quota, above-average pacing, and upcoming resets so the app becomes a helper, not just a viewer.
+   The first step is now done: low remaining quota and newly triggered `! / !!` pace warnings can send deduplicated macOS notifications. Upcoming reset reminders can be added next.
 
 5. App language switching
    Add an in-app `English / Chinese` language toggle with English as the default. The README is already bilingual; the app UI should follow.
 
 6. Release and engineering polish
-   Keep improving tests, packaging, releases, versioning, and changelogs so the project is easier to maintain and easier for others to install.
+   The first step is now done: the repo includes GitHub Actions that run tests, build the app and CLI, and package the release zip as an artifact. Versioning, Releases, and changelogs can come next.
 
 ### Build Process
 

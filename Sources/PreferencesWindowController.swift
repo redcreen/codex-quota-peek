@@ -7,6 +7,7 @@ struct PreferencesViewState {
     var launchAtLogin: Bool
     var weeklyPacingMode: WeeklyPacingMode
     var sourceStrategy: QuotaSourceStrategy
+    var notificationsEnabled: Bool
 }
 
 private final class FlippedContentView: NSView {
@@ -32,6 +33,7 @@ final class PreferencesWindowController: NSWindowController {
     var onToggleShowColors: ((Bool) -> Void)?
     var onToggleShowPaceAlert: ((Bool) -> Void)?
     var onToggleShowLastUpdated: ((Bool) -> Void)?
+    var onToggleNotifications: ((Bool) -> Void)?
     var onToggleLaunchAtLogin: ((Bool) -> Void)?
     var onSelectWeeklyPacingMode: ((WeeklyPacingMode) -> Void)?
     var onSelectSourceStrategy: ((QuotaSourceStrategy) -> Void)?
@@ -39,6 +41,7 @@ final class PreferencesWindowController: NSWindowController {
     private let showColorsButton = NSButton(checkboxWithTitle: "Show colors in menu and status bar", target: nil, action: nil)
     private let showPaceAlertButton = NSButton(checkboxWithTitle: "Show weekly pace alerts", target: nil, action: nil)
     private let showLastUpdatedButton = NSButton(checkboxWithTitle: "Show last updated labels", target: nil, action: nil)
+    private let notificationsButton = NSButton(checkboxWithTitle: "Show quota notifications", target: nil, action: nil)
     private let launchAtLoginButton = NSButton(checkboxWithTitle: "Launch at login", target: nil, action: nil)
     private let autoSourceButton = NSButton(radioButtonWithTitle: QuotaSourceStrategy.auto.title, target: nil, action: nil)
     private let apiSourceButton = NSButton(radioButtonWithTitle: QuotaSourceStrategy.preferAPI.title, target: nil, action: nil)
@@ -72,6 +75,7 @@ final class PreferencesWindowController: NSWindowController {
         showColorsButton.state = state.showColors ? .on : .off
         showPaceAlertButton.state = state.showPaceAlert ? .on : .off
         showLastUpdatedButton.state = state.showLastUpdated ? .on : .off
+        notificationsButton.state = state.notificationsEnabled ? .on : .off
         launchAtLoginButton.state = state.launchAtLogin ? .on : .off
 
         standardPaceButton.state = state.weeklyPacingMode == .workWeek40 ? .on : .off
@@ -164,6 +168,10 @@ final class PreferencesWindowController: NSWindowController {
             optionRow(
                 control: configureCheckbox(showLastUpdatedButton, action: #selector(toggleShowLastUpdated(_:))),
                 detail: "Show relative freshness labels like just updated, 12s, or 3m."
+            ),
+            optionRow(
+                control: configureCheckbox(notificationsButton, action: #selector(toggleNotifications(_:))),
+                detail: "Send a macOS notification only when quota crosses a new threshold or a fresh pace warning appears."
             )
         ]
 
@@ -332,6 +340,11 @@ final class PreferencesWindowController: NSWindowController {
     @objc
     private func toggleShowLastUpdated(_ sender: NSButton) {
         onToggleShowLastUpdated?(sender.state == .on)
+    }
+
+    @objc
+    private func toggleNotifications(_ sender: NSButton) {
+        onToggleNotifications?(sender.state == .on)
     }
 
     @objc
