@@ -10,16 +10,15 @@ final class StatusBadgeView: NSView {
     }
 
     override var intrinsicContentSize: NSSize {
-        let line1Size = line1.size(withAttributes: lineAttributes)
-        let line2Size = line2.size(withAttributes: lineAttributes)
-        let textWidth = ceil(max(line1Size.width, line2Size.width))
-        let width = iconSize + iconSpacing + textWidth + padding * 2
+        let alignedWidth = max(alignedTextWidth(for: line1), alignedTextWidth(for: line2))
+        let width = iconSize + iconSpacing + alignedWidth + padding * 2
         return NSSize(width: max(50, width), height: 20)
     }
 
     private let padding: CGFloat = 4
     private let iconSize: CGFloat = 18
     private let iconSpacing: CGFloat = 6
+    private let prefixColumnWidth: CGFloat = 9
 
     private let lineAttributes: [NSAttributedString.Key: Any] = [
         .font: NSFont.monospacedDigitSystemFont(ofSize: 8, weight: .semibold),
@@ -28,8 +27,8 @@ final class StatusBadgeView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         drawIcon()
-        drawText(line1, yOffset: 9.4)
-        drawText(line2, yOffset: 1.2)
+        drawAlignedText(line1, yOffset: 9.4)
+        drawAlignedText(line2, yOffset: 1.2)
     }
 
     private func drawIcon() {
@@ -42,9 +41,21 @@ final class StatusBadgeView: NSView {
         icon.draw(in: NSRect(x: padding, y: y, width: iconSize, height: iconSize))
     }
 
-    private func drawText(_ text: String, yOffset: CGFloat) {
-        let point = NSPoint(x: round(padding + iconSize + iconSpacing), y: yOffset)
-        text.draw(at: point, withAttributes: lineAttributes)
+    private func drawAlignedText(_ text: String, yOffset: CGFloat) {
+        let baseX = round(padding + iconSize + iconSpacing)
+        let parts = text.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: false)
+        let prefix = parts.first.map(String.init) ?? text
+        let suffix = parts.count > 1 ? String(parts[1]) : ""
+
+        prefix.draw(at: NSPoint(x: baseX, y: yOffset), withAttributes: lineAttributes)
+        suffix.draw(at: NSPoint(x: baseX + prefixColumnWidth, y: yOffset), withAttributes: lineAttributes)
+    }
+
+    private func alignedTextWidth(for text: String) -> CGFloat {
+        let parts = text.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: false)
+        let suffix = parts.count > 1 ? String(parts[1]) : ""
+        let suffixWidth = ceil(suffix.size(withAttributes: lineAttributes).width)
+        return prefixColumnWidth + suffixWidth
     }
 
     private func invalidateLayout() {
