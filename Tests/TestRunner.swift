@@ -264,7 +264,8 @@ func testTrendSummaryMenuText() {
     expect(menuText.contains("5 hours trend: down 7pt"), "trend summary explains recent session direction")
     expect(menuText.contains("low 73% at"), "trend summary includes session low timestamp")
     let weeklyText = summary.sparklineText(language: .english) ?? ""
-    expect(weeklyText.contains("7 days trend: steady"), "weekly trend summary keeps weekly direction readable")
+    expect(!weeklyText.contains("steady"), "weekly trend summary hides weak steady labels")
+    expect(weeklyText.contains("7 days trend:"), "weekly trend summary still renders a readable header")
     expect(weeklyText.contains("low 82%"), "weekly trend summary keeps weekly low percentage readable")
 }
 

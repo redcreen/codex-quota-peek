@@ -340,8 +340,8 @@ enum AppLanguage: String, CaseIterable {
 
     func trendSummaryText(windowLabel: String, deltaPoints: Int?, lowPercent: Int?, lowDate: Date?, recentWindow: TrendWindow) -> String? {
         var details: [String] = []
-        if let deltaPoints {
-            details.append(trendDirectionText(deltaPoints))
+        if let deltaPoints, let trendDirection = trendDirectionText(deltaPoints) {
+            details.append(trendDirection)
         }
         if let lowPercent {
             var lowText = self == .english ? "low \(lowPercent)%" : "最低 \(lowPercent)%"
@@ -374,9 +374,9 @@ enum AppLanguage: String, CaseIterable {
         return formatter.string(from: date)
     }
 
-    private func trendDirectionText(_ delta: Int) -> String {
-        if abs(delta) <= 1 {
-            return self == .english ? "steady" : "基本平稳"
+    private func trendDirectionText(_ delta: Int) -> String? {
+        if abs(delta) < 5 {
+            return nil
         }
         if delta > 0 {
             return self == .english ? "up \(delta)pt" : "上升 \(delta) 点"
