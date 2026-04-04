@@ -5,67 +5,59 @@ let image = NSImage(size: size)
 
 image.lockFocus()
 
-let rect = NSRect(origin: .zero, size: size)
-let backgroundPath = NSBezierPath(roundedRect: rect.insetBy(dx: 36, dy: 36), xRadius: 220, yRadius: 220)
-let backgroundGradient = NSGradient(colors: [
-    NSColor(calibratedRed: 0.08, green: 0.47, blue: 0.89, alpha: 1.0),
-    NSColor(calibratedRed: 0.03, green: 0.22, blue: 0.52, alpha: 1.0)
-])
-backgroundGradient?.draw(in: backgroundPath, angle: -90)
+let shadowRect = NSRect(x: 168, y: 190, width: 688, height: 688)
+let shadowPath = NSBezierPath(ovalIn: shadowRect)
+NSColor(calibratedWhite: 0.0, alpha: 0.18).setFill()
+shadowPath.fill()
 
-let glowRect = NSRect(x: 130, y: 560, width: 760, height: 270)
-let glowPath = NSBezierPath(roundedRect: glowRect, xRadius: 140, yRadius: 140)
-NSColor(calibratedWhite: 1.0, alpha: 0.10).setFill()
-glowPath.fill()
-
-let ringRect = NSRect(x: 228, y: 208, width: 568, height: 568)
+let ringRect = NSRect(x: 196, y: 176, width: 632, height: 632)
 let ringPath = NSBezierPath()
-ringPath.appendArc(withCenter: NSPoint(x: ringRect.midX, y: ringRect.midY), radius: 230, startAngle: 215, endAngle: -35, clockwise: false)
-ringPath.lineWidth = 54
-NSColor.white.withAlphaComponent(0.95).setStroke()
+ringPath.appendArc(withCenter: NSPoint(x: ringRect.midX, y: ringRect.midY), radius: 256, startAngle: 215, endAngle: -35, clockwise: false)
+ringPath.lineWidth = 58
+NSColor(calibratedWhite: 0.95, alpha: 1.0).setStroke()
 ringPath.stroke()
 
 let needle = NSBezierPath()
-needle.move(to: NSPoint(x: 512, y: 492))
-needle.line(to: NSPoint(x: 690, y: 650))
-needle.lineWidth = 42
+needle.move(to: NSPoint(x: 512, y: 490))
+needle.line(to: NSPoint(x: 720, y: 674))
+needle.lineWidth = 46
 needle.lineCapStyle = .round
-NSColor.white.setStroke()
+NSColor(calibratedWhite: 0.95, alpha: 1.0).setStroke()
 needle.stroke()
 
-let hubRect = NSRect(x: 458, y: 438, width: 108, height: 108)
+let hubRect = NSRect(x: 450, y: 430, width: 124, height: 124)
 let hubPath = NSBezierPath(ovalIn: hubRect)
-NSColor.white.setFill()
+NSColor(calibratedWhite: 0.98, alpha: 1.0).setFill()
 hubPath.fill()
 
-let qCircleRect = NSRect(x: 322, y: 300, width: 380, height: 380)
+let qCircleRect = NSRect(x: 292, y: 270, width: 440, height: 440)
 let qCirclePath = NSBezierPath(ovalIn: qCircleRect)
-qCirclePath.lineWidth = 44
-NSColor.white.setStroke()
+qCirclePath.lineWidth = 48
+NSColor(calibratedWhite: 0.98, alpha: 1.0).setStroke()
 qCirclePath.stroke()
 
 let qTail = NSBezierPath()
-qTail.move(to: NSPoint(x: 608, y: 366))
-qTail.line(to: NSPoint(x: 706, y: 270))
-qTail.lineWidth = 36
+qTail.move(to: NSPoint(x: 636, y: 348))
+qTail.line(to: NSPoint(x: 748, y: 236))
+qTail.lineWidth = 40
 qTail.lineCapStyle = .round
-NSColor.white.setStroke()
+NSColor(calibratedWhite: 0.98, alpha: 1.0).setStroke()
 qTail.stroke()
 
-let innerDiskRect = NSRect(x: 402, y: 380, width: 220, height: 220)
+let innerDiskRect = NSRect(x: 382, y: 360, width: 260, height: 260)
 let innerDiskPath = NSBezierPath(ovalIn: innerDiskRect)
-NSColor(calibratedRed: 0.03, green: 0.22, blue: 0.52, alpha: 0.96).setFill()
+NSColor(calibratedWhite: 0.08, alpha: 0.94).setFill()
 innerDiskPath.fill()
 
 let quotaText = "Q"
 let paragraph = NSMutableParagraphStyle()
 paragraph.alignment = .center
 let attributes: [NSAttributedString.Key: Any] = [
-    .font: NSFont.systemFont(ofSize: 172, weight: .black),
-    .foregroundColor: NSColor.white,
+    .font: NSFont.systemFont(ofSize: 196, weight: .black),
+    .foregroundColor: NSColor(calibratedWhite: 0.98, alpha: 1.0),
     .paragraphStyle: paragraph
 ]
-quotaText.draw(in: NSRect(x: 0, y: 362, width: 1024, height: 180), withAttributes: attributes)
+quotaText.draw(in: NSRect(x: 0, y: 338, width: 1024, height: 220), withAttributes: attributes)
 
 image.unlockFocus()
 
