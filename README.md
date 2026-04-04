@@ -92,6 +92,7 @@ codexQuotaPeek accounts list
 ./scripts/build_app.sh
 ./scripts/build_cli.sh
 ./scripts/package_release.sh
+./scripts/prepare_release.sh
 ```
 
 运行回归测试：
@@ -288,11 +289,13 @@ open "dist/CodexQuotaPeek.app"
 - `scripts/test.sh`：运行回归测试
 - `scripts/package_release.sh`：打包 zip 发布文件
 - `scripts/generate_release_notes.sh`：从 `CHANGELOG.md` 生成当前版本的发布说明
+- `scripts/prepare_release.sh`：一键执行测试、构建、打包并生成 GitHub Release 草稿
 - `VERSION`：当前应用版本号
 - `CHANGELOG.md`：版本变更记录
 - `RELEASE.md`：正式发布步骤说明
 - `docs/github-actions/ci.workflow.yml`：可复制到 GitHub 的 Actions workflow 模板
 - `release/CodexQuotaPeek-mac.zip`：可直接下载使用的应用压缩包
+- `release/GITHUB_RELEASE_DRAFT.md`：可直接粘贴到 GitHub Release 的发布草稿
 
 ---
 
@@ -373,6 +376,7 @@ If macOS blocks the app the first time, allow it from `System Settings -> Privac
 ./scripts/build_app.sh
 ./scripts/build_cli.sh
 ./scripts/package_release.sh
+./scripts/prepare_release.sh
 ```
 
 Run regression tests with:
@@ -557,8 +561,10 @@ If you keep adding the kinds of inputs above, it can continue all the way throug
 - `scripts/build_app.sh`: builds the `.app`
 - `scripts/generate_release_notes.sh`: generates release notes from `CHANGELOG.md`
 - `scripts/package_release.sh`: packages the zip release
+- `scripts/prepare_release.sh`: runs the full release prep pipeline and writes a GitHub Release draft
 - `VERSION`: current app version
 - `CHANGELOG.md`: release history
 - `RELEASE.md`: release process and checklist
 - `docs/github-actions/ci.workflow.yml`: ready-to-copy GitHub Actions workflow template
 - `release/CodexQuotaPeek-mac.zip`: ready-to-download app archive
+- `release/GITHUB_RELEASE_DRAFT.md`: ready-to-paste GitHub Release draft

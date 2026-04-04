@@ -9,19 +9,17 @@ This project ships a signed-style macOS app bundle, a CLI, a zip package, and ge
 3. Run:
 
 ```bash
-./scripts/test.sh
-./scripts/build_app.sh
-./scripts/build_cli.sh
-./scripts/package_release.sh
+./scripts/prepare_release.sh
 ```
 
 4. Verify the generated files:
 
 - `release/CodexQuotaPeek-mac.zip`
 - `release/RELEASE_NOTES.md`
+- `release/GITHUB_RELEASE_DRAFT.md`
 
 5. Commit and push the version/changelog changes
-6. Create or update a GitHub Release and upload the zip
+6. Create or update a GitHub Release, paste `release/GITHUB_RELEASE_DRAFT.md`, and upload the zip
 
 ## GitHub Actions note
 
@@ -44,4 +42,5 @@ This extra step exists because pushing workflow files requires a token with the 
 - CLI builds
 - Zip package generated
 - Release notes generated
+- GitHub release draft generated
 - README still matches the product
