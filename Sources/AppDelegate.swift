@@ -11,6 +11,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let refresh = 105
         static let copy = 106
         static let quit = 107
+        static let recentAccountsHeader = 108
+        static let accountsStart = 2000
     }
 
     private let provider = CodexQuotaProvider()
@@ -20,6 +22,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var refreshTimer: Timer?
     private var lastPresentation = StatusPresentation.loading
     private var isMenuOpen = false
+    private var pendingAccounts: [CodexKnownAccount] = []
+    private var needsAccountsRefresh = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -50,6 +54,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc
     private func quit(_ sender: Any?) {
         NSApp.terminate(nil)
+    }
+
+    @objc
+    private func switchAccount(_ sender: NSMenuItem) {
+        let targetLabel = sender.representedObject as? String ?? "selected account"
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = [
+            "-e",
+            "tell application \"Terminal\" to do script \"echo Switching to \(targetLabel.quotedForShell()); codex login --device-auth\"",
+            "-e",
+            "tell application \"Terminal\" to activate"
+        ]
+        try? process.run()
     }
 
     private func configureStatusItem() {
@@ -94,6 +112,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         planItem.tag = MenuTag.plan
         planItem.isEnabled = false
 
+        let recentAccountsHeader = NSMenuItem(title: "Recent Accounts", action: nil, keyEquivalent: "")
+        recentAccountsHeader.tag = MenuTag.recentAccountsHeader
+        recentAccountsHeader.isEnabled = false
+
         let primaryItem = NSMenuItem(title: "5 hours: -- | --", action: nil, keyEquivalent: "")
         primaryItem.tag = MenuTag.primary
         primaryItem.isEnabled = false
@@ -119,6 +141,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             accountItem,
             planItem,
             .separator(),
+            recentAccountsHeader,
+            .separator(),
             primaryItem,
             secondaryItem,
             .separator(),
@@ -134,6 +158,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
             let presentation: StatusPresentation
+            let accounts = provider.loadKnownAccounts()
             do {
                 let snapshot = try provider.loadSnapshot()
                 let accountInfo = provider.loadAccountInfo()
@@ -143,6 +168,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
 
             DispatchQueue.main.async {
+                self.pendingAccounts = accounts
                 self.apply(presentation)
             }
         }
@@ -173,6 +199,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             label: presentation.planRow?.label ?? "Plan",
             value: presentation.planRow?.value ?? "--"
         )
+        if isMenuOpen {
+            needsAccountsRefresh = true
+        } else {
+            rebuildAccountItems()
+        }
 
         if let primary = presentation.primaryRow {
             item(MenuTag.primary)?.attributedTitle = styledQuotaRow(
@@ -213,6 +244,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuDidClose(_ menu: NSMenu) {
         isMenuOpen = false
+        if needsAccountsRefresh {
+            needsAccountsRefresh = false
+            rebuildAccountItems()
+        }
+    }
+
+    private func rebuildAccountItems() {
+        while let existing = menu.items.first(where: { $0.tag >= MenuTag.accountsStart }) {
+            menu.removeItem(existing)
+        }
+
+        let headerIndex = menu.indexOfItem(withTag: MenuTag.recentAccountsHeader)
+        guard headerIndex >= 0 else {
+            return
+        }
+
+        if pendingAccounts.isEmpty {
+            let emptyItem = NSMenuItem(title: "No accounts found", action: nil, keyEquivalent: "")
+            emptyItem.isEnabled = false
+            emptyItem.tag = MenuTag.accountsStart
+            menu.insertItem(emptyItem, at: headerIndex + 1)
+            return
+        }
+
+        for (offset, account) in pendingAccounts.enumerated() {
+            let title = account.isCurrent ? "\(account.displayName) (Current)" : account.displayName
+            let item = NSMenuItem(title: title, action: #selector(switchAccount(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = account.email ?? account.displayName
+            item.indentationLevel = 1
+            item.tag = MenuTag.accountsStart + offset
+            menu.insertItem(item, at: headerIndex + 1 + offset)
+        }
     }
 
     private func styledTitle(title: String, subtitle: String) -> NSAttributedString {
@@ -268,6 +332,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 .foregroundColor: NSColor.labelColor
             ]
         )
+    }
+}
+
+private extension String {
+    func quotedForShell() -> String {
+        replacingOccurrences(of: "\"", with: "\\\"")
     }
 }
 
