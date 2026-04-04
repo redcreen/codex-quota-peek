@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let copy = 106
         static let quit = 107
         static let recentAccountsHeader = 108
+        static let paceNotice = 109
         static let accountsStart = 2000
     }
 
@@ -132,6 +133,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         secondaryItem.tag = MenuTag.secondary
         secondaryItem.isEnabled = false
 
+        let paceNoticeItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        paceNoticeItem.tag = MenuTag.paceNotice
+        paceNoticeItem.isEnabled = false
+        paceNoticeItem.isHidden = true
+
         let refreshItem = NSMenuItem(title: "Refresh Now", action: #selector(refreshNow(_:)), keyEquivalent: "")
         refreshItem.tag = MenuTag.refresh
         refreshItem.target = self
@@ -153,6 +159,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             .separator(),
             primaryItem,
             secondaryItem,
+            paceNoticeItem,
             .separator(),
             refreshItem,
             copyItem,
@@ -253,6 +260,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 percent: "--",
                 reset: "--"
             )
+        }
+
+        if let paceMessage = presentation.paceMessage {
+            item(MenuTag.paceNotice)?.isHidden = false
+            item(MenuTag.paceNotice)?.attributedTitle = styledPaceNotice(paceMessage)
+        } else {
+            item(MenuTag.paceNotice)?.isHidden = true
+            item(MenuTag.paceNotice)?.title = ""
         }
     }
 
@@ -376,7 +391,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func quotaColor(for percentText: String) -> NSColor {
-        guard let percent = Int(percentText.replacingOccurrences(of: "%", with: "")) else {
+        guard let percent = Int(
+            percentText
+                .replacingOccurrences(of: "%", with: "")
+                .replacingOccurrences(of: "!", with: "")
+        ) else {
             return NSColor.labelColor
         }
 
@@ -387,6 +406,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return NSColor.systemYellow
         }
         return NSColor.systemGreen
+    }
+
+    private func styledPaceNotice(_ text: String) -> NSAttributedString {
+        NSAttributedString(
+            string: "Pace alert: \(text)",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11, weight: .medium),
+                .foregroundColor: NSColor.systemOrange
+            ]
+        )
     }
 }
 

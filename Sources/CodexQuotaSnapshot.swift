@@ -45,6 +45,24 @@ struct LimitWindow: Decodable {
         guard let resetAt else { return nil }
         return Date(timeIntervalSince1970: resetAt)
     }
+
+    var usedRoundedPercent: Int {
+        max(0, min(100, Int(usedPercent.rounded())))
+    }
+
+    var elapsedFraction: Double? {
+        guard let windowMinutes, let resetAfterSeconds else { return nil }
+        let totalSeconds = Double(windowMinutes * 60)
+        guard totalSeconds > 0 else { return nil }
+        let remainingSeconds = min(max(Double(resetAfterSeconds), 0), totalSeconds)
+        let elapsedSeconds = totalSeconds - remainingSeconds
+        return min(max(elapsedSeconds / totalSeconds, 0), 1)
+    }
+
+    var isUsingFasterThanAverage: Bool {
+        guard let elapsedFraction else { return false }
+        return usedPercent > elapsedFraction * 100.0
+    }
 }
 
 struct StatusPresentation {
@@ -57,6 +75,7 @@ struct StatusPresentation {
         let label: String
         let percentText: String
         let resetText: String
+        let isUsingFasterThanAverage: Bool
     }
 
     let line1: String
@@ -66,6 +85,7 @@ struct StatusPresentation {
     let planRow: AccountRow?
     let primaryRow: MenuRow?
     let secondaryRow: MenuRow?
+    let paceMessage: String?
 
     init(
         line1: String,
@@ -74,7 +94,8 @@ struct StatusPresentation {
         accountRow: AccountRow? = nil,
         planRow: AccountRow? = nil,
         primaryRow: MenuRow? = nil,
-        secondaryRow: MenuRow? = nil
+        secondaryRow: MenuRow? = nil,
+        paceMessage: String? = nil
     ) {
         self.line1 = line1
         self.line2 = line2
@@ -83,6 +104,7 @@ struct StatusPresentation {
         self.planRow = planRow
         self.primaryRow = primaryRow
         self.secondaryRow = secondaryRow
+        self.paceMessage = paceMessage
     }
 
     static let loading = StatusPresentation(
@@ -95,7 +117,8 @@ struct StatusPresentation {
         StatusPresentation(
             line1: "H --",
             line2: "W --",
-            tooltip: reason
+            tooltip: reason,
+            paceMessage: nil
         )
     }
 
@@ -103,8 +126,8 @@ struct StatusPresentation {
         let primary = snapshot.rateLimits.primary
         let secondary = snapshot.rateLimits.secondary
 
-        line1 = primary.map { "H \($0.remainingPercent)%" } ?? "H --"
-        line2 = secondary.map { "W \($0.remainingPercent)%" } ?? "W --"
+        line1 = primary.map { "H \(StatusPresentation.statusPercentText(for: $0))" } ?? "H --"
+        line2 = secondary.map { "W \(StatusPresentation.statusPercentText(for: $0))" } ?? "W --"
         accountRow = accountInfo.map {
             AccountRow(label: "Account", value: $0.displayName)
         }
@@ -114,17 +137,20 @@ struct StatusPresentation {
         primaryRow = primary.map {
             MenuRow(
                 label: StatusPresentation.windowLabel(for: $0),
-                percentText: "\($0.remainingPercent)%",
-                resetText: StatusPresentation.resetLabel(for: $0)
+                percentText: StatusPresentation.statusPercentText(for: $0),
+                resetText: StatusPresentation.resetLabel(for: $0),
+                isUsingFasterThanAverage: $0.isUsingFasterThanAverage
             )
         }
         secondaryRow = secondary.map {
             MenuRow(
                 label: StatusPresentation.windowLabel(for: $0),
-                percentText: "\($0.remainingPercent)%",
-                resetText: StatusPresentation.resetLabel(for: $0)
+                percentText: StatusPresentation.statusPercentText(for: $0),
+                resetText: StatusPresentation.resetLabel(for: $0),
+                isUsingFasterThanAverage: $0.isUsingFasterThanAverage
             )
         }
+        paceMessage = StatusPresentation.paceMessage(primary: primary, secondary: secondary)
 
         var parts: [String] = []
         if let accountInfo {
@@ -138,16 +164,25 @@ struct StatusPresentation {
             parts.append("Plan: \(plan)")
         }
         if let primary {
-            parts.append("Primary remaining: \(primary.remainingPercent)%")
+            parts.append("Primary remaining: \(StatusPresentation.statusPercentText(for: primary))")
             if let date = primary.resetDate {
                 parts.append("Primary resets: \(StatusPresentation.dateFormatter.string(from: date))")
             }
+            if primary.isUsingFasterThanAverage, let elapsedFraction = primary.elapsedFraction {
+                parts.append("Primary pace: above average for this window (\(Int((elapsedFraction * 100).rounded()))% of time elapsed, \(primary.usedRoundedPercent)% used)")
+            }
         }
         if let secondary {
-            parts.append("Weekly remaining: \(secondary.remainingPercent)%")
+            parts.append("Weekly remaining: \(StatusPresentation.statusPercentText(for: secondary))")
             if let date = secondary.resetDate {
                 parts.append("Weekly resets: \(StatusPresentation.dateFormatter.string(from: date))")
             }
+            if secondary.isUsingFasterThanAverage, let elapsedFraction = secondary.elapsedFraction {
+                parts.append("Weekly pace: above average for this window (\(Int((elapsedFraction * 100).rounded()))% of time elapsed, \(secondary.usedRoundedPercent)% used)")
+            }
+        }
+        if let paceMessage {
+            parts.append("Pace alert: \(paceMessage)")
         }
         parts.append("Updated: \(StatusPresentation.dateFormatter.string(from: generatedAt))")
         tooltip = parts.joined(separator: "\n")
@@ -197,5 +232,25 @@ struct StatusPresentation {
             return timeFormatter.string(from: date)
         }
         return shortDateFormatter.string(from: date)
+    }
+
+    private static func statusPercentText(for window: LimitWindow) -> String {
+        "\(window.remainingPercent)%\(window.isUsingFasterThanAverage ? "!" : "")"
+    }
+
+    private static func paceMessage(primary: LimitWindow?, secondary: LimitWindow?) -> String? {
+        var labels: [String] = []
+        if let primary, primary.isUsingFasterThanAverage {
+            labels.append(windowLabel(for: primary))
+        }
+        if let secondary, secondary.isUsingFasterThanAverage {
+            labels.append(windowLabel(for: secondary))
+        }
+
+        guard !labels.isEmpty else { return nil }
+        if labels.count == 1 {
+            return "\(labels[0]) usage is above the current window average"
+        }
+        return labels.joined(separator: " + ") + " usage is above the current window average"
     }
 }
