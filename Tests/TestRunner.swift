@@ -40,6 +40,20 @@ func makeResult(source: CodexQuotaFetchSource, sourceDate: Date?, primaryUsed: D
     )
 }
 
+func makeJWT(_ payload: [String: Any]) -> String {
+    let headerData = try! JSONSerialization.data(withJSONObject: ["alg": "none", "typ": "JWT"])
+    let payloadData = try! JSONSerialization.data(withJSONObject: payload)
+
+    func encode(_ data: Data) -> String {
+        data.base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+
+    return "\(encode(headerData)).\(encode(payloadData)).sig"
+}
+
 func testRealtimeLogRowParsingUsesSQLitePipeSeparator() {
     let row = #"1775291731|session_loop: websocket event: {"type":"codex.rate_limits","rate_limits":{"primary":{"used_percent":5,"window_minutes":300,"reset_after_seconds":120,"reset_at":1775292000},"secondary":{"used_percent":8,"window_minutes":10080,"reset_after_seconds":3600,"reset_at":1775896800}},"plan_type":"pro"}"#
     let parsed = CodexQuotaProvider.parseRealtimeLogRow(row)
@@ -166,6 +180,42 @@ func testQuotaDisplayColorThresholds() {
     expect(split.0 == "95%" && split.1 == "!!", "percent text splits into value and pace marker")
 }
 
+func testAuthSnapshotStoreReadsSavedAccountMetadata() {
+    let tempRoot = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("codex-quota-peek-tests-\(UUID().uuidString)")
+    try! FileManager.default.createDirectory(at: tempRoot, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: tempRoot) }
+
+    let codexDir = tempRoot.appendingPathComponent(".codex")
+    try! FileManager.default.createDirectory(at: codexDir, withIntermediateDirectories: true)
+
+    let idToken = makeJWT([
+        "name": "Second User",
+        "email": "second@example.com",
+        "https://api.openai.com/auth": [
+            "chatgpt_plan_type": "plus"
+        ]
+    ])
+    let authJSON = """
+    {
+      "tokens": {
+        "id_token": "\(idToken)",
+        "access_token": "\(idToken)",
+        "account_id": "acct-second"
+      }
+    }
+    """
+    try! authJSON.data(using: .utf8)!.write(to: codexDir.appendingPathComponent("auth.json"))
+
+    let store = CodexAuthSnapshotStore(homeDirectory: tempRoot)
+    let saved = store.saveCurrentAuthSnapshot()
+    expect(saved?.displayName == "Second User", "snapshot store saves display name from auth")
+    expect(saved?.planDisplayName == "Plus", "snapshot store humanizes plan name")
+
+    let accounts = store.loadStoredAccounts()
+    expect(accounts.count == 1, "snapshot store loads saved accounts")
+    expect(accounts.first?.snapshotIdentifier == "acct-second", "snapshot store uses account id as snapshot identifier")
+}
+
 @main
 struct TestRunner {
     static func main() {
@@ -176,6 +226,7 @@ struct TestRunner {
         testDisplayPresentationUsesPaceMarkersAndSourceText()
         testRelativeUpdatedAtLabels()
         testQuotaDisplayColorThresholds()
+        testAuthSnapshotStoreReadsSavedAccountMetadata()
         print("All tests passed.")
     }
 }

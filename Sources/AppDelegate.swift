@@ -25,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let showLastUpdated = 118
         static let feedback = 119
         static let source = 120
+        static let saveAccountSnapshot = 121
         static let accountsStart = 2000
     }
 
@@ -163,6 +164,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         let targetLabel = account.email ?? account.displayName
+        _ = provider.captureCurrentAuthSnapshot()
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         process.arguments = [
@@ -172,6 +174,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             "tell application \"Terminal\" to activate"
         ]
         try? process.run()
+    }
+
+    @objc
+    private func saveCurrentAccountSnapshot(_ sender: Any?) {
+        if let account = provider.captureCurrentAuthSnapshot() {
+            showFeedback("Saved snapshot for \(account.displayName)")
+            refreshAccountsAsync()
+        } else {
+            showFeedback("Could not save current account snapshot")
+        }
     }
 
     private func configureStatusItem() {
@@ -211,6 +223,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let recentAccountsHeader = NSMenuItem(title: "Account History", action: nil, keyEquivalent: "")
         recentAccountsHeader.tag = MenuTag.recentAccountsHeader
         recentAccountsHeader.isEnabled = false
+
+        let saveAccountSnapshotItem = NSMenuItem(
+            title: "Save Current Account Snapshot",
+            action: #selector(saveCurrentAccountSnapshot(_:)),
+            keyEquivalent: ""
+        )
+        saveAccountSnapshotItem.tag = MenuTag.saveAccountSnapshot
+        saveAccountSnapshotItem.target = self
 
         let primaryItem = NSMenuItem(title: "5 hours: -- | --", action: nil, keyEquivalent: "")
         primaryItem.tag = MenuTag.primary
@@ -301,6 +321,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             planItem,
             .separator(),
             recentAccountsHeader,
+            saveAccountSnapshotItem,
             accountSwitchHintItem,
             feedbackItem,
             .separator(),
@@ -672,6 +693,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         let hasAccounts = !pendingAccounts.isEmpty
         item(MenuTag.recentAccountsHeader)?.isHidden = !hasAccounts
+        item(MenuTag.saveAccountSnapshot)?.isHidden = !hasAccounts
         item(MenuTag.accountSwitchHint)?.isHidden = !hasAccounts
 
         guard hasAccounts else {
@@ -681,9 +703,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         for (offset, account) in pendingAccounts.enumerated() {
             let title: String
             if account.isCurrent {
-                title = "Current: \(account.displayName)"
+                title = "Current: \(account.displayName)\(account.planDisplayName.map { " (\($0))" } ?? "")\(savedSuffix(for: account))"
             } else if account.canSwitchLocally {
-                title = "Switch to: \(account.displayName)\(account.planDisplayName.map { " (\($0))" } ?? "")"
+                title = "Switch to: \(account.displayName)\(account.planDisplayName.map { " (\($0))" } ?? "")\(savedSuffix(for: account))"
             } else {
                 title = "Re-login as \(account.displayName)"
             }
@@ -695,6 +717,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             accountItemLookup[item.tag] = account
             menu.insertItem(item, at: headerIndex + 1 + offset)
         }
+    }
+
+    private func savedSuffix(for account: CodexKnownAccount) -> String {
+        guard let date = account.snapshotUpdatedAt else { return "" }
+        return " · saved \(StatusPresentation.relativeUpdatedAtLabel(for: date))"
     }
 
     private func styledTitle(title: String, subtitle: String) -> NSAttributedString {

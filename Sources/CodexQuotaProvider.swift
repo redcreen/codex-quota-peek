@@ -30,6 +30,7 @@ struct CodexKnownAccount {
     let planDisplayName: String?
     let snapshotIdentifier: String?
     let canSwitchLocally: Bool
+    let snapshotUpdatedAt: Date?
 }
 
 final class CodexQuotaProvider {
@@ -124,7 +125,8 @@ final class CodexQuotaProvider {
                     isCurrent: true,
                     planDisplayName: current.planDisplayName,
                     snapshotIdentifier: storedAccounts.first(where: { $0.accountID == currentAccountID || $0.email == current.email })?.snapshotIdentifier,
-                    canSwitchLocally: false
+                    canSwitchLocally: false,
+                    snapshotUpdatedAt: storedAccounts.first(where: { $0.accountID == currentAccountID || $0.email == current.email })?.updatedAt
                 )
             )
         }
@@ -142,7 +144,8 @@ final class CodexQuotaProvider {
                     isCurrent: isCurrent,
                     planDisplayName: stored.planDisplayName,
                     snapshotIdentifier: stored.snapshotIdentifier,
-                    canSwitchLocally: !isCurrent
+                    canSwitchLocally: !isCurrent,
+                    snapshotUpdatedAt: stored.updatedAt
                 )
             )
         }
@@ -180,7 +183,8 @@ final class CodexQuotaProvider {
                     isCurrent: false,
                     planDisplayName: nil,
                     snapshotIdentifier: nil,
-                    canSwitchLocally: false
+                    canSwitchLocally: false,
+                    snapshotUpdatedAt: nil
                 )
             )
         }
