@@ -76,10 +76,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func configureMenu() {
         menu.autoenablesItems = false
+        menu.minimumWidth = 280
 
         let titleItem = NSMenuItem(title: "Codex Quota Peek", action: nil, keyEquivalent: "")
         titleItem.tag = MenuTag.title
         titleItem.isEnabled = false
+        titleItem.image = NSImage(
+            systemSymbolName: "gauge.open.with.lines.needle.33percent",
+            accessibilityDescription: nil
+        )
 
         let accountItem = NSMenuItem(title: "Account: --", action: nil, keyEquivalent: "")
         accountItem.tag = MenuTag.account
@@ -154,19 +159,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.length = image.size.width
         statusItem.button?.needsDisplay = true
 
-        item(MenuTag.account)?.title = "Account: \(presentation.accountRow?.value ?? "--")"
-        item(MenuTag.plan)?.title = "Plan: \(presentation.planRow?.value ?? "--")"
+        item(MenuTag.title)?.attributedTitle = styledTitle(
+            title: "Codex Quota Peek",
+            subtitle: [presentation.accountRow?.value, presentation.planRow?.value]
+                .compactMap { $0 }
+                .joined(separator: " · ")
+        )
+        item(MenuTag.account)?.attributedTitle = styledLabel(
+            label: presentation.accountRow?.label ?? "Account",
+            value: presentation.accountRow?.value ?? "--"
+        )
+        item(MenuTag.plan)?.attributedTitle = styledLabel(
+            label: presentation.planRow?.label ?? "Plan",
+            value: presentation.planRow?.value ?? "--"
+        )
 
         if let primary = presentation.primaryRow {
-            item(MenuTag.primary)?.title = "\(primary.label): \(primary.percentText) | \(primary.resetText)"
+            item(MenuTag.primary)?.attributedTitle = styledQuotaRow(
+                label: primary.label,
+                percent: primary.percentText,
+                reset: primary.resetText
+            )
         } else {
-            item(MenuTag.primary)?.title = "5 hours: -- | --"
+            item(MenuTag.primary)?.attributedTitle = styledQuotaRow(
+                label: "5 hours",
+                percent: "--",
+                reset: "--"
+            )
         }
 
         if let secondary = presentation.secondaryRow {
-            item(MenuTag.secondary)?.title = "\(secondary.label): \(secondary.percentText) | \(secondary.resetText)"
+            item(MenuTag.secondary)?.attributedTitle = styledQuotaRow(
+                label: secondary.label,
+                percent: secondary.percentText,
+                reset: secondary.resetText
+            )
         } else {
-            item(MenuTag.secondary)?.title = "1 week: -- | --"
+            item(MenuTag.secondary)?.attributedTitle = styledQuotaRow(
+                label: "1 week",
+                percent: "--",
+                reset: "--"
+            )
         }
     }
 
@@ -180,5 +213,74 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuDidClose(_ menu: NSMenu) {
         isMenuOpen = false
+    }
+
+    private func styledTitle(title: String, subtitle: String) -> NSAttributedString {
+        let result = NSMutableAttributedString(
+            string: title,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 14, weight: .semibold),
+                .foregroundColor: NSColor.labelColor
+            ]
+        )
+
+        if !subtitle.isEmpty {
+            result.append(
+                NSAttributedString(
+                    string: "\n\(subtitle)",
+                    attributes: [
+                        .font: NSFont.systemFont(ofSize: 11, weight: .regular),
+                        .foregroundColor: NSColor.secondaryLabelColor
+                    ]
+                )
+            )
+        }
+
+        return result
+    }
+
+    private func styledLabel(label: String, value: String) -> NSAttributedString {
+        NSMutableAttributedString(
+            string: "\(label): ",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 12, weight: .regular),
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        ).appending(
+            NSAttributedString(
+                string: value,
+                attributes: [
+                    .font: NSFont.systemFont(ofSize: 12, weight: .medium),
+                    .foregroundColor: NSColor.labelColor
+                ]
+            )
+        )
+    }
+
+    private func styledQuotaRow(label: String, percent: String, reset: String) -> NSAttributedString {
+        let paddedLabel = label.padding(toLength: 10, withPad: " ", startingAt: 0)
+        let paddedPercent = percent.leftPadding(toLength: 4)
+        let line = "\(paddedLabel)  \(paddedPercent)  \(reset)"
+        return NSAttributedString(
+            string: line,
+            attributes: [
+                .font: NSFont.monospacedSystemFont(ofSize: 12, weight: .medium),
+                .foregroundColor: NSColor.labelColor
+            ]
+        )
+    }
+}
+
+private extension NSMutableAttributedString {
+    func appending(_ string: NSAttributedString) -> NSAttributedString {
+        append(string)
+        return self
+    }
+}
+
+private extension String {
+    func leftPadding(toLength length: Int, withPad pad: Character = " ") -> String {
+        if count >= length { return self }
+        return String(repeating: String(pad), count: length - count) + self
     }
 }
