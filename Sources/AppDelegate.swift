@@ -35,6 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let showPaceAlert = "showPaceAlert"
         static let showLastUpdated = "showLastUpdated"
         static let weeklyPacingMode = "weeklyPacingMode"
+        static let sourceStrategy = "sourceStrategy"
     }
 
     private let provider = CodexQuotaProvider()
@@ -69,7 +70,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             PreferenceKey.showColors: true,
             PreferenceKey.showPaceAlert: true,
             PreferenceKey.showLastUpdated: true,
-            PreferenceKey.weeklyPacingMode: WeeklyPacingMode.balanced56.rawValue
+            PreferenceKey.weeklyPacingMode: WeeklyPacingMode.balanced56.rawValue,
+            PreferenceKey.sourceStrategy: QuotaSourceStrategy.auto.rawValue
         ])
         configureStatusItem()
         configureMenu()
@@ -369,12 +371,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let presentation: StatusPresentation
             do {
                 let fetchedResult = try {
-                    switch mode {
-                    case .automatic:
+                    switch QuotaRefreshPolicy.fetchPlan(for: mode, sourceStrategy: self.selectedSourceStrategy) {
+                    case .localFirst:
                         return try provider.loadSnapshotForAutomaticRefresh()
-                    case .apiManual:
-                        return try provider.loadSnapshotUsingAPIOrFallback()
-                    case .startupAPI:
+                    case .apiPreferred:
                         return try provider.loadSnapshotUsingAPIOrFallback()
                     }
                 }()
@@ -1101,6 +1101,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         WeeklyPacingMode(rawValue: defaults.string(forKey: PreferenceKey.weeklyPacingMode) ?? "") ?? .balanced56
     }
 
+    private var selectedSourceStrategy: QuotaSourceStrategy {
+        QuotaSourceStrategy(rawValue: defaults.string(forKey: PreferenceKey.sourceStrategy) ?? "") ?? .auto
+    }
+
     private var weeklyPaceExplanation: String {
         QuotaDisplayPolicy.weeklyPaceExplanation(for: selectedWeeklyPacingMode)
     }
@@ -1123,6 +1127,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         controller.onSelectWeeklyPacingMode = { [weak self] mode in
             self?.setWeeklyPacingMode(mode)
         }
+        controller.onSelectSourceStrategy = { [weak self] strategy in
+            self?.setSourceStrategy(strategy)
+        }
         return controller
     }
 
@@ -1132,7 +1139,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             showPaceAlert: showsPaceAlert,
             showLastUpdated: showsLastUpdated,
             launchAtLogin: isLaunchAtLoginEnabled(),
-            weeklyPacingMode: selectedWeeklyPacingMode
+            weeklyPacingMode: selectedWeeklyPacingMode,
+            sourceStrategy: selectedSourceStrategy
         ))
     }
 
@@ -1141,6 +1149,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         apply(lastPresentation)
         syncPreferencesWindow()
         showFeedback("Show Colors \(enabled ? "enabled" : "disabled")")
+    }
+
+    private func setSourceStrategy(_ strategy: QuotaSourceStrategy) {
+        defaults.set(strategy.rawValue, forKey: PreferenceKey.sourceStrategy)
+        syncPreferencesWindow()
+        refreshAsync(mode: .automatic)
+        showFeedback("Source Strategy: \(strategy.title)")
     }
 
     private func setShowPaceAlert(_ enabled: Bool) {

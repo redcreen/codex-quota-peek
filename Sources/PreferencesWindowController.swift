@@ -6,6 +6,7 @@ struct PreferencesViewState {
     var showLastUpdated: Bool
     var launchAtLogin: Bool
     var weeklyPacingMode: WeeklyPacingMode
+    var sourceStrategy: QuotaSourceStrategy
 }
 
 private final class FlippedContentView: NSView {
@@ -33,11 +34,15 @@ final class PreferencesWindowController: NSWindowController {
     var onToggleShowLastUpdated: ((Bool) -> Void)?
     var onToggleLaunchAtLogin: ((Bool) -> Void)?
     var onSelectWeeklyPacingMode: ((WeeklyPacingMode) -> Void)?
+    var onSelectSourceStrategy: ((QuotaSourceStrategy) -> Void)?
 
     private let showColorsButton = NSButton(checkboxWithTitle: "Show colors in menu and status bar", target: nil, action: nil)
     private let showPaceAlertButton = NSButton(checkboxWithTitle: "Show weekly pace alerts", target: nil, action: nil)
     private let showLastUpdatedButton = NSButton(checkboxWithTitle: "Show last updated labels", target: nil, action: nil)
     private let launchAtLoginButton = NSButton(checkboxWithTitle: "Launch at login", target: nil, action: nil)
+    private let autoSourceButton = NSButton(radioButtonWithTitle: QuotaSourceStrategy.auto.title, target: nil, action: nil)
+    private let apiSourceButton = NSButton(radioButtonWithTitle: QuotaSourceStrategy.preferAPI.title, target: nil, action: nil)
+    private let localLogsSourceButton = NSButton(radioButtonWithTitle: QuotaSourceStrategy.preferLocalLogs.title, target: nil, action: nil)
 
     private let standardPaceButton = NSButton(radioButtonWithTitle: WeeklyPacingMode.workWeek40.menuTitle, target: nil, action: nil)
     private let balancedPaceButton = NSButton(radioButtonWithTitle: WeeklyPacingMode.balanced56.menuTitle, target: nil, action: nil)
@@ -72,6 +77,9 @@ final class PreferencesWindowController: NSWindowController {
         standardPaceButton.state = state.weeklyPacingMode == .workWeek40 ? .on : .off
         balancedPaceButton.state = state.weeklyPacingMode == .balanced56 ? .on : .off
         heavyPaceButton.state = state.weeklyPacingMode == .heavy70 ? .on : .off
+        autoSourceButton.state = state.sourceStrategy == .auto ? .on : .off
+        apiSourceButton.state = state.sourceStrategy == .preferAPI ? .on : .off
+        localLogsSourceButton.state = state.sourceStrategy == .preferLocalLogs ? .on : .off
         weeklyExplanationLabel.stringValue = QuotaDisplayPolicy.weeklyPaceExplanation(for: state.weeklyPacingMode)
     }
 
@@ -117,6 +125,7 @@ final class PreferencesWindowController: NSWindowController {
 
         contentStack.addArrangedSubview(makeHeader())
         contentStack.addArrangedSubview(makeDisplayCard())
+        contentStack.addArrangedSubview(makeSourceCard())
         contentStack.addArrangedSubview(makeWeeklyPacingCard())
         contentStack.addArrangedSubview(makeAppCard())
     }
@@ -181,6 +190,20 @@ final class PreferencesWindowController: NSWindowController {
         return sectionCard(
             title: QuotaDisplayPolicy.weeklyPacingSectionTitle,
             description: "This setting only changes when the weekly ! warning appears. It never changes the actual % left value.",
+            body: verticalRows(rows, spacing: 14)
+        )
+    }
+
+    private func makeSourceCard() -> NSView {
+        let rows = [
+            pacingRow(for: autoSourceButton, action: #selector(selectSourceStrategy(_:)), summary: QuotaSourceStrategy.auto.summary),
+            pacingRow(for: apiSourceButton, action: #selector(selectSourceStrategy(_:)), summary: QuotaSourceStrategy.preferAPI.summary),
+            pacingRow(for: localLogsSourceButton, action: #selector(selectSourceStrategy(_:)), summary: QuotaSourceStrategy.preferLocalLogs.summary)
+        ]
+
+        return sectionCard(
+            title: "Data Source Strategy",
+            description: "Choose how startup and automatic refresh balance freshness against local stability. Manual Refresh Now still asks the API for the latest value.",
             body: verticalRows(rows, spacing: 14)
         )
     }
@@ -324,6 +347,17 @@ final class PreferencesWindowController: NSWindowController {
             onSelectWeeklyPacingMode?(.heavy70)
         } else {
             onSelectWeeklyPacingMode?(.balanced56)
+        }
+    }
+
+    @objc
+    private func selectSourceStrategy(_ sender: NSButton) {
+        if sender === apiSourceButton {
+            onSelectSourceStrategy?(.preferAPI)
+        } else if sender === localLogsSourceButton {
+            onSelectSourceStrategy?(.preferLocalLogs)
+        } else {
+            onSelectSourceStrategy?(.auto)
         }
     }
 }

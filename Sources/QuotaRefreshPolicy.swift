@@ -1,7 +1,51 @@
 import Foundation
 
+enum QuotaSourceStrategy: String, CaseIterable {
+    case auto
+    case preferAPI
+    case preferLocalLogs
+
+    var title: String {
+        switch self {
+        case .auto:
+            return "Auto"
+        case .preferAPI:
+            return "Prefer API"
+        case .preferLocalLogs:
+            return "Prefer local logs"
+        }
+    }
+
+    var summary: String {
+        switch self {
+        case .auto:
+            return "Balanced default. Auto refresh follows local logs, while startup and manual refresh prefer the API."
+        case .preferAPI:
+            return "Freshness first. Automatic refresh tries the official API before falling back."
+        case .preferLocalLogs:
+            return "Most conservative. Background and startup refresh stay on local Codex logs whenever possible."
+        }
+    }
+}
+
+enum QuotaFetchPlan {
+    case localFirst
+    case apiPreferred
+}
+
 enum QuotaRefreshPolicy {
     private static let apiProtectionWindow: TimeInterval = 120
+
+    static func fetchPlan(for mode: QuotaRefreshMode, sourceStrategy: QuotaSourceStrategy) -> QuotaFetchPlan {
+        switch mode {
+        case .apiManual:
+            return .apiPreferred
+        case .startupAPI:
+            return sourceStrategy == .preferLocalLogs ? .localFirst : .apiPreferred
+        case .automatic:
+            return sourceStrategy == .preferAPI ? .apiPreferred : .localFirst
+        }
+    }
 
     static func preferredResult(
         fetchedResult: CodexQuotaFetchResult,

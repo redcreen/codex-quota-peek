@@ -180,6 +180,25 @@ func testManualRefreshDoesNotForceCachedAPIOverFetchedLogs() {
     expect(preferred.source == .realtimeLogs, "manual refresh uses fetched fallback result if API is unavailable")
 }
 
+func testSourceStrategyFetchPlans() {
+    expect(
+        QuotaRefreshPolicy.fetchPlan(for: .automatic, sourceStrategy: .auto) == .localFirst,
+        "auto strategy keeps automatic refresh on local-first"
+    )
+    expect(
+        QuotaRefreshPolicy.fetchPlan(for: .automatic, sourceStrategy: .preferAPI) == .apiPreferred,
+        "prefer API strategy upgrades automatic refresh to API-first"
+    )
+    expect(
+        QuotaRefreshPolicy.fetchPlan(for: .startupAPI, sourceStrategy: .preferLocalLogs) == .localFirst,
+        "prefer local logs keeps startup refresh on local-first"
+    )
+    expect(
+        QuotaRefreshPolicy.fetchPlan(for: .apiManual, sourceStrategy: .preferLocalLogs) == .apiPreferred,
+        "manual refresh always remains API-first"
+    )
+}
+
 func testDisplayPresentationUsesPaceMarkersAndSourceText() {
     let primary = LimitWindow(
         usedPercent: 65,
@@ -410,8 +429,9 @@ struct TestRunner {
         testAutomaticRefreshPrefersRecentAPIOverOlderLogs()
         testAutomaticRefreshAllowsLogsAfterTheyCatchUp()
         testAutomaticRefreshPrefersAPIWhenLogsShowOlderResetWindow()
-        testManualRefreshDoesNotForceCachedAPIOverFetchedLogs()
-        testDisplayPresentationUsesPaceMarkersAndSourceText()
+testManualRefreshDoesNotForceCachedAPIOverFetchedLogs()
+testSourceStrategyFetchPlans()
+testDisplayPresentationUsesPaceMarkersAndSourceText()
         testRelativeUpdatedAtLabels()
         testQuotaDisplayColorThresholds()
         testAuthSnapshotStoreReadsSavedAccountMetadata()
