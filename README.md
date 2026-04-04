@@ -1,31 +1,184 @@
 # Codex Quota Peek
 
-A tiny macOS menu bar app that reads the latest Codex rate limit event from `~/.codex` and shows the remaining primary and weekly quota in the menu bar and a richer dropdown menu.
+[中文](#中文说明) | [English](#english)
 
-## Download
+A lightweight macOS menu bar app for checking the latest Codex quota usage at a glance.
 
-Download the packaged app from `release/CodexQuotaPeek-mac.zip`, unzip it, and open `CodexQuotaPeek.app`.
+## 中文说明
 
-## Build
+### 项目简介
+
+`Codex Quota Peek` 是一个 macOS 状态栏小工具，用来显示 Codex 当前剩余额度。
+
+它会在菜单栏中显示两行简洁信息：
+
+- `P xx%`：主额度窗口剩余百分比
+- `W xx%`：周额度窗口剩余百分比
+
+点开菜单后，还可以看到更完整的信息：
+
+- 额度窗口时长
+- 当前剩余百分比
+- 对应重置时间
+
+### 语言说明
+
+目前应用界面默认使用英文。
+
+- 这份 README 同时提供中文和英文说明
+- GitHub 页面可直接通过顶部链接切换阅读语言
+- 如果后续你需要，我也可以把应用菜单本身做成中英文切换版本
+
+### 解决的问题
+
+这个工具主要解决几个实际问题：
+
+- 不需要反复进入 Codex 才能看额度
+- 不需要手动翻日志或数据库
+- 可以在菜单栏里持续看到最新剩余额度
+- 可以快速判断当前还能不能继续高频使用
+
+### 使用方法
+
+#### 直接下载使用
+
+1. 在仓库中下载 `release/CodexQuotaPeek-mac.zip`
+2. 解压后得到 `CodexQuotaPeek.app`
+3. 双击打开即可使用
+4. 应用启动后会常驻在 macOS 状态栏
+
+如果 macOS 提示安全限制，可以在“系统设置 -> 隐私与安全性”里允许打开。
+
+#### 从源码构建
 
 ```bash
 ./scripts/build_app.sh
 ./scripts/package_release.sh
 ```
 
-## Run
+构建完成后可直接运行：
 
 ```bash
 open "dist/CodexQuotaPeek.app"
 ```
 
-## Display
+### 工作原理
 
-- Menu bar badge: `P xx%` and `W xx%`
-- Dropdown menu: primary window, weekly window, remaining percentage, and reset time
-- Refresh interval: 60 seconds.
+应用的工作方式很直接：
 
-## Data sources
+1. 启动时立即读取一次本机 Codex 额度数据
+2. 之后按固定间隔自动刷新
+3. 优先读取 `~/.codex/logs_1.sqlite` 中最新的实时 `codex.rate_limits` 事件
+4. 如果实时数据暂时不可用，再回退读取 `~/.codex/archived_sessions/*.jsonl`
+5. 将结果渲染成菜单栏 badge 和下拉菜单
 
-1. `~/.codex/logs_1.sqlite` realtime `codex.rate_limits` events
-2. `~/.codex/archived_sessions/*.jsonl` fallback `token_count` events
+当前版本默认每 60 秒自动刷新一次，并且菜单中支持手动 `Refresh Now`。
+
+### 制作过程
+
+这个项目从零开始搭建，核心过程大致是：
+
+1. 确认 Codex 本地确实会记录额度信息
+2. 找到真实可用的数据源和字段格式
+3. 用原生 `AppKit` 做菜单栏应用，而不是依赖更重的桌面框架
+4. 先实现双行 badge，再补充更丰富的下拉菜单
+5. 修复旧快照误匹配、解析失败回退等问题
+6. 最后补上可直接分发的 `.app` 和 `.zip`
+
+### 仓库内容
+
+- `Sources/`：Swift 源码
+- `scripts/build_app.sh`：构建 `.app`
+- `scripts/package_release.sh`：打包 zip 发布文件
+- `release/CodexQuotaPeek-mac.zip`：可直接下载使用的应用压缩包
+
+---
+
+## English
+
+### Overview
+
+`Codex Quota Peek` is a small macOS menu bar utility for monitoring your Codex quota in real time.
+
+It shows two compact lines in the menu bar:
+
+- `P xx%`: remaining percentage for the primary quota window
+- `W xx%`: remaining percentage for the weekly quota window
+
+When you open the dropdown menu, it also shows:
+
+- window duration
+- remaining percentage
+- reset time
+
+### Language Notes
+
+The app UI currently uses English by default.
+
+- This README includes both Chinese and English
+- You can switch reading language using the links at the top of the page
+- If needed later, the app menu itself can also be turned into a bilingual UI
+
+### Problems It Solves
+
+This app is built to solve a few practical issues:
+
+- You do not need to open Codex repeatedly just to check quota
+- You do not need to inspect local logs or databases manually
+- You can keep a live quota indicator in the macOS menu bar
+- You can quickly judge whether you still have enough quota for heavy usage
+
+### How To Use
+
+#### Download and use directly
+
+1. Download `release/CodexQuotaPeek-mac.zip` from this repository
+2. Unzip it to get `CodexQuotaPeek.app`
+3. Open the app
+4. It will stay in the macOS menu bar
+
+If macOS blocks the app the first time, allow it from `System Settings -> Privacy & Security`.
+
+#### Build from source
+
+```bash
+./scripts/build_app.sh
+./scripts/package_release.sh
+```
+
+Run the built app with:
+
+```bash
+open "dist/CodexQuotaPeek.app"
+```
+
+### How It Works
+
+The app works like this:
+
+1. It loads Codex quota data immediately at launch
+2. It refreshes again on a fixed interval
+3. It first reads the latest realtime `codex.rate_limits` events from `~/.codex/logs_1.sqlite`
+4. If realtime data is unavailable, it falls back to `~/.codex/archived_sessions/*.jsonl`
+5. It renders the result into the menu bar badge and dropdown menu
+
+The current version refreshes every 60 seconds and also includes a manual `Refresh Now` action.
+
+### Build Process
+
+This project was built from scratch. The main steps were:
+
+1. Verify that Codex actually stores quota information locally
+2. Identify the correct local data source and payload format
+3. Build a native menu bar app with `AppKit`
+4. Start with the compact two-line badge
+5. Add the richer dropdown menu with percentage and reset time
+6. Fix stale snapshot matching and parsing edge cases
+7. Package the final `.app` and distributable `.zip`
+
+### Repository Contents
+
+- `Sources/`: Swift source code
+- `scripts/build_app.sh`: builds the `.app`
+- `scripts/package_release.sh`: packages the zip release
+- `release/CodexQuotaPeek-mac.zip`: ready-to-download app archive
