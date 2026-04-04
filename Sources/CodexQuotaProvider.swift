@@ -23,6 +23,8 @@ struct CodexQuotaTrendSummary {
     let weeklyLowDate: Date?
     let sessionTrend: String?
     let weeklyTrend: String?
+    let sessionDeltaPoints: Int?
+    let weeklyDeltaPoints: Int?
 
     func menuText(language: AppLanguage = .english) -> String? {
         language.recentLowsText(
@@ -34,7 +36,12 @@ struct CodexQuotaTrendSummary {
     }
 
     func sparklineText(language: AppLanguage = .english) -> String? {
-        language.recentTrendText(sessionTrend: sessionTrend, weeklyTrend: weeklyTrend)
+        language.recentTrendText(
+            sessionTrend: sessionTrend,
+            sessionDeltaPoints: sessionDeltaPoints,
+            weeklyTrend: weeklyTrend,
+            weeklyDeltaPoints: weeklyDeltaPoints
+        )
     }
 }
 
@@ -153,6 +160,9 @@ final class CodexQuotaProvider {
             values: sessionRows.compactMap { $0.snapshot.rateLimits.primary?.remainingPercent },
             points: 8
         )
+        let sessionDeltaPoints = Self.deltaPoints(
+            values: sessionRows.compactMap { $0.snapshot.rateLimits.primary?.remainingPercent }
+        )
 
         let weeklyRows = parsedRows.filter { ($0.sourceDate ?? .distantPast) >= weeklyCutoff }
         let weeklyLowRow = weeklyRows
@@ -168,8 +178,16 @@ final class CodexQuotaProvider {
             values: weeklyRows.compactMap { $0.snapshot.rateLimits.secondary?.remainingPercent },
             points: 8
         )
+        let weeklyDeltaPoints = Self.deltaPoints(
+            values: weeklyRows.compactMap { $0.snapshot.rateLimits.secondary?.remainingPercent }
+        )
 
-        if sessionLowRow == nil, weeklyLowRow == nil, sessionTrend == nil, weeklyTrend == nil {
+        if sessionLowRow == nil,
+           weeklyLowRow == nil,
+           sessionTrend == nil,
+           weeklyTrend == nil,
+           sessionDeltaPoints == nil,
+           weeklyDeltaPoints == nil {
             return nil
         }
 
@@ -179,7 +197,9 @@ final class CodexQuotaProvider {
             weeklyLowPercent: weeklyLowRow?.0,
             weeklyLowDate: weeklyLowRow?.1,
             sessionTrend: sessionTrend,
-            weeklyTrend: weeklyTrend
+            weeklyTrend: weeklyTrend,
+            sessionDeltaPoints: sessionDeltaPoints,
+            weeklyDeltaPoints: weeklyDeltaPoints
         )
     }
 
@@ -207,6 +227,11 @@ final class CodexQuotaProvider {
             let sourceIndex = Int((Double(index) * step).rounded())
             return values[min(values.count - 1, max(0, sourceIndex))]
         }
+    }
+
+    private static func deltaPoints(values: [Int]) -> Int? {
+        guard let first = values.first, let last = values.last, values.count >= 2 else { return nil }
+        return last - first
     }
 
     func loadAccountInfo() -> CodexAccountInfo? {

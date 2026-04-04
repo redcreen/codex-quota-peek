@@ -239,12 +239,14 @@ func testTrendSummaryMenuText() {
         weeklyLowPercent: 82,
         weeklyLowDate: Date(timeIntervalSince1970: 1_775_896_800),
         sessionTrend: "._=+##",
-        weeklyTrend: "--==++"
+        weeklyTrend: "--==++",
+        sessionDeltaPoints: -7,
+        weeklyDeltaPoints: 0
     )
     let menuText = summary.menuText(language: .english) ?? ""
     expect(menuText.contains("Recent lows: 5h 73% @"), "trend summary includes session low timestamp")
     expect(menuText.contains("7d 82% @"), "trend summary includes weekly low timestamp")
-    expect(summary.sparklineText(language: .english) == "Recent trend: 5h ._=+##  ·  7d --==++", "trend summary formats sparkline text")
+    expect(summary.sparklineText(language: .english) == "Recent trend: 5h ._=+## · down 7pt  ·  7d --==++ · steady", "trend summary formats sparkline text")
 }
 
 func testSparklineSampling() {
@@ -454,7 +456,9 @@ func testChineseLanguagePresentationLocalizesCoreLabels() {
             weeklyLowPercent: 82,
             weeklyLowDate: Date(),
             sessionTrend: "._=+##",
-            weeklyTrend: "--==++"
+            weeklyTrend: "--==++",
+            sessionDeltaPoints: -5,
+            weeklyDeltaPoints: 2
         ),
         weeklyPacingMode: .balanced56,
         language: .chinese

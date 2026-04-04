@@ -357,13 +357,13 @@ enum AppLanguage: String, CaseIterable {
         return "\(recentLowsLabel): " + parts.joined(separator: "  ·  ")
     }
 
-    func recentTrendText(sessionTrend: String?, weeklyTrend: String?) -> String? {
+    func recentTrendText(sessionTrend: String?, sessionDeltaPoints: Int?, weeklyTrend: String?, weeklyDeltaPoints: Int?) -> String? {
         var parts: [String] = []
         if let sessionTrend {
-            parts.append((self == .english ? "5h" : "5 小时") + " \(sessionTrend)")
+            parts.append((self == .english ? "5h" : "5 小时") + " \(sessionTrend)\(trendDeltaSuffix(sessionDeltaPoints))")
         }
         if let weeklyTrend {
-            parts.append((self == .english ? "7d" : "7 天") + " \(weeklyTrend)")
+            parts.append((self == .english ? "7d" : "7 天") + " \(weeklyTrend)\(trendDeltaSuffix(weeklyDeltaPoints))")
         }
         guard !parts.isEmpty else { return nil }
         return "\(recentTrendLabel): " + parts.joined(separator: "  ·  ")
@@ -383,6 +383,18 @@ enum AppLanguage: String, CaseIterable {
             formatter.setLocalizedDateFormatFromTemplate(self == .english ? "MMM d" : "M月d日")
         }
         return formatter.string(from: date)
+    }
+
+    private func trendDeltaSuffix(_ delta: Int?) -> String {
+        guard let delta else { return "" }
+        if abs(delta) <= 1 {
+            return self == .english ? " · steady" : " · 平稳"
+        }
+        if delta > 0 {
+            return self == .english ? " · up \(delta)pt" : " · 上升 \(delta) 点"
+        }
+        let magnitude = abs(delta)
+        return self == .english ? " · down \(magnitude)pt" : " · 下降 \(magnitude) 点"
     }
 
     func relativeUpdatedAtLabel(seconds: Int) -> String {
