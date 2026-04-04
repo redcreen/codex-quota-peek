@@ -6,6 +6,13 @@ struct CodexAccountInfo {
     let planDisplayName: String
 }
 
+struct CodexKnownAccount {
+    let displayName: String
+    let email: String?
+    let accountID: String?
+    let isCurrent: Bool
+}
+
 final class CodexQuotaProvider {
     private let fileManager = FileManager.default
     private let decoder = JSONDecoder()
@@ -50,6 +57,63 @@ final class CodexQuotaProvider {
 
         guard let finalName else { return nil }
         return CodexAccountInfo(displayName: finalName, email: email, planDisplayName: finalPlan)
+    }
+
+    func loadKnownAccounts() -> [CodexKnownAccount] {
+        var results: [CodexKnownAccount] = []
+        var seen = Set<String>()
+
+        let current = loadAccountInfo()
+        let currentAccountID = loadCurrentAccountID()
+        if let current {
+            let key = [current.email ?? "", currentAccountID ?? ""].joined(separator: "|")
+            seen.insert(key)
+            results.append(
+                CodexKnownAccount(
+                    displayName: current.displayName,
+                    email: current.email,
+                    accountID: currentAccountID,
+                    isCurrent: true
+                )
+            )
+        }
+
+        let dbPath = homeDirectory.appendingPathComponent(".codex/logs_1.sqlite").path
+        guard fileManager.fileExists(atPath: dbPath) else { return results }
+
+        let sql = """
+        select feedback_log_body
+        from logs
+        where feedback_log_body like '%user.email="%'
+        order by id desc
+        limit 500;
+        """
+
+        guard let output = try? runSQLite(databasePath: dbPath, sql: sql) else { return results }
+        let emailRegex = try? NSRegularExpression(pattern: #"user\.email="([^"]+)""#)
+        let accountRegex = try? NSRegularExpression(pattern: #"user\.account_id="([^"]+)""#)
+
+        for line in output.split(separator: "\n") {
+            let text = String(line)
+            let email = firstMatch(in: text, regex: emailRegex)
+            let accountID = firstMatch(in: text, regex: accountRegex)
+            guard let email else { continue }
+
+            let key = [email, accountID ?? ""].joined(separator: "|")
+            if seen.contains(key) { continue }
+            seen.insert(key)
+
+            results.append(
+                CodexKnownAccount(
+                    displayName: email,
+                    email: email,
+                    accountID: accountID,
+                    isCurrent: false
+                )
+            )
+        }
+
+        return results
     }
 
     private func latestFromRealtimeLogs() throws -> CodexQuotaSnapshot? {
@@ -223,6 +287,26 @@ final class CodexQuotaProvider {
             .map { $0.prefix(1).uppercased() + $0.dropFirst().lowercased() }
             .joined(separator: " ")
     }
+
+    private func loadCurrentAccountID() -> String? {
+        let authURL = homeDirectory.appendingPathComponent(".codex/auth.json")
+        guard let data = try? Data(contentsOf: authURL),
+              let auth = try? decoder.decode(CodexAuthFile.self, from: data) else {
+            return nil
+        }
+        return auth.tokens.accountID
+    }
+
+    private func firstMatch(in text: String, regex: NSRegularExpression?) -> String? {
+        guard let regex else { return nil }
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        guard let match = regex.firstMatch(in: text, options: [], range: range),
+              match.numberOfRanges > 1,
+              let captureRange = Range(match.range(at: 1), in: text) else {
+            return nil
+        }
+        return String(text[captureRange])
+    }
 }
 
 private struct RateLimitEvent: Decodable {
@@ -292,10 +376,12 @@ private struct CodexAuthFile: Decodable {
 private struct AuthTokens: Decodable {
     let idToken: String?
     let accessToken: String?
+    let accountID: String?
 
     enum CodingKeys: String, CodingKey {
         case idToken = "id_token"
         case accessToken = "access_token"
+        case accountID = "account_id"
     }
 }
 

@@ -14,6 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private lazy var refreshRowView = MenuActionRowView(title: "Refresh Now", target: self, action: #selector(refreshNow(_:)))
     private lazy var copyRowView = MenuActionRowView(title: "Copy Details", shortcut: "⌘C", target: self, action: #selector(copyDetails(_:)))
     private lazy var quitRowView = MenuActionRowView(title: "Quit", shortcut: "⌘Q", target: self, action: #selector(quit(_:)))
+    private let accountsMenuItem = NSMenuItem(title: "Recent Accounts", action: nil, keyEquivalent: "")
     private var refreshTimer: Timer?
     private var lastPresentation = StatusPresentation.loading
 
@@ -46,6 +47,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc
     private func quit(_ sender: Any?) {
         NSApp.terminate(nil)
+    }
+
+    @objc
+    private func switchAccount(_ sender: NSMenuItem) {
+        let targetLabel = sender.representedObject as? String ?? "selected account"
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = [
+            "-e",
+            "tell application \"Terminal\" to do script \"echo Switching to \(targetLabel.quotedForShell()); codex login --device-auth\"",
+            "-e",
+            "tell application \"Terminal\" to activate"
+        ]
+        try? process.run()
     }
 
     private func configureStatusItem() {
@@ -81,6 +96,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let refreshItem = NSMenuItem()
         refreshItem.view = refreshRowView
 
+        accountsMenuItem.submenu = NSMenu(title: "Recent Accounts")
+
         let copyItem = NSMenuItem()
         copyItem.view = copyRowView
 
@@ -91,6 +108,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             titleItem,
             accountItem,
             planItem,
+            accountsMenuItem,
             .separator(),
             primaryItem,
             secondaryItem,
@@ -127,6 +145,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             .compactMap { $0 }
             .joined(separator: " · ")
         headerView.updateSubtitle(accountSummary.isEmpty ? "--" : accountSummary)
+        rebuildAccountsMenu()
         accountInfoView.update(
             label: presentation.accountRow?.label ?? "Account",
             value: presentation.accountRow?.value ?? "--"
@@ -153,5 +172,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuWillOpen(_ menu: NSMenu) {
         refresh()
+    }
+
+    private func rebuildAccountsMenu() {
+        let submenu = NSMenu(title: "Recent Accounts")
+        let accounts = provider.loadKnownAccounts()
+
+        if accounts.isEmpty {
+            let empty = NSMenuItem(title: "No accounts found", action: nil, keyEquivalent: "")
+            empty.isEnabled = false
+            submenu.items = [empty]
+        } else {
+            submenu.items = accounts.map { account in
+                let title = account.isCurrent ? "\(account.displayName) (Current)" : account.displayName
+                let item = NSMenuItem(title: title, action: #selector(switchAccount(_:)), keyEquivalent: "")
+                item.target = self
+                item.representedObject = account.email ?? account.displayName
+                return item
+            }
+        }
+
+        let separator = NSMenuItem.separator()
+        let switchItem = NSMenuItem(title: "Switch Account...", action: #selector(switchAccount(_:)), keyEquivalent: "")
+        switchItem.target = self
+        switchItem.representedObject = "Codex"
+        submenu.addItem(separator)
+        submenu.addItem(switchItem)
+        accountsMenuItem.submenu = submenu
+    }
+}
+
+private extension String {
+    func quotedForShell() -> String {
+        replacingOccurrences(of: "\"", with: "\\\"")
     }
 }
