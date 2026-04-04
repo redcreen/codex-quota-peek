@@ -12,13 +12,14 @@ final class StatusBadgeView: NSView {
     override var intrinsicContentSize: NSSize {
         let alignedWidth = max(alignedTextWidth(for: line1), alignedTextWidth(for: line2))
         let width = iconSize + iconSpacing + alignedWidth + padding * 2
-        return NSSize(width: max(52, width), height: 20)
+        return NSSize(width: max(54, width), height: 22)
     }
 
-    private let padding: CGFloat = 2
-    private let iconSize: CGFloat = 20
-    private let iconSpacing: CGFloat = 6
+    private let padding: CGFloat = 1
+    private let iconSize: CGFloat = 22
+    private let iconSpacing: CGFloat = 5
     private let prefixColumnWidth: CGFloat = 9
+    private let iconCropInsetRatio: CGFloat = 0.16
 
     private let lineAttributes: [NSAttributedString.Key: Any] = [
         .font: NSFont.monospacedDigitSystemFont(ofSize: 8, weight: .semibold),
@@ -27,8 +28,8 @@ final class StatusBadgeView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         drawIcon()
-        drawAlignedText(line1, yOffset: 9.3)
-        drawAlignedText(line2, yOffset: 1.1)
+        drawAlignedText(line1, yOffset: 10.4)
+        drawAlignedText(line2, yOffset: 2.0)
     }
 
     private func drawIcon() {
@@ -37,7 +38,22 @@ final class StatusBadgeView: NSView {
             return
         }
 
-        icon.draw(in: NSRect(x: padding, y: 0, width: iconSize, height: iconSize))
+        let sourceInsetX = icon.size.width * iconCropInsetRatio
+        let sourceInsetY = icon.size.height * iconCropInsetRatio
+        let sourceRect = NSRect(
+            x: sourceInsetX,
+            y: sourceInsetY,
+            width: icon.size.width - sourceInsetX * 2,
+            height: icon.size.height - sourceInsetY * 2
+        )
+        let destinationRect = NSRect(x: padding, y: 0, width: iconSize, height: iconSize)
+
+        icon.draw(
+            in: destinationRect,
+            from: sourceRect,
+            operation: .sourceOver,
+            fraction: 1.0
+        )
     }
 
     private func drawAlignedText(_ text: String, yOffset: CGFloat) {
