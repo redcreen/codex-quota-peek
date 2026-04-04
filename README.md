@@ -70,7 +70,7 @@ A lightweight macOS menu bar app for checking the latest Codex quota usage at a 
 - 下拉菜单显示账号、套餐、重置时间、`Last updated`
 - `Refresh Now` 刷新后自动保持菜单交互连续
 - 已保存登录快照的账号可在菜单里直接切换
-- `Preferences` 子菜单，可开关颜色、节奏提醒、更新时间
+- 独立 `Preferences...` 窗口，可配置显示项、weekly `!` 规则和启动行为
 - `Launch at Login`
 - `Open Codex Folder`
 - `Reveal Logs Database`
@@ -123,7 +123,7 @@ open "dist/CodexQuotaPeek.app"
 5. 如果实时数据暂时不可用，再回退读取 `~/.codex/archived_sessions/*.jsonl`
 6. 将结果渲染成菜单栏 badge 和下拉菜单
 
-当前版本默认保留 `5` 秒自动刷新兜底，并且会监听：
+当前版本默认保留 `20` 秒自动刷新兜底，并且会监听：
 
 - `~/.codex/logs_1.sqlite`
 - `~/.codex/auth.json`
@@ -173,6 +173,25 @@ open "dist/CodexQuotaPeek.app"
 
 - 一个基于本地 Codex 日志的轻量额度观察工具
 - 不是官方内部实时 quota API 的完整替代
+
+### Roadmap
+
+为了把这个项目继续做成一个可以持续发展的产品，当前 roadmap 是：
+
+1. 产品化设置体验
+   已完成第一步：从菜单层级设置升级成独立 `Preferences...` 窗口。后续新的高级设置也会优先放到这里。
+
+2. 数据源策略可配置
+   计划增加 `Auto / Prefer API / Prefer local logs` 这样的策略，让用户更清楚当前值为什么来自这个来源。
+
+3. 历史趋势与节奏分析
+   不只显示现在剩多少，还会补上最近一段时间的变化趋势，用来解释为什么会出现 `! / !!`。
+
+4. 主动通知
+   计划加入低额度、超平均节奏、即将重置等通知，让产品从“查看工具”变成“提醒助手”。
+
+5. 发布与工程化
+   持续完善自动测试、构建、发布、版本管理和 changelog，让项目更稳定，也更适合别人长期安装使用。
 
 ### 制作过程
 
@@ -313,7 +332,7 @@ If macOS blocks the app the first time, allow it from `System Settings -> Privac
 - `! / !!` pace markers when usage is ahead of average
 - dropdown details for account, plan, reset time, and `Last updated`
 - `Refresh Now` keeps the interaction flow smooth
-- `Preferences` submenu for colors, pace alerts, and updated-time visibility
+- standalone `Preferences...` window for display settings, weekly `!` behavior, and launch options
 - `Launch at Login`
 - `Open Codex Folder`
 - `Reveal Logs Database`
@@ -342,7 +361,7 @@ The app works like this:
 5. If realtime data is unavailable, it falls back to `~/.codex/archived_sessions/*.jsonl`
 6. It renders the result into the menu bar badge and dropdown menu
 
-The current version keeps a `5s` fallback timer and also watches:
+The current version keeps a `20s` fallback timer and also watches:
 
 - `~/.codex/logs_1.sqlite`
 - `~/.codex/auth.json`
@@ -389,6 +408,25 @@ So the current positioning of `Codex Quota Peek` is:
 
 - a lightweight quota observer built on top of local Codex log events
 - not a full replacement for the official internal realtime quota path
+
+### Roadmap
+
+To grow this project into a more sustainable product, the current roadmap is:
+
+1. Product-grade settings
+   The first step is already done: settings now live in a standalone `Preferences...` window instead of a stacked submenu. Future advanced controls will go there too.
+
+2. Configurable source strategy
+   Planned options include `Auto`, `Prefer API`, and `Prefer local logs` so users can choose the balance between freshness and local stability.
+
+3. History and pacing analysis
+   The next layer is trend visibility: not just how much is left, but how usage has been moving and why `! / !!` appeared.
+
+4. Proactive notifications
+   Add alerts for low remaining quota, above-average pacing, and upcoming resets so the app becomes a helper, not just a viewer.
+
+5. Release and engineering polish
+   Keep improving tests, packaging, releases, versioning, and changelogs so the project is easier to maintain and easier for others to install.
 
 ### Build Process
 
