@@ -184,6 +184,30 @@ enum AppLanguage: String, CaseIterable {
         }
     }
 
+    var lowQuotaNotificationsTitle: String {
+        self == .english ? "Low quota alerts" : "低额度提醒"
+    }
+
+    var lowQuotaNotificationsDetail: String {
+        self == .english ? "Notify when 5-hour or 7-day remaining quota drops below warning thresholds." : "当 5 小时或 7 天剩余额度跌破提醒阈值时通知。"
+    }
+
+    var paceNotificationsTitle: String {
+        self == .english ? "Pace alerts" : "节奏提醒"
+    }
+
+    var paceNotificationsDetail: String {
+        self == .english ? "Notify when a new ! or !! pace warning appears." : "当新的 ! 或 !! 节奏警告出现时通知。"
+    }
+
+    var resetNotificationsTitle: String {
+        self == .english ? "Reset reminders" : "重置提醒"
+    }
+
+    var resetNotificationsDetail: String {
+        self == .english ? "Notify shortly before a 5-hour or 7-day window resets." : "在 5 小时或 7 天窗口即将重置前通知。"
+    }
+
     var launchAtLoginTitle: String {
         switch self {
         case .english:

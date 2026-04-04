@@ -40,6 +40,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let weeklyPacingMode = "weeklyPacingMode"
         static let sourceStrategy = "sourceStrategy"
         static let notificationsEnabled = "notificationsEnabled"
+        static let lowQuotaNotificationsEnabled = "lowQuotaNotificationsEnabled"
+        static let paceNotificationsEnabled = "paceNotificationsEnabled"
+        static let resetNotificationsEnabled = "resetNotificationsEnabled"
         static let appLanguage = "appLanguage"
     }
 
@@ -79,6 +82,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             PreferenceKey.weeklyPacingMode: WeeklyPacingMode.balanced56.rawValue,
             PreferenceKey.sourceStrategy: QuotaSourceStrategy.auto.rawValue,
             PreferenceKey.notificationsEnabled: true,
+            PreferenceKey.lowQuotaNotificationsEnabled: true,
+            PreferenceKey.paceNotificationsEnabled: true,
+            PreferenceKey.resetNotificationsEnabled: true,
             PreferenceKey.appLanguage: AppLanguage.english.rawValue
         ])
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
@@ -706,7 +712,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let event = QuotaNotificationPolicy.nextEvent(
             previous: lastNotificationSnapshot,
             current: currentSnapshot,
-            presentation: presentation
+            presentation: presentation,
+            preferences: notificationPreferences
         )
         lastNotificationSnapshot = currentSnapshot
         guard let event else { return }
@@ -1204,6 +1211,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         defaults.bool(forKey: PreferenceKey.notificationsEnabled)
     }
 
+    private var lowQuotaNotificationsEnabled: Bool {
+        defaults.bool(forKey: PreferenceKey.lowQuotaNotificationsEnabled)
+    }
+
+    private var paceNotificationsEnabled: Bool {
+        defaults.bool(forKey: PreferenceKey.paceNotificationsEnabled)
+    }
+
+    private var resetNotificationsEnabled: Bool {
+        defaults.bool(forKey: PreferenceKey.resetNotificationsEnabled)
+    }
+
+    private var notificationPreferences: QuotaNotificationPreferences {
+        QuotaNotificationPreferences(
+            lowQuotaEnabled: lowQuotaNotificationsEnabled,
+            paceEnabled: paceNotificationsEnabled,
+            resetEnabled: resetNotificationsEnabled
+        )
+    }
+
     private var weeklyPaceExplanation: String {
         QuotaDisplayPolicy.weeklyPaceExplanation(for: selectedWeeklyPacingMode, language: selectedAppLanguage)
     }
@@ -1221,6 +1248,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         controller.onToggleNotifications = { [weak self] enabled in
             self?.setNotificationsEnabled(enabled)
+        }
+        controller.onToggleLowQuotaNotifications = { [weak self] enabled in
+            self?.setLowQuotaNotificationsEnabled(enabled)
+        }
+        controller.onTogglePaceNotifications = { [weak self] enabled in
+            self?.setPaceNotificationsEnabled(enabled)
+        }
+        controller.onToggleResetNotifications = { [weak self] enabled in
+            self?.setResetNotificationsEnabled(enabled)
         }
         controller.onToggleLaunchAtLogin = { [weak self] enabled in
             self?.setLaunchAtLogin(enabled: enabled)
@@ -1247,7 +1283,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             launchAtLogin: isLaunchAtLoginEnabled(),
             weeklyPacingMode: selectedWeeklyPacingMode,
             sourceStrategy: selectedSourceStrategy,
-            notificationsEnabled: notificationsEnabled
+            notificationsEnabled: notificationsEnabled,
+            lowQuotaNotificationsEnabled: lowQuotaNotificationsEnabled,
+            paceNotificationsEnabled: paceNotificationsEnabled,
+            resetNotificationsEnabled: resetNotificationsEnabled
         ))
     }
 
@@ -1283,6 +1322,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         defaults.set(enabled, forKey: PreferenceKey.notificationsEnabled)
         syncPreferencesWindow()
         showFeedback(selectedAppLanguage == .english ? "Notifications \(enabled ? "enabled" : "disabled")" : "通知\(enabled ? "已开启" : "已关闭")")
+    }
+
+    private func setLowQuotaNotificationsEnabled(_ enabled: Bool) {
+        defaults.set(enabled, forKey: PreferenceKey.lowQuotaNotificationsEnabled)
+        syncPreferencesWindow()
+        showFeedback(selectedAppLanguage == .english ? "Low quota alerts \(enabled ? "enabled" : "disabled")" : "低额度提醒\(enabled ? "已开启" : "已关闭")")
+    }
+
+    private func setPaceNotificationsEnabled(_ enabled: Bool) {
+        defaults.set(enabled, forKey: PreferenceKey.paceNotificationsEnabled)
+        syncPreferencesWindow()
+        showFeedback(selectedAppLanguage == .english ? "Pace alerts \(enabled ? "enabled" : "disabled")" : "节奏提醒\(enabled ? "已开启" : "已关闭")")
+    }
+
+    private func setResetNotificationsEnabled(_ enabled: Bool) {
+        defaults.set(enabled, forKey: PreferenceKey.resetNotificationsEnabled)
+        syncPreferencesWindow()
+        showFeedback(selectedAppLanguage == .english ? "Reset reminders \(enabled ? "enabled" : "disabled")" : "重置提醒\(enabled ? "已开启" : "已关闭")")
     }
 
     private func setShowPaceAlert(_ enabled: Bool) {

@@ -9,6 +9,9 @@ struct PreferencesViewState {
     var weeklyPacingMode: WeeklyPacingMode
     var sourceStrategy: QuotaSourceStrategy
     var notificationsEnabled: Bool
+    var lowQuotaNotificationsEnabled: Bool
+    var paceNotificationsEnabled: Bool
+    var resetNotificationsEnabled: Bool
 }
 
 private final class FlippedContentView: NSView {
@@ -36,6 +39,9 @@ final class PreferencesWindowController: NSWindowController {
     var onToggleShowPaceAlert: ((Bool) -> Void)?
     var onToggleShowLastUpdated: ((Bool) -> Void)?
     var onToggleNotifications: ((Bool) -> Void)?
+    var onToggleLowQuotaNotifications: ((Bool) -> Void)?
+    var onTogglePaceNotifications: ((Bool) -> Void)?
+    var onToggleResetNotifications: ((Bool) -> Void)?
     var onToggleLaunchAtLogin: ((Bool) -> Void)?
     var onSelectWeeklyPacingMode: ((WeeklyPacingMode) -> Void)?
     var onSelectSourceStrategy: ((QuotaSourceStrategy) -> Void)?
@@ -45,6 +51,9 @@ final class PreferencesWindowController: NSWindowController {
     private let showPaceAlertButton = NSButton(checkboxWithTitle: "", target: nil, action: nil)
     private let showLastUpdatedButton = NSButton(checkboxWithTitle: "", target: nil, action: nil)
     private let notificationsButton = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    private let lowQuotaNotificationsButton = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    private let paceNotificationsButton = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    private let resetNotificationsButton = NSButton(checkboxWithTitle: "", target: nil, action: nil)
     private let launchAtLoginButton = NSButton(checkboxWithTitle: "", target: nil, action: nil)
     private let autoSourceButton = NSButton(radioButtonWithTitle: "", target: nil, action: nil)
     private let apiSourceButton = NSButton(radioButtonWithTitle: "", target: nil, action: nil)
@@ -90,7 +99,13 @@ final class PreferencesWindowController: NSWindowController {
         showPaceAlertButton.state = state.showPaceAlert ? .on : .off
         showLastUpdatedButton.state = state.showLastUpdated ? .on : .off
         notificationsButton.state = state.notificationsEnabled ? .on : .off
+        lowQuotaNotificationsButton.state = state.lowQuotaNotificationsEnabled ? .on : .off
+        paceNotificationsButton.state = state.paceNotificationsEnabled ? .on : .off
+        resetNotificationsButton.state = state.resetNotificationsEnabled ? .on : .off
         launchAtLoginButton.state = state.launchAtLogin ? .on : .off
+        lowQuotaNotificationsButton.isEnabled = state.notificationsEnabled
+        paceNotificationsButton.isEnabled = state.notificationsEnabled
+        resetNotificationsButton.isEnabled = state.notificationsEnabled
 
         standardPaceButton.state = state.weeklyPacingMode == .workWeek40 ? .on : .off
         balancedPaceButton.state = state.weeklyPacingMode == .balanced56 ? .on : .off
@@ -202,6 +217,18 @@ final class PreferencesWindowController: NSWindowController {
             optionRow(
                 control: configureCheckbox(notificationsButton, action: #selector(toggleNotifications(_:)), title: language.notificationsTitle),
                 detail: language.notificationsDetail
+            ),
+            optionRow(
+                control: configureCheckbox(lowQuotaNotificationsButton, action: #selector(toggleLowQuotaNotifications(_:)), title: language.lowQuotaNotificationsTitle),
+                detail: language.lowQuotaNotificationsDetail
+            ),
+            optionRow(
+                control: configureCheckbox(paceNotificationsButton, action: #selector(togglePaceNotifications(_:)), title: language.paceNotificationsTitle),
+                detail: language.paceNotificationsDetail
+            ),
+            optionRow(
+                control: configureCheckbox(resetNotificationsButton, action: #selector(toggleResetNotifications(_:)), title: language.resetNotificationsTitle),
+                detail: language.resetNotificationsDetail
             )
         ]
 
@@ -381,6 +408,21 @@ final class PreferencesWindowController: NSWindowController {
     @objc
     private func toggleNotifications(_ sender: NSButton) {
         onToggleNotifications?(sender.state == .on)
+    }
+
+    @objc
+    private func toggleLowQuotaNotifications(_ sender: NSButton) {
+        onToggleLowQuotaNotifications?(sender.state == .on)
+    }
+
+    @objc
+    private func togglePaceNotifications(_ sender: NSButton) {
+        onTogglePaceNotifications?(sender.state == .on)
+    }
+
+    @objc
+    private func toggleResetNotifications(_ sender: NSButton) {
+        onToggleResetNotifications?(sender.state == .on)
     }
 
     @objc

@@ -556,6 +556,62 @@ func testNotificationPolicyEmitsResetReminderOnce() {
     expect(repeatedEvent == nil, "notification policy deduplicates reset reminders")
 }
 
+func testNotificationPolicyRespectsCategoryPreferences() {
+    let presentation = StatusPresentation(
+        line1: "H 90%",
+        line2: "W 80%!",
+        tooltip: "",
+        primaryRow: StatusPresentation.MenuRow(
+            label: "5 hours",
+            percentText: "90%",
+            resetText: "15:23",
+            resetDate: Date().addingTimeInterval(3600),
+            isUsingFasterThanAverage: false,
+            paceText: nil,
+            paceSeverity: nil
+        ),
+        secondaryRow: StatusPresentation.MenuRow(
+            label: "7 days",
+            percentText: "80%!",
+            resetText: "Apr 11",
+            resetDate: Date().addingTimeInterval(2 * 24 * 3600),
+            isUsingFasterThanAverage: true,
+            paceText: " Pace above avg ",
+            paceSeverity: .warning
+        ),
+        paceMessage: "7 days above average",
+        paceSeverity: .warning,
+        language: .english
+    )
+    let current = QuotaNotificationPolicy.snapshot(from: presentation)
+
+    let noLowQuotaEvent = QuotaNotificationPolicy.nextEvent(
+        previous: nil,
+        current: current,
+        presentation: presentation,
+        preferences: QuotaNotificationPreferences(
+            lowQuotaEnabled: false,
+            paceEnabled: true,
+            resetEnabled: true
+        )
+    )
+
+    expect(noLowQuotaEvent?.title == "Usage pace warning", "notification policy skips disabled low-quota alerts and falls through to enabled categories")
+
+    let noPaceEvent = QuotaNotificationPolicy.nextEvent(
+        previous: nil,
+        current: current,
+        presentation: presentation,
+        preferences: QuotaNotificationPreferences(
+            lowQuotaEnabled: false,
+            paceEnabled: false,
+            resetEnabled: false
+        )
+    )
+
+    expect(noPaceEvent == nil, "notification policy suppresses all disabled notification categories")
+}
+
 @main
 struct TestRunner {
     static func main() {
@@ -580,6 +636,7 @@ testRelativeUpdatedAtLabels()
         testNotificationPolicyTriggersOnlyOnEscalation()
         testNotificationPolicyStaysQuietForRepeatedState()
         testNotificationPolicyEmitsResetReminderOnce()
+        testNotificationPolicyRespectsCategoryPreferences()
         print("All tests passed.")
     }
 }

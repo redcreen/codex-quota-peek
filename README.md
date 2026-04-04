@@ -201,7 +201,7 @@ open "dist/CodexQuotaPeek.app"
    已完成当前阶段：除了最近趋势和近期低点，现在也会显示低点出现的大致时间，用来判断危险值是刚发生还是较早前出现。
 
 4. 主动通知
-   已完成当前阶段：低额度、新出现的 `! / !!` 节奏告警，以及窗口即将重置时，都会触发去重后的 macOS 通知，避免每次刷新都重复提醒。
+   已完成当前阶段：低额度、新出现的 `! / !!` 节奏告警，以及窗口即将重置时，都会触发去重后的 macOS 通知；而且这些通知类型现在可以分别开关配置。
 
 5. 应用语言切换
    已完成第一步：应用内已经支持 `English / 中文` 切换，默认英文。菜单、偏好设置和主要提示文案会跟随切换。CLI 目前仍默认英文。
@@ -459,7 +459,7 @@ To grow this project into a more sustainable product, the current roadmap is:
    The current stage is done: besides recent trends and low-water marks, the app now also shows roughly when each low happened so you can tell whether the risky point was recent or historical.
 
 4. Proactive notifications
-   The current stage is done: low remaining quota, newly triggered `! / !!` pace warnings, and upcoming reset windows can now send deduplicated macOS notifications.
+   The current stage is done: low remaining quota, newly triggered `! / !!` pace warnings, and upcoming reset windows can now send deduplicated macOS notifications, and each notification category can be toggled independently.
 
 5. App language switching
    The first step is now done: the app includes an in-app `English / 中文` toggle with English as the default. The menu, preferences window, and core status copy now follow the selected language. The CLI still stays in English for now.
