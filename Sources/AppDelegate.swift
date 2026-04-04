@@ -30,6 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         configureStatusItem()
         configureMenu()
         refreshAsync()
+        refreshAccountsAsync()
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             self?.refreshAsync()
         }
@@ -78,6 +79,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         button.action = #selector(toggleMenu(_:))
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         menu.delegate = self
+
+        badgeView.line1 = lastPresentation.line1
+        badgeView.line2 = lastPresentation.line2
+        let image = badgeView.renderedImage()
+        button.image = image
+        statusItem.length = image.size.width
     }
 
     @objc
@@ -87,6 +94,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
 
+        refreshAccountsAsync()
         statusItem.button?.highlight(true)
         statusItem.popUpMenu(menu)
         statusItem.button?.highlight(false)
@@ -158,7 +166,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
             let presentation: StatusPresentation
-            let accounts = provider.loadKnownAccounts()
             do {
                 let snapshot = try provider.loadSnapshot()
                 let accountInfo = provider.loadAccountInfo()
@@ -168,8 +175,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
 
             DispatchQueue.main.async {
-                self.pendingAccounts = accounts
                 self.apply(presentation)
+            }
+        }
+    }
+
+    private func refreshAccountsAsync() {
+        let provider = self.provider
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard let self else { return }
+            let accounts = provider.loadKnownAccounts()
+            DispatchQueue.main.async {
+                self.pendingAccounts = accounts
+                if self.isMenuOpen {
+                    self.needsAccountsRefresh = true
+                } else {
+                    self.rebuildAccountItems()
+                }
             }
         }
     }
