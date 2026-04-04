@@ -1,4 +1,5 @@
 import AppKit
+import Darwin
 import Foundation
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
@@ -21,16 +22,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let badgeView = StatusBadgeView(frame: NSRect(x: 0, y: 0, width: 56, height: 24))
     private let menu = NSMenu()
+    private let homeDirectory = FileManager.default.homeDirectoryForCurrentUser
     private var refreshTimer: Timer?
     private var lastPresentation = StatusPresentation.loading
     private var isMenuOpen = false
     private var pendingAccounts: [CodexKnownAccount] = []
     private var needsAccountsRefresh = false
+    private var logsMonitor: DispatchSourceFileSystemObject?
+    private var logsMonitorFileDescriptor: Int32 = -1
+    private var authMonitor: DispatchSourceFileSystemObject?
+    private var authMonitorFileDescriptor: Int32 = -1
+    private var refreshWorkItem: DispatchWorkItem?
+    private var accountRefreshWorkItem: DispatchWorkItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         configureStatusItem()
         configureMenu()
+        setupFileWatchers()
         refreshAsync()
         refreshAccountsAsync()
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
@@ -40,6 +49,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         refreshTimer?.invalidate()
+        teardownMonitor(&logsMonitor, fileDescriptor: &logsMonitorFileDescriptor)
+        teardownMonitor(&authMonitor, fileDescriptor: &authMonitorFileDescriptor)
     }
 
     @objc
@@ -176,6 +187,110 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 self.apply(presentation)
             }
         }
+    }
+
+    private func setupFileWatchers() {
+        let codexDirectory = homeDirectory.appendingPathComponent(".codex")
+        setupLogsMonitor(at: codexDirectory.appendingPathComponent("logs_1.sqlite"))
+        setupAuthMonitor(at: codexDirectory.appendingPathComponent("auth.json"))
+    }
+
+    private func setupLogsMonitor(at url: URL) {
+        teardownMonitor(&logsMonitor, fileDescriptor: &logsMonitorFileDescriptor)
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+
+        let descriptor = open(url.path, O_EVTONLY)
+        guard descriptor >= 0 else { return }
+
+        let monitor = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: descriptor,
+            eventMask: [.write, .extend, .rename, .delete],
+            queue: DispatchQueue.global(qos: .utility)
+        )
+
+        monitor.setEventHandler { [weak self] in
+            let event = monitor.data
+            if event.contains(.delete) || event.contains(.rename) {
+                DispatchQueue.main.async { [weak self] in
+                    guard let self else { return }
+                    self.teardownMonitor(&self.logsMonitor, fileDescriptor: &self.logsMonitorFileDescriptor)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        self.setupLogsMonitor(at: url)
+                    }
+                }
+            }
+            self?.scheduleRefresh(delay: 0.2)
+        }
+        monitor.setCancelHandler {
+            close(descriptor)
+        }
+        monitor.resume()
+
+        logsMonitor = monitor
+        logsMonitorFileDescriptor = descriptor
+    }
+
+    private func setupAuthMonitor(at url: URL) {
+        teardownMonitor(&authMonitor, fileDescriptor: &authMonitorFileDescriptor)
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+
+        let descriptor = open(url.path, O_EVTONLY)
+        guard descriptor >= 0 else { return }
+
+        let monitor = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: descriptor,
+            eventMask: [.write, .extend, .rename, .delete],
+            queue: DispatchQueue.global(qos: .utility)
+        )
+
+        monitor.setEventHandler { [weak self] in
+            let event = monitor.data
+            if event.contains(.delete) || event.contains(.rename) {
+                DispatchQueue.main.async { [weak self] in
+                    guard let self else { return }
+                    self.teardownMonitor(&self.authMonitor, fileDescriptor: &self.authMonitorFileDescriptor)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        self.setupAuthMonitor(at: url)
+                    }
+                }
+            }
+            self?.scheduleAccountRefresh(delay: 0.2)
+            self?.scheduleRefresh(delay: 0.35)
+        }
+        monitor.setCancelHandler {
+            close(descriptor)
+        }
+        monitor.resume()
+
+        authMonitor = monitor
+        authMonitorFileDescriptor = descriptor
+    }
+
+    private func teardownMonitor(
+        _ source: inout DispatchSourceFileSystemObject?,
+        fileDescriptor: inout Int32
+    ) {
+        source?.cancel()
+        source = nil
+        fileDescriptor = -1
+    }
+
+    private func scheduleRefresh(delay: TimeInterval) {
+        refreshWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.refreshAsync()
+        }
+        refreshWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+    }
+
+    private func scheduleAccountRefresh(delay: TimeInterval) {
+        accountRefreshWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.refreshAccountsAsync()
+        }
+        accountRefreshWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
     }
 
     private func refreshAccountsAsync() {
