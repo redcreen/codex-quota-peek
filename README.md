@@ -97,6 +97,50 @@ open "dist/CodexQuotaPeek.app"
 
 菜单中也支持手动 `Refresh Now`。
 
+### 已知限制
+
+当前版本优先读取本机可见的持久化额度数据：
+
+- `~/.codex/logs_1.sqlite`
+- `~/.codex/archived_sessions/*.jsonl`
+
+这意味着它通常已经足够实用，但仍有一个现实边界：
+
+- 官方 Codex 面板有时会比本工具更早显示新额度
+- 当前版本并不是直接请求官方内部实时额度接口
+- 它主要是在追本地日志里的最新额度事件
+
+我们已经排查过这些候选本地来源：
+
+- `~/.codex/state_5.sqlite`
+- `~/Library/Application Support/com.openai.chat`
+- `~/Library/Application Support/Codex`
+
+到目前为止，还没有发现一个比 `logs_1.sqlite` 更明确、稳定、可直接复用的本地 quota 持久化来源。
+
+### 进一步调研
+
+为了确认为什么官方 UI 有时更快，我们继续检查了：
+
+- `/Applications/Codex.app/Contents/Resources/app.asar`
+
+在其中可以搜到和额度状态相关的前端代码线索，例如：
+
+- `queryKey: ['rate-limit-status']`
+- `safeGet(...)`
+- `refetchOnWindowFocus`
+- `refetchInterval: ONE_MINUTE`
+
+从这些线索可以合理推断：
+
+- 官方桌面端并不只是依赖本地 `logs_1.sqlite`
+- 它很可能还有一条更直接的额度状态请求链路
+
+所以当前 `Codex Quota Peek` 更准确的定位是：
+
+- 一个基于本地 Codex 日志的轻量额度观察工具
+- 不是官方内部实时 quota API 的完整替代
+
 ### 制作过程
 
 这个项目从零开始搭建，核心过程大致是：
@@ -260,6 +304,47 @@ The current version keeps a `5s` fallback timer and also watches:
 - `~/.codex/auth.json`
 
 It also includes a manual `Refresh Now` action.
+
+### Known Limitation
+
+The current version primarily reads quota information from locally persisted sources:
+
+- `~/.codex/logs_1.sqlite`
+- `~/.codex/archived_sessions/*.jsonl`
+
+That keeps the app lightweight and local-first, but it also means:
+
+- the official Codex quota panel may show new values earlier
+- this app is not directly calling the same internal realtime quota endpoint
+- it mainly follows the latest local quota events written to disk
+
+We investigated several likely local sources as well:
+
+- `~/.codex/state_5.sqlite`
+- `~/Library/Application Support/com.openai.chat`
+- `~/Library/Application Support/Codex`
+
+So far, we have not found a clearer, stable, directly reusable local persisted quota source beyond `logs_1.sqlite`.
+
+### Further Investigation
+
+To understand why the official UI can sometimes refresh faster, we also inspected:
+
+- `/Applications/Codex.app/Contents/Resources/app.asar`
+
+Inside the bundled frontend code, we found quota-related hints such as:
+
+- `queryKey: ['rate-limit-status']`
+- `safeGet(...)`
+- `refetchOnWindowFocus`
+- `refetchInterval: ONE_MINUTE`
+
+This strongly suggests the official desktop app is not relying only on local quota logs and likely has a more direct quota-status request path.
+
+So the current positioning of `Codex Quota Peek` is:
+
+- a lightweight quota observer built on top of local Codex log events
+- not a full replacement for the official internal realtime quota path
 
 ### Build Process
 

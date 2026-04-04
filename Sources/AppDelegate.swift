@@ -460,10 +460,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         badgeView.showsColors = showsColors
 
         let image = badgeView.renderedImage()
-        statusItem.button?.image = image
-        statusItem.button?.toolTip = presentation.tooltip
+        if let button = statusItem.button {
+            button.image = nil
+            button.image = image
+            button.toolTip = presentation.tooltip
+            button.needsDisplay = true
+            button.display()
+        }
         statusItem.length = image.size.width
-        statusItem.button?.needsDisplay = true
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            guard let self, let button = self.statusItem.button else { return }
+            button.image = nil
+            button.image = image
+            button.toolTip = presentation.tooltip
+            button.needsDisplay = true
+            button.display()
+            self.statusItem.length = image.size.width
+        }
 
         item(MenuTag.title)?.attributedTitle = styledTitle(
             title: "Codex Quota Peek",
