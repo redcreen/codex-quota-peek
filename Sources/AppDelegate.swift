@@ -12,7 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let refresh = 105
         static let copy = 106
         static let quit = 107
-        static let recentAccountsHeader = 108
+        static let switchAccountMenu = 108
         static let paceNotice = 109
         static let updatedAt = 110
         static let accountSwitchHint = 111
@@ -29,6 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let credits = 122
         static let openStatusPage = 123
         static let about = 124
+        static let openUsageDashboard = 125
         static let accountsStart = 2000
     }
 
@@ -196,6 +197,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc
+    private func openUsageDashboard(_ sender: Any?) {
+        guard let url = URL(string: "https://chatgpt.com/codex/settings/usage") else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    @objc
     private func showAbout(_ sender: Any?) {
         let alert = NSAlert()
         alert.messageText = "About Codex Quota Peek"
@@ -223,7 +230,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.autoenablesItems = false
         menu.minimumWidth = 280
 
-        let titleItem = NSMenuItem(title: "Codex Quota Peek", action: nil, keyEquivalent: "")
+        let titleItem = NSMenuItem(title: "Codex", action: nil, keyEquivalent: "")
         titleItem.tag = MenuTag.title
         titleItem.isEnabled = false
         titleItem.image = NSImage(
@@ -231,17 +238,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             accessibilityDescription: nil
         )
 
-        let accountItem = NSMenuItem(title: "Account: --", action: nil, keyEquivalent: "")
+        let accountItem = NSMenuItem(title: "--", action: nil, keyEquivalent: "")
         accountItem.tag = MenuTag.account
         accountItem.isEnabled = false
 
-        let planItem = NSMenuItem(title: "Plan: --", action: nil, keyEquivalent: "")
+        let planItem = NSMenuItem(title: "--", action: nil, keyEquivalent: "")
         planItem.tag = MenuTag.plan
         planItem.isEnabled = false
-
-        let recentAccountsHeader = NSMenuItem(title: "Account History", action: nil, keyEquivalent: "")
-        recentAccountsHeader.tag = MenuTag.recentAccountsHeader
-        recentAccountsHeader.isEnabled = false
 
         let saveAccountSnapshotItem = NSMenuItem(
             title: "Save Current Account Snapshot",
@@ -250,6 +253,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
         saveAccountSnapshotItem.tag = MenuTag.saveAccountSnapshot
         saveAccountSnapshotItem.target = self
+
+        let accountSwitchHintItem = NSMenuItem(
+            title: "Saved accounts switch locally. History-only accounts re-login in Terminal.",
+            action: nil,
+            keyEquivalent: ""
+        )
+        accountSwitchHintItem.tag = MenuTag.accountSwitchHint
+        accountSwitchHintItem.isEnabled = false
+
+        let switchAccountItem = NSMenuItem(title: "Switch Account…", action: nil, keyEquivalent: "")
+        switchAccountItem.tag = MenuTag.switchAccountMenu
+        let switchAccountMenu = NSMenu(title: "Switch Account")
+        switchAccountMenu.items = [
+            saveAccountSnapshotItem,
+            .separator(),
+            accountSwitchHintItem
+        ]
+        switchAccountItem.submenu = switchAccountMenu
 
         let primaryItem = NSMenuItem(title: "5 hours: -- | --", action: nil, keyEquivalent: "")
         primaryItem.tag = MenuTag.primary
@@ -276,14 +297,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         creditsItem.tag = MenuTag.credits
         creditsItem.isEnabled = false
 
-        let accountSwitchHintItem = NSMenuItem(
-            title: "Saved accounts switch locally. History-only accounts re-login in Terminal.",
-            action: nil,
-            keyEquivalent: ""
-        )
-        accountSwitchHintItem.tag = MenuTag.accountSwitchHint
-        accountSwitchHintItem.isEnabled = false
-
         let feedbackItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         feedbackItem.tag = MenuTag.feedback
         feedbackItem.isEnabled = false
@@ -308,6 +321,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let openStatusPageItem = NSMenuItem(title: "Status Page", action: #selector(openStatusPage(_:)), keyEquivalent: "")
         openStatusPageItem.tag = MenuTag.openStatusPage
         openStatusPageItem.target = self
+
+        let openUsageDashboardItem = NSMenuItem(title: "Usage Dashboard", action: #selector(openUsageDashboard(_:)), keyEquivalent: "")
+        openUsageDashboardItem.tag = MenuTag.openUsageDashboard
+        openUsageDashboardItem.target = self
 
         let aboutItem = NSMenuItem(title: "About Codex Quota Peek", action: #selector(showAbout(_:)), keyEquivalent: "")
         aboutItem.tag = MenuTag.about
@@ -351,11 +368,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             accountItem,
             planItem,
             .separator(),
-            recentAccountsHeader,
-            saveAccountSnapshotItem,
-            accountSwitchHintItem,
-            feedbackItem,
-            .separator(),
             primaryItem,
             secondaryItem,
             creditsItem,
@@ -364,11 +376,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             sourceItem,
             .separator(),
             refreshItem,
-            copyItem,
+            switchAccountItem,
+            openUsageDashboardItem,
             openStatusPageItem,
+            copyItem,
             openCodexFolderItem,
             openLogsDatabaseItem,
             preferencesItem,
+            feedbackItem,
             .separator(),
             aboutItem,
             .separator(),
@@ -393,7 +408,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                         return try provider.loadSnapshotUsingAPIOrFallback()
                     }
                 }()
-        let result = resolvePreferredResult(fetchedResult, for: mode)
+                let result = resolvePreferredResult(fetchedResult, for: mode)
                 let accountInfo = provider.loadAccountInfo()
                 presentation = StatusPresentation(
                     snapshot: result.snapshot,
@@ -587,16 +602,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         item(MenuTag.title)?.attributedTitle = styledTitle(
-            title: "Codex Quota Peek",
+            title: "Codex",
             subtitle: "Updated \(presentation.updatedAtText)"
         )
-        item(MenuTag.account)?.attributedTitle = styledLabel(
-            label: presentation.accountRow?.label ?? "Account",
-            value: presentation.accountRow?.value ?? "--"
+        item(MenuTag.account)?.attributedTitle = styledHeadlineValue(
+            presentation.accountRow?.value ?? "--",
+            color: .secondaryLabelColor
         )
-        item(MenuTag.plan)?.attributedTitle = styledLabel(
-            label: presentation.planRow?.label ?? "Plan",
-            value: presentation.planRow?.value ?? "--"
+        item(MenuTag.plan)?.attributedTitle = styledHeadlineValue(
+            presentation.planRow?.value ?? "--",
+            color: .secondaryLabelColor
         )
         if isMenuOpen {
             needsAccountsRefresh = true
@@ -719,17 +734,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func rebuildAccountItems() {
         accountItemLookup.removeAll()
-        while let existing = menu.items.first(where: { $0.tag >= MenuTag.accountsStart }) {
-            menu.removeItem(existing)
-        }
-
-        let headerIndex = menu.indexOfItem(withTag: MenuTag.recentAccountsHeader)
-        guard headerIndex >= 0 else {
+        guard let switchMenu = item(MenuTag.switchAccountMenu)?.submenu else {
             return
+        }
+        while let existing = switchMenu.items.first(where: { $0.tag >= MenuTag.accountsStart }) {
+            switchMenu.removeItem(existing)
         }
 
         let hasAccounts = !pendingAccounts.isEmpty
-        item(MenuTag.recentAccountsHeader)?.isHidden = !hasAccounts
         item(MenuTag.saveAccountSnapshot)?.isHidden = !hasAccounts
         item(MenuTag.accountSwitchHint)?.isHidden = !hasAccounts
 
@@ -737,6 +749,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
 
+        let insertionIndex = 2
         for (offset, account) in pendingAccounts.enumerated() {
             let title: String
             if account.isCurrent {
@@ -752,7 +765,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.isEnabled = !account.isCurrent
             item.tag = MenuTag.accountsStart + offset
             accountItemLookup[item.tag] = account
-            menu.insertItem(item, at: headerIndex + 1 + offset)
+            switchMenu.insertItem(item, at: insertionIndex + offset)
         }
     }
 
@@ -800,6 +813,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     .foregroundColor: NSColor.labelColor
                 ]
             )
+        )
+    }
+
+    private func styledHeadlineValue(_ value: String, color: NSColor) -> NSAttributedString {
+        NSAttributedString(
+            string: value,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 12, weight: .medium),
+                .foregroundColor: color
+            ]
         )
     }
 
