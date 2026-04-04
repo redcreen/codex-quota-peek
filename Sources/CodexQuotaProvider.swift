@@ -30,9 +30,10 @@ final class CodexQuotaProvider {
         let sql = """
         select feedback_log_body
         from logs
-        where feedback_log_body like '%websocket event: {"type":"codex.rate_limits"%'
+        where target = 'codex_api::endpoint::responses_websocket'
+          and feedback_log_body like '%websocket event: {"type":"codex.rate_limits"%'
         order by id desc
-        limit 1;
+        limit 20;
         """
 
         let output = try runSQLite(databasePath: dbPath, sql: sql)
@@ -40,7 +41,13 @@ final class CodexQuotaProvider {
             return nil
         }
 
-        return try decodeSnapshot(fromLogBody: output)
+        for candidate in output.split(separator: "\n") {
+            if let snapshot = try decodeSnapshotIfPossible(fromLogBody: String(candidate)) {
+                return snapshot
+            }
+        }
+
+        return nil
     }
 
     private func latestFromArchivedSessions() throws -> CodexQuotaSnapshot? {
@@ -82,18 +89,21 @@ final class CodexQuotaProvider {
         return CodexQuotaSnapshot(planType: rateLimits.planType, rateLimits: rateLimits.toRateLimits())
     }
 
-    private func decodeSnapshot(fromLogBody logBody: String) throws -> CodexQuotaSnapshot {
-        guard let jsonString = extractJSONObject(in: logBody, prefix: #"{"type":"codex.rate_limits""#),
+    private func decodeSnapshotIfPossible(fromLogBody logBody: String) throws -> CodexQuotaSnapshot? {
+        guard let jsonString = extractJSONObject(in: logBody, prefix: #"websocket event: {"type":"codex.rate_limits""#)?
+            .split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+            .last
+            .map({ String($0).trimmingCharacters(in: .whitespaces) }),
               let data = jsonString.data(using: .utf8) else {
-            throw NSError(
-                domain: "CodexQuotaPeek",
-                code: 2,
-                userInfo: [NSLocalizedDescriptionKey: "Could not parse Codex rate limit event."]
-            )
+            return nil
         }
 
-        let event = try decoder.decode(RateLimitEvent.self, from: data)
-        return CodexQuotaSnapshot(planType: event.planType, rateLimits: event.rateLimits)
+        do {
+            let event = try decoder.decode(RateLimitEvent.self, from: data)
+            return CodexQuotaSnapshot(planType: event.planType, rateLimits: event.rateLimits)
+        } catch {
+            return nil
+        }
     }
 
     private func extractJSONObject(in text: String, prefix: String) -> String? {
