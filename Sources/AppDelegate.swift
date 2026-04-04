@@ -17,6 +17,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let updatedAt = 110
         static let accountSwitchHint = 111
         static let launchAtLogin = 112
+        static let openCodexFolder = 113
+        static let openLogsDatabase = 114
         static let accountsStart = 2000
     }
 
@@ -72,6 +74,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc
     private func quit(_ sender: Any?) {
         NSApp.terminate(nil)
+    }
+
+    @objc
+    private func openCodexFolder(_ sender: Any?) {
+        NSWorkspace.shared.open(homeDirectory.appendingPathComponent(".codex"))
+    }
+
+    @objc
+    private func openLogsDatabase(_ sender: Any?) {
+        NSWorkspace.shared.activateFileViewerSelecting([
+            homeDirectory.appendingPathComponent(".codex/logs_1.sqlite")
+        ])
     }
 
     @objc
@@ -155,6 +169,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         copyItem.tag = MenuTag.copy
         copyItem.target = self
 
+        let openCodexFolderItem = NSMenuItem(title: "Open Codex Folder", action: #selector(openCodexFolder(_:)), keyEquivalent: "")
+        openCodexFolderItem.tag = MenuTag.openCodexFolder
+        openCodexFolderItem.target = self
+
+        let openLogsDatabaseItem = NSMenuItem(title: "Reveal Logs Database", action: #selector(openLogsDatabase(_:)), keyEquivalent: "")
+        openLogsDatabaseItem.tag = MenuTag.openLogsDatabase
+        openLogsDatabaseItem.target = self
+
         let launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin(_:)), keyEquivalent: "")
         launchAtLoginItem.tag = MenuTag.launchAtLogin
         launchAtLoginItem.target = self
@@ -178,6 +200,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             .separator(),
             refreshItem,
             copyItem,
+            openCodexFolderItem,
+            openLogsDatabaseItem,
             launchAtLoginItem,
             .separator(),
             quitItem
