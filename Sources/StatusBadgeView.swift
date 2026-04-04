@@ -13,19 +13,19 @@ final class StatusBadgeView: NSView {
         let line1Size = line1.size(withAttributes: lineAttributes)
         let line2Size = line2.size(withAttributes: lineAttributes)
         let width = ceil(max(line1Size.width, line2Size.width) + padding * 2)
-        return NSSize(width: max(50, width), height: 22)
+        return NSSize(width: max(46, width), height: 20)
     }
 
-    private let padding: CGFloat = 7
+    private let padding: CGFloat = 6
 
     private let lineAttributes: [NSAttributedString.Key: Any] = [
-        .font: NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .semibold),
+        .font: NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .semibold),
         .foregroundColor: NSColor.white
     ]
 
     override func draw(_ dirtyRect: NSRect) {
         let rect = bounds.insetBy(dx: 1, dy: 1)
-        let path = NSBezierPath(roundedRect: rect, xRadius: 5, yRadius: 5)
+        let path = NSBezierPath(roundedRect: rect, xRadius: 4.5, yRadius: 4.5)
 
         let gradient = NSGradient(colors: [
             NSColor(calibratedRed: 0.32, green: 0.69, blue: 0.93, alpha: 1.0),
@@ -33,8 +33,8 @@ final class StatusBadgeView: NSView {
         ])
         gradient?.draw(in: path, angle: -90)
 
-        drawText(line1, yOffset: 10.8)
-        drawText(line2, yOffset: 1.6)
+        drawText(line1, yOffset: 9.6)
+        drawText(line2, yOffset: 0.9)
     }
 
     private func drawText(_ text: String, yOffset: CGFloat) {

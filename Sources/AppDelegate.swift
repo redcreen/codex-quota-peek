@@ -10,6 +10,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let primaryRowView = MenuValueRowView()
     private let secondaryRowView = MenuValueRowView()
     private lazy var refreshRowView = MenuActionRowView(title: "Refresh Now", target: self, action: #selector(refreshNow(_:)))
+    private lazy var copyRowView = MenuActionRowView(title: "Copy Details", shortcut: "⌘C", target: self, action: #selector(copyDetails(_:)))
+    private lazy var quitRowView = MenuActionRowView(title: "Quit", shortcut: "⌘Q", target: self, action: #selector(quit(_:)))
     private var refreshTimer: Timer?
     private var lastPresentation = StatusPresentation.loading
 
@@ -70,11 +72,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let refreshItem = NSMenuItem()
         refreshItem.view = refreshRowView
 
-        let copyItem = NSMenuItem(title: "Copy Details", action: #selector(copyDetails(_:)), keyEquivalent: "c")
-        copyItem.target = self
+        let copyItem = NSMenuItem()
+        copyItem.view = copyRowView
 
-        let quitItem = NSMenuItem(title: "Quit", action: #selector(quit(_:)), keyEquivalent: "q")
-        quitItem.target = self
+        let quitItem = NSMenuItem()
+        quitItem.view = quitRowView
 
         menu.items = [
             titleItem,

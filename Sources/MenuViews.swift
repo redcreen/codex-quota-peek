@@ -101,10 +101,12 @@ final class MenuValueRowView: NSView {
 
 final class MenuActionRowView: NSView {
     private let button: NSButton
+    private let shortcutLabel = NSTextField(labelWithString: "")
 
-    init(title: String, target: AnyObject?, action: Selector?) {
+    init(title: String, shortcut: String = "", target: AnyObject?, action: Selector?) {
         self.button = NSButton(title: title, target: target, action: action)
         super.init(frame: NSRect(x: 0, y: 0, width: 252, height: 28))
+        shortcutLabel.stringValue = shortcut
         setup()
     }
 
@@ -121,13 +123,23 @@ final class MenuActionRowView: NSView {
         button.alignment = .left
         button.setButtonType(.momentaryChange)
 
+        shortcutLabel.translatesAutoresizingMaskIntoConstraints = false
+        shortcutLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+        shortcutLabel.textColor = .secondaryLabelColor
+        shortcutLabel.alignment = .right
+
         addSubview(button)
+        addSubview(shortcutLabel)
 
         NSLayoutConstraint.activate([
             button.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
-            button.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            button.trailingAnchor.constraint(lessThanOrEqualTo: shortcutLabel.leadingAnchor, constant: -8),
             button.topAnchor.constraint(equalTo: topAnchor, constant: 1),
-            button.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -1)
+            button.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -1),
+
+            shortcutLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            shortcutLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+            shortcutLabel.widthAnchor.constraint(equalToConstant: 46)
         ])
     }
 }
