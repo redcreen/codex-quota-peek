@@ -325,7 +325,7 @@ final class CodexQuotaProvider {
             return nil
         }
 
-        return CodexQuotaSnapshot(planType: rateLimits.planType, rateLimits: rateLimits.toRateLimits())
+        return CodexQuotaSnapshot(planType: rateLimits.planType, rateLimits: rateLimits.toRateLimits(), credits: nil)
     }
 
     private func decodeSnapshotIfPossible(fromLogBody logBody: String) throws -> CodexQuotaSnapshot? {
@@ -339,7 +339,7 @@ final class CodexQuotaProvider {
 
         do {
             let event = try decoder.decode(RateLimitEvent.self, from: data)
-            return CodexQuotaSnapshot(planType: event.planType, rateLimits: event.rateLimits)
+            return CodexQuotaSnapshot(planType: event.planType, rateLimits: event.rateLimits, credits: nil)
         } catch {
             return nil
         }
@@ -521,15 +521,17 @@ private struct ArchivedRateLimits: Decodable {
 private struct WHAMUsageResponse: Decodable {
     let planType: String?
     let rateLimit: WHAMRateLimit?
+    let credits: CreditsInfo?
 
     enum CodingKeys: String, CodingKey {
         case planType = "plan_type"
         case rateLimit = "rate_limit"
+        case credits
     }
 
     func toQuotaSnapshot() -> CodexQuotaSnapshot? {
         guard let rateLimit else { return nil }
-        return CodexQuotaSnapshot(planType: planType, rateLimits: rateLimit.toRateLimits())
+        return CodexQuotaSnapshot(planType: planType, rateLimits: rateLimit.toRateLimits(), credits: credits)
     }
 }
 

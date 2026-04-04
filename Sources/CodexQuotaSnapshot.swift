@@ -3,10 +3,24 @@ import Foundation
 struct CodexQuotaSnapshot: Decodable {
     let planType: String?
     let rateLimits: RateLimits
+    let credits: CreditsInfo?
 
     enum CodingKeys: String, CodingKey {
         case planType = "plan_type"
         case rateLimits = "rate_limits"
+        case credits
+    }
+}
+
+struct CreditsInfo: Decodable {
+    let hasCredits: Bool?
+    let unlimited: Bool?
+    let balance: String?
+
+    enum CodingKeys: String, CodingKey {
+        case hasCredits = "has_credits"
+        case unlimited
+        case balance
     }
 }
 
@@ -94,6 +108,7 @@ struct StatusPresentation {
     let paceSeverity: PaceSeverity?
     let updatedAtText: String
     let sourceText: String
+    let creditsText: String?
 
     init(
         line1: String,
@@ -106,7 +121,8 @@ struct StatusPresentation {
         paceMessage: String? = nil,
         paceSeverity: PaceSeverity? = nil,
         updatedAtText: String = "--",
-        sourceText: String = "Current value from local logs"
+        sourceText: String = "Current value from local logs",
+        creditsText: String? = nil
     ) {
         self.line1 = line1
         self.line2 = line2
@@ -119,6 +135,7 @@ struct StatusPresentation {
         self.paceSeverity = paceSeverity
         self.updatedAtText = updatedAtText
         self.sourceText = sourceText
+        self.creditsText = creditsText
     }
 
     static let loading = StatusPresentation(
@@ -135,7 +152,8 @@ struct StatusPresentation {
             paceMessage: nil,
             paceSeverity: nil,
             updatedAtText: "--",
-            sourceText: "Current value unavailable"
+            sourceText: "Current value unavailable",
+            creditsText: nil
         )
     }
 
@@ -151,7 +169,7 @@ struct StatusPresentation {
         line1 = primary.map { "H \(StatusPresentation.statusPercentText(for: $0))" } ?? "H --"
         line2 = secondary.map { "W \(StatusPresentation.statusPercentText(for: $0))" } ?? "W --"
         accountRow = accountInfo.map {
-            AccountRow(label: "Account", value: $0.displayName)
+            AccountRow(label: "Account", value: $0.email ?? $0.displayName)
         }
         planRow = accountInfo.map {
             AccountRow(label: "Plan", value: $0.planDisplayName)
@@ -175,6 +193,7 @@ struct StatusPresentation {
         paceMessage = StatusPresentation.paceMessage(primary: primary, secondary: secondary)
         paceSeverity = StatusPresentation.paceSeverity(primary: primary, secondary: secondary)
         updatedAtText = StatusPresentation.relativeUpdatedAtLabel(for: generatedAt)
+        creditsText = StatusPresentation.creditsText(for: snapshot.credits)
         switch source {
         case .api:
             sourceText = "Current value from API"
@@ -215,6 +234,9 @@ struct StatusPresentation {
         }
         if let paceMessage {
             parts.append("Pace alert: \(paceMessage)")
+        }
+        if let creditsText {
+            parts.append("Credits: \(creditsText)")
         }
         parts.append("Source: \(sourceText)")
         parts.append("Updated: \(StatusPresentation.dateFormatter.string(from: generatedAt))")
@@ -325,5 +347,19 @@ struct StatusPresentation {
             return "\(seconds)s"
         }
         return "\(seconds / 60)m"
+    }
+
+    static func creditsText(for credits: CreditsInfo?) -> String? {
+        guard let credits else { return nil }
+        if credits.unlimited == true {
+            return "Unlimited"
+        }
+        if let balance = credits.balance, !balance.isEmpty {
+            return "\(balance) left"
+        }
+        if credits.hasCredits == false {
+            return "0 left"
+        }
+        return nil
     }
 }

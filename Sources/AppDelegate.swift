@@ -26,6 +26,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let feedback = 119
         static let source = 120
         static let saveAccountSnapshot = 121
+        static let credits = 122
+        static let openStatusPage = 123
+        static let about = 124
         static let accountsStart = 2000
     }
 
@@ -186,6 +189,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    @objc
+    private func openStatusPage(_ sender: Any?) {
+        guard let url = URL(string: "https://status.openai.com") else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    @objc
+    private func showAbout(_ sender: Any?) {
+        let alert = NSAlert()
+        alert.messageText = "About Codex Quota Peek"
+        alert.informativeText = "Menu bar quota monitor for Codex.\nManual refresh uses the official usage API.\nAuto refresh follows local Codex logs."
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+    }
+
     private func configureStatusItem() {
         guard let button = statusItem.button else { return }
         button.title = ""
@@ -253,6 +272,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         sourceItem.tag = MenuTag.source
         sourceItem.isEnabled = false
 
+        let creditsItem = NSMenuItem(title: "Credits: --", action: nil, keyEquivalent: "")
+        creditsItem.tag = MenuTag.credits
+        creditsItem.isEnabled = false
+
         let accountSwitchHintItem = NSMenuItem(
             title: "Saved accounts switch locally. History-only accounts re-login in Terminal.",
             action: nil,
@@ -281,6 +304,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let openLogsDatabaseItem = NSMenuItem(title: "Reveal Logs Database", action: #selector(openLogsDatabase(_:)), keyEquivalent: "")
         openLogsDatabaseItem.tag = MenuTag.openLogsDatabase
         openLogsDatabaseItem.target = self
+
+        let openStatusPageItem = NSMenuItem(title: "Status Page", action: #selector(openStatusPage(_:)), keyEquivalent: "")
+        openStatusPageItem.tag = MenuTag.openStatusPage
+        openStatusPageItem.target = self
+
+        let aboutItem = NSMenuItem(title: "About Codex Quota Peek", action: #selector(showAbout(_:)), keyEquivalent: "")
+        aboutItem.tag = MenuTag.about
+        aboutItem.target = self
 
         let preferencesItem = NSMenuItem(title: "Preferences", action: nil, keyEquivalent: "")
         preferencesItem.tag = MenuTag.preferences
@@ -327,16 +358,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             .separator(),
             primaryItem,
             secondaryItem,
+            creditsItem,
             paceNoticeItem,
             updatedAtItem,
             sourceItem,
             .separator(),
             refreshItem,
             copyItem,
+            openStatusPageItem,
             openCodexFolderItem,
             openLogsDatabaseItem,
             preferencesItem,
             .separator(),
+            aboutItem,
             .separator(),
             quitItem
         ]
@@ -617,6 +651,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         item(MenuTag.source)?.isHidden = false
         item(MenuTag.source)?.attributedTitle = styledSource(presentation.sourceText)
+
+        item(MenuTag.credits)?.isHidden = presentation.creditsText == nil
+        if let creditsText = presentation.creditsText {
+            item(MenuTag.credits)?.attributedTitle = styledCredits(creditsText)
+        }
     }
 
     private func item(_ tag: Int) -> NSMenuItem? {
@@ -857,6 +896,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 .font: NSFont.systemFont(ofSize: 11, weight: .regular),
                 .foregroundColor: NSColor.secondaryLabelColor
             ]
+        )
+    }
+
+    private func styledCredits(_ text: String) -> NSAttributedString {
+        NSMutableAttributedString(
+            string: "Credits: ",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 12, weight: .regular),
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        ).appending(
+            NSAttributedString(
+                string: text,
+                attributes: [
+                    .font: NSFont.systemFont(ofSize: 12, weight: .medium),
+                    .foregroundColor: NSColor.labelColor
+                ]
+            )
         )
     }
 

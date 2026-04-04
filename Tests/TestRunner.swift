@@ -28,7 +28,8 @@ func makeSnapshot(primaryUsed: Double, secondaryUsed: Double) -> CodexQuotaSnaps
             limitReached: false,
             primary: makeWindow(usedPercent: primaryUsed, windowMinutes: 300),
             secondary: makeWindow(usedPercent: secondaryUsed, windowMinutes: 10080)
-        )
+        ),
+        credits: nil
     )
 }
 
@@ -151,7 +152,8 @@ func testDisplayPresentationUsesPaceMarkersAndSourceText() {
     )
     let snapshot = CodexQuotaSnapshot(
         planType: "pro",
-        rateLimits: RateLimits(allowed: true, limitReached: false, primary: primary, secondary: secondary)
+        rateLimits: RateLimits(allowed: true, limitReached: false, primary: primary, secondary: secondary),
+        credits: CreditsInfo(hasCredits: true, unlimited: false, balance: "233.93")
     )
     let presentation = StatusPresentation(
         snapshot: snapshot,
@@ -163,6 +165,7 @@ func testDisplayPresentationUsesPaceMarkersAndSourceText() {
     expect(presentation.line1 == "H 35%!!", "status line shows critical pace marker")
     expect(presentation.line2 == "W 90%", "status line omits markers when pace is normal")
     expect(presentation.sourceText == "Current value from API", "presentation keeps source text")
+    expect(presentation.creditsText == "233.93 left", "presentation formats credits")
 }
 
 func testRelativeUpdatedAtLabels() {
