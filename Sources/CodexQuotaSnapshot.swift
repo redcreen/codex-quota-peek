@@ -66,6 +66,11 @@ struct LimitWindow: Decodable {
 }
 
 struct StatusPresentation {
+    enum PaceSeverity {
+        case warning
+        case critical
+    }
+
     struct AccountRow {
         let label: String
         let value: String
@@ -86,6 +91,7 @@ struct StatusPresentation {
     let primaryRow: MenuRow?
     let secondaryRow: MenuRow?
     let paceMessage: String?
+    let paceSeverity: PaceSeverity?
 
     init(
         line1: String,
@@ -95,7 +101,8 @@ struct StatusPresentation {
         planRow: AccountRow? = nil,
         primaryRow: MenuRow? = nil,
         secondaryRow: MenuRow? = nil,
-        paceMessage: String? = nil
+        paceMessage: String? = nil,
+        paceSeverity: PaceSeverity? = nil
     ) {
         self.line1 = line1
         self.line2 = line2
@@ -105,6 +112,7 @@ struct StatusPresentation {
         self.primaryRow = primaryRow
         self.secondaryRow = secondaryRow
         self.paceMessage = paceMessage
+        self.paceSeverity = paceSeverity
     }
 
     static let loading = StatusPresentation(
@@ -118,7 +126,8 @@ struct StatusPresentation {
             line1: "H --",
             line2: "W --",
             tooltip: reason,
-            paceMessage: nil
+            paceMessage: nil,
+            paceSeverity: nil
         )
     }
 
@@ -151,6 +160,7 @@ struct StatusPresentation {
             )
         }
         paceMessage = StatusPresentation.paceMessage(primary: primary, secondary: secondary)
+        paceSeverity = StatusPresentation.paceSeverity(primary: primary, secondary: secondary)
 
         var parts: [String] = []
         if let accountInfo {
@@ -252,5 +262,18 @@ struct StatusPresentation {
             return "\(labels[0]) usage is above the current window average"
         }
         return labels.joined(separator: " + ") + " usage is above the current window average"
+    }
+
+    private static func paceSeverity(primary: LimitWindow?, secondary: LimitWindow?) -> PaceSeverity? {
+        let offsets = [primary, secondary].compactMap { overAverageOffset(for: $0) }
+        guard let maxOffset = offsets.max() else { return nil }
+        return maxOffset >= 15 ? .critical : .warning
+    }
+
+    private static func overAverageOffset(for window: LimitWindow?) -> Double? {
+        guard let window, let elapsedFraction = window.elapsedFraction, window.isUsingFasterThanAverage else {
+            return nil
+        }
+        return window.usedPercent - (elapsedFraction * 100.0)
     }
 }

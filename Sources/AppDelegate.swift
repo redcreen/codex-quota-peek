@@ -264,7 +264,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         if let paceMessage = presentation.paceMessage {
             item(MenuTag.paceNotice)?.isHidden = false
-            item(MenuTag.paceNotice)?.attributedTitle = styledPaceNotice(paceMessage)
+            item(MenuTag.paceNotice)?.attributedTitle = styledPaceNotice(
+                paceMessage,
+                severity: presentation.paceSeverity ?? .warning
+            )
         } else {
             item(MenuTag.paceNotice)?.isHidden = true
             item(MenuTag.paceNotice)?.title = ""
@@ -408,12 +411,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return NSColor.systemGreen
     }
 
-    private func styledPaceNotice(_ text: String) -> NSAttributedString {
+    private func styledPaceNotice(_ text: String, severity: StatusPresentation.PaceSeverity) -> NSAttributedString {
         NSAttributedString(
             string: "Pace alert: \(text)",
             attributes: [
                 .font: NSFont.systemFont(ofSize: 11, weight: .medium),
-                .foregroundColor: NSColor.systemOrange
+                .foregroundColor: severity == .critical ? NSColor.systemRed : NSColor.systemYellow
             ]
         )
     }
