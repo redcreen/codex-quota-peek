@@ -233,7 +233,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func configureMenu() {
         menu.autoenablesItems = false
-        menu.minimumWidth = 280
+        menu.minimumWidth = 340
 
         let titleItem = NSMenuItem(title: "Codex", action: nil, keyEquivalent: "")
         titleItem.tag = MenuTag.title
@@ -626,13 +626,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             title: "Codex",
             subtitle: ""
         )
-        item(MenuTag.account)?.attributedTitle = styledHeadlineValue(
-            presentation.accountRow?.value ?? "--",
-            color: .labelColor
+        item(MenuTag.account)?.attributedTitle = styledMetaRow(
+            label: presentation.accountRow?.label ?? "Account",
+            value: presentation.accountRow?.value ?? "--"
         )
-        item(MenuTag.plan)?.attributedTitle = styledHeadlineValue(
-            presentation.planRow?.value ?? "--",
-            color: .secondaryLabelColor
+        item(MenuTag.plan)?.attributedTitle = styledMetaRow(
+            label: presentation.planRow?.label ?? "Plan",
+            value: presentation.planRow?.value ?? "--"
         )
         if isMenuOpen {
             needsAccountsRefresh = true
@@ -845,6 +845,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
     }
 
+    private func styledMetaRow(label: String, value: String) -> NSAttributedString {
+        let row = NSMutableAttributedString(
+            string: "\(label)  ",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11, weight: .medium),
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
+        row.append(
+            NSAttributedString(
+                string: value,
+                attributes: [
+                    .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
+                    .foregroundColor: NSColor.labelColor
+                ]
+            )
+        )
+        return row
+    }
+
     private func styledQuotaRow(
         label: String,
         percent: String,
@@ -923,7 +943,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func styledProgressBar(forPercentText percentText: String, font: NSFont) -> NSAttributedString {
-        let segments = QuotaDisplayPolicy.progressSegments(forPercentText: percentText)
+        let segments = QuotaDisplayPolicy.progressSegments(forPercentText: percentText, slots: 24)
         let bar = NSMutableAttributedString()
 
         if segments.filled > 0 {
