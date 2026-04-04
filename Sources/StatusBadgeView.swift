@@ -14,12 +14,12 @@ final class StatusBadgeView: NSView {
         let line2Size = line2.size(withAttributes: lineAttributes)
         let textWidth = ceil(max(line1Size.width, line2Size.width))
         let width = iconSize + iconSpacing + textWidth + padding * 2
-        return NSSize(width: max(44, width), height: 18)
+        return NSSize(width: max(50, width), height: 20)
     }
 
     private let padding: CGFloat = 4
-    private let iconSize: CGFloat = 14
-    private let iconSpacing: CGFloat = 5
+    private let iconSize: CGFloat = 18
+    private let iconSpacing: CGFloat = 6
 
     private let lineAttributes: [NSAttributedString.Key: Any] = [
         .font: NSFont.monospacedDigitSystemFont(ofSize: 8, weight: .semibold),
@@ -28,8 +28,8 @@ final class StatusBadgeView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         drawIcon()
-        drawText(line1, yOffset: 8.3)
-        drawText(line2, yOffset: 0.3)
+        drawText(line1, yOffset: 9.4)
+        drawText(line2, yOffset: 1.2)
     }
 
     private func drawIcon() {
