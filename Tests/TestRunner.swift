@@ -361,14 +361,33 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
         resetAfterSeconds: 574_155,
         resetAt: 1_775_896_800
     )
-    expect(StatusPresentation.statusPercentText(for: weekly) == "93%!", "full-week pacing still warns on early weekly usage")
+    let fortyHourText = StatusPresentation.statusPercentText(for: weekly, weeklyPacingMode: .workWeek40, isWeekly: true)
+    let fiftySixHourText = StatusPresentation.statusPercentText(for: weekly, weeklyPacingMode: .balanced56, isWeekly: true)
+    let seventyHourText = StatusPresentation.statusPercentText(for: weekly, weeklyPacingMode: .heavy70, isWeekly: true)
+
     expect(
-        StatusPresentation.statusPercentText(for: weekly, weeklyPacingMode: .activeHoursCustom, isWeekly: true, activeHoursPerDay: 16) == "93%",
-        "active-hours weekly pacing can suppress overly sensitive warnings"
+        !seventyHourText.contains("!!"),
+        "70-hour pacing is never stricter than the lighter presets for the same weekly sample"
     )
     expect(
-        WeeklyPacingMode.activeHoursCustom.tooltipText(activeHoursPerDay: 12).contains("12 active hours"),
-        "weekly pacing tooltip reflects configured daily active hours"
+        WeeklyPacingMode.workWeek40.menuTitle == "Light · 40h/week",
+        "light weekly workload title is explicit"
+    )
+    expect(
+        WeeklyPacingMode.balanced56.menuTitle == "Balanced · 56h/week",
+        "balanced weekly workload title is explicit"
+    )
+    expect(
+        WeeklyPacingMode.heavy70.menuTitle == "Heavy · 70h/week",
+        "heavy weekly workload title is explicit"
+    )
+    expect(
+        [fortyHourText, fiftySixHourText, seventyHourText].allSatisfy { $0.hasPrefix("93%") },
+        "weekly workload modes preserve the same remaining quota percentage"
+    )
+    expect(
+        WeeklyPacingMode.heavy70.tooltipText().contains("70-hour work week"),
+        "weekly pacing tooltip reflects selected weekly workload"
     )
 }
 

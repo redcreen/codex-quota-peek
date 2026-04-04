@@ -7,25 +7,49 @@ enum QuotaDisplayColorLevel {
 }
 
 enum WeeklyPacingMode: String, CaseIterable {
-    case fullWeek24x7
-    case activeHoursCustom
+    case workWeek40
+    case balanced56
+    case heavy70
 
     var title: String {
         switch self {
-        case .fullWeek24x7:
-            return "Full week (24h/day)"
-        case .activeHoursCustom:
-            return "Active time (custom)"
+        case .workWeek40:
+            return "40h/week"
+        case .balanced56:
+            return "56h/week"
+        case .heavy70:
+            return "70h/week"
         }
     }
 
-    func tooltipText(activeHoursPerDay: Int) -> String {
+    var weeklyHours: Int {
         switch self {
-        case .fullWeek24x7:
-            return "Weekly pace compares your usage against a full 7-day, 24-hour week."
-        case .activeHoursCustom:
-            return "Weekly pace compares your usage against \(activeHoursPerDay) active hours per day across 7 days."
+        case .workWeek40:
+            return 40
+        case .balanced56:
+            return 56
+        case .heavy70:
+            return 70
         }
+    }
+
+    var label: String {
+        switch self {
+        case .workWeek40:
+            return "Light"
+        case .balanced56:
+            return "Balanced"
+        case .heavy70:
+            return "Heavy"
+        }
+    }
+
+    var menuTitle: String {
+        "\(label) · \(title)"
+    }
+
+    func tooltipText() -> String {
+        "Weekly pace compares your usage against a \(weeklyHours)-hour work week."
     }
 }
 

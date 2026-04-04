@@ -3,8 +3,6 @@ import Darwin
 import Foundation
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
-    private static let activeHourOptions = [8, 10, 12, 14, 16]
-
     private enum MenuTag {
         static let title = 100
         static let account = 101
@@ -32,8 +30,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let openStatusPage = 123
         static let about = 124
         static let openUsageDashboard = 125
-        static let weeklyPacingMode = 126
-        static let activeHoursPerDay = 127
+        static let weeklyPacingSection = 126
+        static let weeklyPacing40 = 127
+        static let weeklyPacing56 = 128
+        static let weeklyPacing70 = 129
         static let accountsStart = 2000
     }
 
@@ -42,7 +42,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let showPaceAlert = "showPaceAlert"
         static let showLastUpdated = "showLastUpdated"
         static let weeklyPacingMode = "weeklyPacingMode"
-        static let activeHoursPerDay = "activeHoursPerDay"
     }
 
     private let provider = CodexQuotaProvider()
@@ -76,8 +75,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             PreferenceKey.showColors: true,
             PreferenceKey.showPaceAlert: true,
             PreferenceKey.showLastUpdated: true,
-            PreferenceKey.weeklyPacingMode: WeeklyPacingMode.fullWeek24x7.rawValue,
-            PreferenceKey.activeHoursPerDay: 16
+            PreferenceKey.weeklyPacingMode: WeeklyPacingMode.balanced56.rawValue
         ])
         configureStatusItem()
         configureMenu()
@@ -156,26 +154,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc
-    private func cycleWeeklyPacingMode(_ sender: Any?) {
-        let mode: WeeklyPacingMode = selectedWeeklyPacingMode == .fullWeek24x7 ? .activeHoursCustom : .fullWeek24x7
+    private func selectWeeklyPacingMode(_ sender: NSMenuItem) {
+        let mode: WeeklyPacingMode
+        switch sender.tag {
+        case MenuTag.weeklyPacing40:
+            mode = .workWeek40
+        case MenuTag.weeklyPacing70:
+            mode = .heavy70
+        default:
+            mode = .balanced56
+        }
         defaults.set(mode.rawValue, forKey: PreferenceKey.weeklyPacingMode)
         updatePreferenceMenuItems()
         refreshAsync(mode: .automatic)
         showFeedback("Weekly pace: \(mode.title)")
-    }
-
-    @objc
-    private func cycleActiveHoursPerDay(_ sender: Any?) {
-        guard selectedWeeklyPacingMode == .activeHoursCustom else {
-            showFeedback("Switch Weekly Pace to Active time first")
-            return
-        }
-        guard let currentIndex = Self.activeHourOptions.firstIndex(of: selectedActiveHoursPerDay) else { return }
-        let hours = Self.activeHourOptions[(currentIndex + 1) % Self.activeHourOptions.count]
-        defaults.set(hours, forKey: PreferenceKey.activeHoursPerDay)
-        updatePreferenceMenuItems()
-        refreshAsync(mode: .automatic)
-        showFeedback("Active hours/day: \(hours)h")
     }
 
     @objc
@@ -377,13 +369,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         launchAtLoginItem.tag = MenuTag.launchAtLogin
         launchAtLoginItem.target = self
 
-        let weeklyPacingModeItem = NSMenuItem(title: "Weekly Pace", action: #selector(cycleWeeklyPacingMode(_:)), keyEquivalent: "")
-        weeklyPacingModeItem.tag = MenuTag.weeklyPacingMode
-        weeklyPacingModeItem.target = self
+        let weeklyPacingSectionItem = NSMenuItem(title: "Weekly Workload", action: nil, keyEquivalent: "")
+        weeklyPacingSectionItem.tag = MenuTag.weeklyPacingSection
+        weeklyPacingSectionItem.isEnabled = false
 
-        let activeHoursPerDayItem = NSMenuItem(title: "Active Hours / Day", action: #selector(cycleActiveHoursPerDay(_:)), keyEquivalent: "")
-        activeHoursPerDayItem.tag = MenuTag.activeHoursPerDay
-        activeHoursPerDayItem.target = self
+        let weeklyPacing40Item = NSMenuItem(title: WeeklyPacingMode.workWeek40.menuTitle, action: #selector(selectWeeklyPacingMode(_:)), keyEquivalent: "")
+        weeklyPacing40Item.tag = MenuTag.weeklyPacing40
+        weeklyPacing40Item.target = self
+
+        let weeklyPacing56Item = NSMenuItem(title: WeeklyPacingMode.balanced56.menuTitle, action: #selector(selectWeeklyPacingMode(_:)), keyEquivalent: "")
+        weeklyPacing56Item.tag = MenuTag.weeklyPacing56
+        weeklyPacing56Item.target = self
+
+        let weeklyPacing70Item = NSMenuItem(title: WeeklyPacingMode.heavy70.menuTitle, action: #selector(selectWeeklyPacingMode(_:)), keyEquivalent: "")
+        weeklyPacing70Item.tag = MenuTag.weeklyPacing70
+        weeklyPacing70Item.target = self
 
         let preferencesMenu = NSMenu(title: "Preferences")
         preferencesMenu.items = [
@@ -391,8 +391,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             showPaceAlertItem,
             showLastUpdatedItem,
             .separator(),
-            weeklyPacingModeItem,
-            activeHoursPerDayItem,
+            weeklyPacingSectionItem,
+            weeklyPacing40Item,
+            weeklyPacing56Item,
+            weeklyPacing70Item,
             .separator(),
             launchAtLoginItem
         ]
@@ -457,8 +459,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     accountInfo: accountInfo,
                     generatedAt: Date(),
                     source: result.source,
-                    weeklyPacingMode: selectedWeeklyPacingMode,
-                    activeHoursPerDay: selectedActiveHoursPerDay
+                    weeklyPacingMode: selectedWeeklyPacingMode
                 )
             } catch {
                 presentation = .unavailable(error.localizedDescription)
@@ -701,7 +702,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 paceText: showsPaceAlert ? secondary.paceText : nil,
                 paceSeverity: secondary.paceSeverity
             )
-            item(MenuTag.secondary)?.toolTip = selectedWeeklyPacingMode.tooltipText(activeHoursPerDay: selectedActiveHoursPerDay)
+            item(MenuTag.secondary)?.toolTip = selectedWeeklyPacingMode.tooltipText()
         } else {
             item(MenuTag.secondary)?.attributedTitle = styledQuotaRow(
                 label: "7 days",
@@ -710,7 +711,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 paceText: nil,
                 paceSeverity: nil
             )
-            item(MenuTag.secondary)?.toolTip = selectedWeeklyPacingMode.tooltipText(activeHoursPerDay: selectedActiveHoursPerDay)
+            item(MenuTag.secondary)?.toolTip = selectedWeeklyPacingMode.tooltipText()
         }
 
         item(MenuTag.paceNotice)?.isHidden = true
@@ -752,9 +753,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item(MenuTag.showColors)?.state = showsColors ? .on : .off
         item(MenuTag.showPaceAlert)?.state = showsPaceAlert ? .on : .off
         item(MenuTag.showLastUpdated)?.state = showsLastUpdated ? .on : .off
-        item(MenuTag.weeklyPacingMode)?.title = "Weekly Pace: \(selectedWeeklyPacingMode == .fullWeek24x7 ? "Full week" : "Active time")"
-        item(MenuTag.activeHoursPerDay)?.title = "Active Hours / Day: \(selectedActiveHoursPerDay)h"
-        item(MenuTag.activeHoursPerDay)?.isEnabled = selectedWeeklyPacingMode == .activeHoursCustom
+        item(MenuTag.weeklyPacing40)?.state = selectedWeeklyPacingMode == .workWeek40 ? .on : .off
+        item(MenuTag.weeklyPacing56)?.state = selectedWeeklyPacingMode == .balanced56 ? .on : .off
+        item(MenuTag.weeklyPacing70)?.state = selectedWeeklyPacingMode == .heavy70 ? .on : .off
     }
 
     private func showFeedback(_ message: String) {
@@ -1180,12 +1181,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private var selectedWeeklyPacingMode: WeeklyPacingMode {
-        WeeklyPacingMode(rawValue: defaults.string(forKey: PreferenceKey.weeklyPacingMode) ?? "") ?? .fullWeek24x7
-    }
-
-    private var selectedActiveHoursPerDay: Int {
-        let saved = defaults.integer(forKey: PreferenceKey.activeHoursPerDay)
-        return Self.activeHourOptions.contains(saved) ? saved : 16
+        WeeklyPacingMode(rawValue: defaults.string(forKey: PreferenceKey.weeklyPacingMode) ?? "") ?? .balanced56
     }
 }
 
