@@ -17,13 +17,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let accountsMenuItem = NSMenuItem(title: "Recent Accounts", action: nil, keyEquivalent: "")
     private var refreshTimer: Timer?
     private var lastPresentation = StatusPresentation.loading
+    private var isMenuOpen = false
+    private var needsAccountsMenuRebuild = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         configureStatusItem()
         configureMenu()
         refreshAsync()
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             self?.refreshAsync()
         }
     }
@@ -153,7 +155,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             .compactMap { $0 }
             .joined(separator: " · ")
         headerView.updateSubtitle(accountSummary.isEmpty ? "--" : accountSummary)
-        rebuildAccountsMenu()
+        if isMenuOpen {
+            needsAccountsMenuRebuild = true
+        } else {
+            rebuildAccountsMenu()
+        }
         accountInfoView.update(
             label: presentation.accountRow?.label ?? "Account",
             value: presentation.accountRow?.value ?? "--"
@@ -179,8 +185,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func menuWillOpen(_ menu: NSMenu) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-            self?.refreshAsync()
+        isMenuOpen = true
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        isMenuOpen = false
+        if needsAccountsMenuRebuild {
+            needsAccountsMenuRebuild = false
+            rebuildAccountsMenu()
         }
     }
 
