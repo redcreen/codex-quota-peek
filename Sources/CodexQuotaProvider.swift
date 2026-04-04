@@ -19,6 +19,8 @@ struct CodexQuotaFetchResult {
 struct CodexQuotaTrendSummary {
     let sessionLowPercent: Int?
     let weeklyLowPercent: Int?
+    let sessionTrend: String?
+    let weeklyTrend: String?
 
     var menuText: String? {
         var parts: [String] = []
@@ -30,6 +32,18 @@ struct CodexQuotaTrendSummary {
         }
         guard !parts.isEmpty else { return nil }
         return "Recent lows: " + parts.joined(separator: "  ·  ")
+    }
+
+    var sparklineText: String? {
+        var parts: [String] = []
+        if let sessionTrend {
+            parts.append("5h \(sessionTrend)")
+        }
+        if let weeklyTrend {
+            parts.append("7d \(weeklyTrend)")
+        }
+        guard !parts.isEmpty else { return nil }
+        return "Recent trend: " + parts.joined(separator: "  ·  ")
     }
 }
 
@@ -138,20 +152,60 @@ final class CodexQuotaProvider {
             .filter { ($0.sourceDate ?? .distantPast) >= sessionCutoff }
             .compactMap { $0.snapshot.rateLimits.primary?.remainingPercent }
             .min()
+        let sessionTrend = Self.sparkline(
+            values: parsedRows
+                .filter { ($0.sourceDate ?? .distantPast) >= sessionCutoff }
+                .compactMap { $0.snapshot.rateLimits.primary?.remainingPercent },
+            points: 8
+        )
 
         let weeklyLow = parsedRows
             .filter { ($0.sourceDate ?? .distantPast) >= weeklyCutoff }
             .compactMap { $0.snapshot.rateLimits.secondary?.remainingPercent }
             .min()
+        let weeklyTrend = Self.sparkline(
+            values: parsedRows
+                .filter { ($0.sourceDate ?? .distantPast) >= weeklyCutoff }
+                .compactMap { $0.snapshot.rateLimits.secondary?.remainingPercent },
+            points: 8
+        )
 
-        if sessionLow == nil, weeklyLow == nil {
+        if sessionLow == nil, weeklyLow == nil, sessionTrend == nil, weeklyTrend == nil {
             return nil
         }
 
         return CodexQuotaTrendSummary(
             sessionLowPercent: sessionLow,
-            weeklyLowPercent: weeklyLow
+            weeklyLowPercent: weeklyLow,
+            sessionTrend: sessionTrend,
+            weeklyTrend: weeklyTrend
         )
+    }
+
+    static func sparkline(values: [Int], points: Int) -> String? {
+        guard !values.isEmpty else { return nil }
+        let reduced = sample(values: values, points: points)
+        let glyphs = Array("._-:=+*#")
+        let minValue = reduced.min() ?? 0
+        let maxValue = reduced.max() ?? 0
+        guard maxValue > minValue else {
+            return String(repeating: "=", count: reduced.count)
+        }
+
+        return String(reduced.map { value in
+            let normalized = Double(value - minValue) / Double(maxValue - minValue)
+            let index = min(glyphs.count - 1, max(0, Int((normalized * Double(glyphs.count - 1)).rounded())))
+            return glyphs[index]
+        })
+    }
+
+    private static func sample(values: [Int], points: Int) -> [Int] {
+        guard values.count > points else { return values }
+        let step = Double(values.count - 1) / Double(points - 1)
+        return (0..<points).map { index in
+            let sourceIndex = Int((Double(index) * step).rounded())
+            return values[min(values.count - 1, max(0, sourceIndex))]
+        }
     }
 
     func loadAccountInfo() -> CodexAccountInfo? {

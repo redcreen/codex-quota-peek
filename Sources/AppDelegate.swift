@@ -28,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let about = 124
         static let openUsageDashboard = 125
         static let trend = 126
+        static let sparkline = 127
         static let accountsStart = 2000
     }
 
@@ -298,6 +299,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         trendItem.isEnabled = false
         trendItem.isHidden = true
 
+        let sparklineItem = NSMenuItem(title: "Recent trend: --", action: nil, keyEquivalent: "")
+        sparklineItem.tag = MenuTag.sparkline
+        sparklineItem.isEnabled = false
+        sparklineItem.isHidden = true
+
         let feedbackItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         feedbackItem.tag = MenuTag.feedback
         feedbackItem.isEnabled = false
@@ -348,6 +354,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             secondaryItem,
             creditsItem,
             trendItem,
+            sparklineItem,
             paceNoticeItem,
             sourceItem,
             updatedAtItem,
@@ -666,6 +673,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item(MenuTag.trend)?.isHidden = presentation.trendText == nil
         if let trendText = presentation.trendText {
             item(MenuTag.trend)?.attributedTitle = styledTrend(trendText)
+        }
+
+        item(MenuTag.sparkline)?.isHidden = presentation.sparklineText == nil
+        if let sparklineText = presentation.sparklineText {
+            item(MenuTag.sparkline)?.attributedTitle = styledSparkline(sparklineText)
         }
     }
 
@@ -1006,6 +1018,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             attributes: [
                 .font: NSFont.systemFont(ofSize: 11.5, weight: .medium),
                 .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
+    }
+
+    private func styledSparkline(_ text: String) -> NSAttributedString {
+        NSAttributedString(
+            string: text,
+            attributes: [
+                .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .regular),
+                .foregroundColor: NSColor.tertiaryLabelColor
             ]
         )
     }

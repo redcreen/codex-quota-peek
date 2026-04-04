@@ -109,6 +109,7 @@ struct StatusPresentation {
     let paceMessage: String?
     let paceSeverity: PaceSeverity?
     let trendText: String?
+    let sparklineText: String?
     let updatedAtText: String
     let sourceText: String
     let creditsText: String?
@@ -124,6 +125,7 @@ struct StatusPresentation {
         paceMessage: String? = nil,
         paceSeverity: PaceSeverity? = nil,
         trendText: String? = nil,
+        sparklineText: String? = nil,
         updatedAtText: String = "--",
         sourceText: String = "Source: local logs",
         creditsText: String? = nil
@@ -138,6 +140,7 @@ struct StatusPresentation {
         self.paceMessage = paceMessage
         self.paceSeverity = paceSeverity
         self.trendText = trendText
+        self.sparklineText = sparklineText
         self.updatedAtText = updatedAtText
         self.sourceText = sourceText
         self.creditsText = creditsText
@@ -204,6 +207,7 @@ struct StatusPresentation {
         paceMessage = StatusPresentation.paceMessage(primary: primary, secondary: secondary, weeklyPacingMode: weeklyPacingMode)
         paceSeverity = StatusPresentation.paceSeverity(primary: primary, secondary: secondary, weeklyPacingMode: weeklyPacingMode)
         trendText = trendSummary?.menuText
+        sparklineText = trendSummary?.sparklineText
         updatedAtText = StatusPresentation.relativeUpdatedAtLabel(for: generatedAt)
         creditsText = StatusPresentation.creditsText(for: snapshot.credits)
         switch source {
@@ -252,6 +256,9 @@ struct StatusPresentation {
         }
         if let trendText {
             parts.append(trendText)
+        }
+        if let sparklineText {
+            parts.append(sparklineText)
         }
         parts.append("Source: \(sourceText)")
         parts.append("Updated: \(StatusPresentation.dateFormatter.string(from: generatedAt))")

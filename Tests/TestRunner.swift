@@ -233,8 +233,14 @@ func testDisplayPresentationUsesPaceMarkersAndSourceText() {
 }
 
 func testTrendSummaryMenuText() {
-    let summary = CodexQuotaTrendSummary(sessionLowPercent: 73, weeklyLowPercent: 82)
+    let summary = CodexQuotaTrendSummary(sessionLowPercent: 73, weeklyLowPercent: 82, sessionTrend: "._=+##", weeklyTrend: "--==++")
     expect(summary.menuText == "Recent lows: 5h 73%  ·  7d 82%", "trend summary formats compact menu text")
+    expect(summary.sparklineText == "Recent trend: 5h ._=+##  ·  7d --==++", "trend summary formats sparkline text")
+}
+
+func testSparklineSampling() {
+    let line = CodexQuotaProvider.sparkline(values: [90, 88, 86, 82, 80, 78, 76, 74], points: 8)
+    expect(line != nil && line?.count == 8, "sparkline renders fixed-width recent trend")
 }
 
 func testRelativeUpdatedAtLabels() {
@@ -438,6 +444,7 @@ testManualRefreshDoesNotForceCachedAPIOverFetchedLogs()
 testSourceStrategyFetchPlans()
 testDisplayPresentationUsesPaceMarkersAndSourceText()
 testTrendSummaryMenuText()
+testSparklineSampling()
 testRelativeUpdatedAtLabels()
         testQuotaDisplayColorThresholds()
         testAuthSnapshotStoreReadsSavedAccountMetadata()
