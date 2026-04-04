@@ -1,3 +1,5 @@
 .DS_Store
 build/
 dist/
+release/CHANGELOG.md
+release/RELEASE_NOTES.md

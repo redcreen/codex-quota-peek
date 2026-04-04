@@ -109,6 +109,14 @@ GitHub Actions 会在 `push` 和 `pull request` 时自动执行：
 ./scripts/package_release.sh
 ```
 
+如果你当前机器的 GitHub token 还没有 `workflow` scope，可以先使用仓库里的模板：
+
+- `docs/github-actions/ci.workflow.yml`
+
+之后再把它复制到：
+
+- `.github/workflows/ci.yml`
+
 安装 CLI：
 
 ```bash
@@ -282,6 +290,8 @@ open "dist/CodexQuotaPeek.app"
 - `scripts/generate_release_notes.sh`：从 `CHANGELOG.md` 生成当前版本的发布说明
 - `VERSION`：当前应用版本号
 - `CHANGELOG.md`：版本变更记录
+- `RELEASE.md`：正式发布步骤说明
+- `docs/github-actions/ci.workflow.yml`：可复制到 GitHub 的 Actions workflow 模板
 - `release/CodexQuotaPeek-mac.zip`：可直接下载使用的应用压缩包
 
 ---
@@ -379,6 +389,14 @@ GitHub Actions automatically runs the same pipeline on every `push` and `pull re
 ./scripts/build_cli.sh
 ./scripts/package_release.sh
 ```
+
+If your current GitHub token does not have the `workflow` scope yet, use the repo template first:
+
+- `docs/github-actions/ci.workflow.yml`
+
+Then copy it into:
+
+- `.github/workflows/ci.yml`
 
 Run the built app with:
 
@@ -541,4 +559,6 @@ If you keep adding the kinds of inputs above, it can continue all the way throug
 - `scripts/package_release.sh`: packages the zip release
 - `VERSION`: current app version
 - `CHANGELOG.md`: release history
+- `RELEASE.md`: release process and checklist
+- `docs/github-actions/ci.workflow.yml`: ready-to-copy GitHub Actions workflow template
 - `release/CodexQuotaPeek-mac.zip`: ready-to-download app archive

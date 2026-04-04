@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Ensure scripts are executable
+        run: chmod +x scripts/*.sh
+
+      - name: Run regression tests
+        run: ./scripts/test.sh
+
+      - name: Build app
+        run: ./scripts/build_app.sh
+
+      - name: Build CLI
+        run: ./scripts/build_cli.sh
+
+      - name: Package release zip
+        run: ./scripts/package_release.sh
+
+      - name: Upload macOS release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CodexQuotaPeek-mac
+          path: release/CodexQuotaPeek-mac.zip
