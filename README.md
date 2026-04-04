@@ -61,6 +61,7 @@ A lightweight macOS menu bar app for checking the latest Codex quota usage at a 
 - 超平均使用时显示 `! / !!`
 - 下拉菜单显示账号、套餐、重置时间、`Last updated`
 - `Refresh Now` 刷新后自动保持菜单交互连续
+- 已保存登录快照的账号可在菜单里直接切换
 - `Preferences` 子菜单，可开关颜色、节奏提醒、更新时间
 - `Launch at Login`
 - `Open Codex Folder`
@@ -158,7 +159,9 @@ open "dist/CodexQuotaPeek.app"
 5. 修复旧快照误匹配、解析失败回退等问题
 6. 逐步修正状态栏实例、菜单打不开、刷新不及时等交互问题
 7. 补上颜色规则、节奏提醒、更新时间、登录启动和偏好设置
-8. 最后补上可直接分发的 `.app` 和 `.zip`
+8. 增加回归测试，覆盖日志解析、刷新策略和展示规则
+9. 为本机已登录账号保存认证快照，支持菜单内直接切换
+10. 最后补上可直接分发的 `.app` 和 `.zip`
 
 #### 关键输入模板
 

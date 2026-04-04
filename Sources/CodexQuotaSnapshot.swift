@@ -267,7 +267,7 @@ struct StatusPresentation {
         return shortDateFormatter.string(from: date)
     }
 
-    private static func statusPercentText(for window: LimitWindow) -> String {
+    static func statusPercentText(for window: LimitWindow) -> String {
         "\(window.remainingPercent)%\(paceMarker(for: window))"
     }
 
@@ -305,7 +305,7 @@ struct StatusPresentation {
         return window.usedPercent - (elapsedFraction * 100.0)
     }
 
-    private static func paceMarker(for window: LimitWindow) -> String {
+    static func paceMarker(for window: LimitWindow) -> String {
         switch paceSeverity(for: window) {
         case .warning:
             return "!"
@@ -316,7 +316,7 @@ struct StatusPresentation {
         }
     }
 
-    private static func relativeUpdatedAtLabel(for date: Date, now: Date = Date()) -> String {
+    static func relativeUpdatedAtLabel(for date: Date, now: Date = Date()) -> String {
         let seconds = max(0, Int(now.timeIntervalSince(date)))
         if seconds <= 5 {
             return "just updated"

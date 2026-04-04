@@ -122,6 +122,50 @@ func testManualRefreshDoesNotForceCachedAPIOverFetchedLogs() {
     expect(preferred.source == .realtimeLogs, "manual refresh uses fetched fallback result if API is unavailable")
 }
 
+func testDisplayPresentationUsesPaceMarkersAndSourceText() {
+    let primary = LimitWindow(
+        usedPercent: 65,
+        windowMinutes: 300,
+        resetAfterSeconds: 14_400,
+        resetAt: 1_775_292_000
+    )
+    let secondary = LimitWindow(
+        usedPercent: 10,
+        windowMinutes: 10080,
+        resetAfterSeconds: 500_000,
+        resetAt: 1_775_896_800
+    )
+    let snapshot = CodexQuotaSnapshot(
+        planType: "pro",
+        rateLimits: RateLimits(allowed: true, limitReached: false, primary: primary, secondary: secondary)
+    )
+    let presentation = StatusPresentation(
+        snapshot: snapshot,
+        accountInfo: CodexAccountInfo(displayName: "redcreen qq", email: "67560691@qq.com", planDisplayName: "Pro"),
+        generatedAt: Date(),
+        source: .api
+    )
+
+    expect(presentation.line1 == "H 35%!!", "status line shows critical pace marker")
+    expect(presentation.line2 == "W 90%", "status line omits markers when pace is normal")
+    expect(presentation.sourceText == "Current value from API", "presentation keeps source text")
+}
+
+func testRelativeUpdatedAtLabels() {
+    let now = Date(timeIntervalSince1970: 2_000)
+    expect(StatusPresentation.relativeUpdatedAtLabel(for: Date(timeIntervalSince1970: 1_997), now: now) == "just updated", "fresh timestamps show just updated")
+    expect(StatusPresentation.relativeUpdatedAtLabel(for: Date(timeIntervalSince1970: 1_950), now: now) == "50s", "sub-minute timestamps show seconds")
+    expect(StatusPresentation.relativeUpdatedAtLabel(for: Date(timeIntervalSince1970: 1_880), now: now) == "2m", "older timestamps show minutes")
+}
+
+func testQuotaDisplayColorThresholds() {
+    expect(QuotaDisplayPolicy.colorLevel(forPercentText: "82%") == .normal, "high remaining percent is green tier")
+    expect(QuotaDisplayPolicy.colorLevel(forPercentText: "49%!") == .warning, "below fifty percent is yellow tier")
+    expect(QuotaDisplayPolicy.colorLevel(forPercentText: "29%!!") == .critical, "below thirty percent is red tier")
+    let split = QuotaDisplayPolicy.splitPercentComponents("95%!!")
+    expect(split.0 == "95%" && split.1 == "!!", "percent text splits into value and pace marker")
+}
+
 @main
 struct TestRunner {
     static func main() {
@@ -129,6 +173,9 @@ struct TestRunner {
         testAutomaticRefreshPrefersRecentAPIOverOlderLogs()
         testAutomaticRefreshAllowsLogsAfterTheyCatchUp()
         testManualRefreshDoesNotForceCachedAPIOverFetchedLogs()
+        testDisplayPresentationUsesPaceMarkersAndSourceText()
+        testRelativeUpdatedAtLabels()
+        testQuotaDisplayColorThresholds()
         print("All tests passed.")
     }
 }

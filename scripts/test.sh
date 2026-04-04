@@ -8,8 +8,10 @@ EXECUTABLE="$BUILD_DIR/CodexQuotaPeekTests"
 mkdir -p "$BUILD_DIR"
 
 /usr/bin/swiftc \
+  "$ROOT_DIR/Sources/CodexAuthSnapshotStore.swift" \
   "$ROOT_DIR/Sources/CodexQuotaSnapshot.swift" \
   "$ROOT_DIR/Sources/CodexQuotaProvider.swift" \
+  "$ROOT_DIR/Sources/QuotaDisplayPolicy.swift" \
   "$ROOT_DIR/Sources/QuotaRefreshPolicy.swift" \
   "$ROOT_DIR/Tests/TestRunner.swift" \
   -o "$EXECUTABLE"

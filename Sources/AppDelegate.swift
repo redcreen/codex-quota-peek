@@ -54,6 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var shouldReopenMenuAfterRefresh = false
     private var feedbackHideWorkItem: DispatchWorkItem?
     private var lastSuccessfulAPIResult: CodexQuotaFetchResult?
+    private var accountItemLookup: [Int: CodexKnownAccount] = [:]
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -65,6 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         configureStatusItem()
         configureMenu()
         setupFileWatchers()
+        _ = provider.captureCurrentAuthSnapshot()
         refreshAsync(mode: .automatic)
         refreshAccountsAsync()
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { [weak self] _ in
@@ -146,7 +148,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc
     private func switchAccount(_ sender: NSMenuItem) {
-        let targetLabel = sender.representedObject as? String ?? "selected account"
+        guard let account = accountItemLookup[sender.tag] else { return }
+
+        if let snapshotIdentifier = account.snapshotIdentifier, account.canSwitchLocally {
+            do {
+                try provider.switchToStoredAccount(identifier: snapshotIdentifier)
+                showFeedback("Switched to \(account.displayName)")
+                refreshAccountsAsync()
+                refreshAsync(mode: .automatic)
+                return
+            } catch {
+                showFeedback("Switch failed: \(error.localizedDescription)")
+            }
+        }
+
+        let targetLabel = account.email ?? account.displayName
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         process.arguments = [
@@ -218,7 +234,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         sourceItem.isEnabled = false
 
         let accountSwitchHintItem = NSMenuItem(
-            title: "History only. Switching requires re-login in Terminal.",
+            title: "Saved accounts switch locally. History-only accounts re-login in Terminal.",
             action: nil,
             keyEquivalent: ""
         )
@@ -433,6 +449,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     }
                 }
             }
+            self?.provider.captureCurrentAuthSnapshot()
             self?.scheduleAccountRefresh(delay: 0.2)
             self?.scheduleRefresh(delay: 0.35)
         }
@@ -643,6 +660,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func rebuildAccountItems() {
+        accountItemLookup.removeAll()
         while let existing = menu.items.first(where: { $0.tag >= MenuTag.accountsStart }) {
             menu.removeItem(existing)
         }
@@ -661,13 +679,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         for (offset, account) in pendingAccounts.enumerated() {
-            let title = account.isCurrent ? "Current: \(account.displayName)" : "Re-login as \(account.displayName)"
+            let title: String
+            if account.isCurrent {
+                title = "Current: \(account.displayName)"
+            } else if account.canSwitchLocally {
+                title = "Switch to: \(account.displayName)\(account.planDisplayName.map { " (\($0))" } ?? "")"
+            } else {
+                title = "Re-login as \(account.displayName)"
+            }
             let item = NSMenuItem(title: title, action: #selector(switchAccount(_:)), keyEquivalent: "")
             item.target = self
-            item.representedObject = account.email ?? account.displayName
             item.indentationLevel = 1
             item.isEnabled = !account.isCurrent
             item.tag = MenuTag.accountsStart + offset
+            accountItemLookup[item.tag] = account
             menu.insertItem(item, at: headerIndex + 1 + offset)
         }
     }

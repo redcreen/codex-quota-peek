@@ -35,8 +35,10 @@ cp "$ICON_PNG" "$ICONSET_DIR/icon_512x512@2x.png"
   -framework AppKit \
   "$ROOT_DIR/Sources/main.swift" \
   "$ROOT_DIR/Sources/AppDelegate.swift" \
+  "$ROOT_DIR/Sources/CodexAuthSnapshotStore.swift" \
   "$ROOT_DIR/Sources/CodexQuotaSnapshot.swift" \
   "$ROOT_DIR/Sources/CodexQuotaProvider.swift" \
+  "$ROOT_DIR/Sources/QuotaDisplayPolicy.swift" \
   "$ROOT_DIR/Sources/QuotaRefreshPolicy.swift" \
   "$ROOT_DIR/Sources/MenuViews.swift" \
   "$ROOT_DIR/Sources/StatusBadgeView.swift" \

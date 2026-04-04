@@ -27,6 +27,9 @@ struct CodexKnownAccount {
     let email: String?
     let accountID: String?
     let isCurrent: Bool
+    let planDisplayName: String?
+    let snapshotIdentifier: String?
+    let canSwitchLocally: Bool
 }
 
 final class CodexQuotaProvider {
@@ -34,9 +37,11 @@ final class CodexQuotaProvider {
     private let decoder = JSONDecoder()
     private let homeDirectory: URL
     private let apiBaseURL = URL(string: "https://chatgpt.com/backend-api")!
+    private let authSnapshotStore: CodexAuthSnapshotStore
 
     init(homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser) {
         self.homeDirectory = homeDirectory
+        self.authSnapshotStore = CodexAuthSnapshotStore(homeDirectory: homeDirectory)
     }
 
     func loadSnapshot() throws -> CodexQuotaSnapshot {
@@ -106,6 +111,8 @@ final class CodexQuotaProvider {
 
         let current = loadAccountInfo()
         let currentAccountID = loadCurrentAccountID()
+        let storedAccounts = authSnapshotStore.loadStoredAccounts()
+
         if let current {
             let key = [current.email ?? "", currentAccountID ?? ""].joined(separator: "|")
             seen.insert(key)
@@ -114,7 +121,28 @@ final class CodexQuotaProvider {
                     displayName: current.displayName,
                     email: current.email,
                     accountID: currentAccountID,
-                    isCurrent: true
+                    isCurrent: true,
+                    planDisplayName: current.planDisplayName,
+                    snapshotIdentifier: storedAccounts.first(where: { $0.accountID == currentAccountID || $0.email == current.email })?.snapshotIdentifier,
+                    canSwitchLocally: false
+                )
+            )
+        }
+
+        for stored in storedAccounts {
+            let isCurrent = stored.accountID == currentAccountID || (!stored.displayName.isEmpty && stored.email == current?.email)
+            let key = [stored.email ?? "", stored.accountID ?? ""].joined(separator: "|")
+            if seen.contains(key) { continue }
+            seen.insert(key)
+            results.append(
+                CodexKnownAccount(
+                    displayName: stored.displayName,
+                    email: stored.email,
+                    accountID: stored.accountID,
+                    isCurrent: isCurrent,
+                    planDisplayName: stored.planDisplayName,
+                    snapshotIdentifier: stored.snapshotIdentifier,
+                    canSwitchLocally: !isCurrent
                 )
             )
         }
@@ -149,12 +177,25 @@ final class CodexQuotaProvider {
                     displayName: email,
                     email: email,
                     accountID: accountID,
-                    isCurrent: false
+                    isCurrent: false,
+                    planDisplayName: nil,
+                    snapshotIdentifier: nil,
+                    canSwitchLocally: false
                 )
             )
         }
 
         return results
+    }
+
+    @discardableResult
+    func captureCurrentAuthSnapshot() -> CodexStoredAccount? {
+        authSnapshotStore.saveCurrentAuthSnapshot()
+    }
+
+    func switchToStoredAccount(identifier: String) throws {
+        _ = captureCurrentAuthSnapshot()
+        try authSnapshotStore.restoreSnapshot(identifier: identifier)
     }
 
     static func parseRealtimeLogRow(_ row: String) -> CodexQuotaFetchResult? {
@@ -382,7 +423,7 @@ final class CodexQuotaProvider {
         return try? decoder.decode(JWTClaims.self, from: data)
     }
 
-    private static func humanizePlan(_ plan: String) -> String {
+    static func humanizePlan(_ plan: String) -> String {
         plan
             .split(separator: "_")
             .map { $0.prefix(1).uppercased() + $0.dropFirst().lowercased() }
@@ -534,11 +575,11 @@ private struct WHAMLimitWindow: Decodable {
     }
 }
 
-private struct CodexAuthFile: Decodable {
+struct CodexAuthFile: Decodable {
     let tokens: AuthTokens
 }
 
-private struct AuthTokens: Decodable {
+struct AuthTokens: Decodable {
     let idToken: String?
     let accessToken: String?
     let accountID: String?
@@ -550,7 +591,7 @@ private struct AuthTokens: Decodable {
     }
 }
 
-private struct JWTClaims: Decodable {
+struct JWTClaims: Decodable {
     let name: String?
     let email: String?
     let auth: JWTAuthClaims?
@@ -562,7 +603,7 @@ private struct JWTClaims: Decodable {
     }
 }
 
-private struct JWTAuthClaims: Decodable {
+struct JWTAuthClaims: Decodable {
     let chatgptPlanType: String?
 
     enum CodingKeys: String, CodingKey {
