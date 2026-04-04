@@ -9,6 +9,7 @@ mkdir -p "$BUILD_DIR"
 
 /usr/bin/swiftc \
   "$ROOT_DIR/Sources/CliFormatter.swift" \
+  "$ROOT_DIR/Sources/AppLanguage.swift" \
   "$ROOT_DIR/Sources/CodexAuthSnapshotStore.swift" \
   "$ROOT_DIR/Sources/CodexQuotaSnapshot.swift" \
   "$ROOT_DIR/Sources/CodexQuotaProvider.swift" \

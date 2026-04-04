@@ -6,24 +6,32 @@ enum QuotaSourceStrategy: String, CaseIterable {
     case preferLocalLogs
 
     var title: String {
+        title(language: .english)
+    }
+
+    func title(language: AppLanguage) -> String {
         switch self {
         case .auto:
-            return "Auto"
+            return language == .english ? "Auto" : "自动"
         case .preferAPI:
-            return "Prefer API"
+            return language == .english ? "Prefer API" : "优先 API"
         case .preferLocalLogs:
-            return "Prefer local logs"
+            return language == .english ? "Prefer local logs" : "优先本地日志"
         }
     }
 
     var summary: String {
+        summary(language: .english)
+    }
+
+    func summary(language: AppLanguage) -> String {
         switch self {
         case .auto:
-            return "Balanced default. Auto refresh follows local logs, while startup and manual refresh prefer the API."
+            return language == .english ? "Balanced default. Auto refresh follows local logs, while startup and manual refresh prefer the API." : "平衡的默认策略。自动刷新跟随本地日志，而启动和手动刷新更偏向 API。"
         case .preferAPI:
-            return "Freshness first. Automatic refresh tries the official API before falling back."
+            return language == .english ? "Freshness first. Automatic refresh tries the official API before falling back." : "最新优先。自动刷新会先尝试官方 API，再回退。"
         case .preferLocalLogs:
-            return "Most conservative. Background and startup refresh stay on local Codex logs whenever possible."
+            return language == .english ? "Most conservative. Background and startup refresh stay on local Codex logs whenever possible." : "最保守。后台和启动刷新会尽量留在本地 Codex 日志。"
         }
     }
 }

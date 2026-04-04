@@ -22,28 +22,12 @@ struct CodexQuotaTrendSummary {
     let sessionTrend: String?
     let weeklyTrend: String?
 
-    var menuText: String? {
-        var parts: [String] = []
-        if let sessionLowPercent {
-            parts.append("5h \(sessionLowPercent)%")
-        }
-        if let weeklyLowPercent {
-            parts.append("7d \(weeklyLowPercent)%")
-        }
-        guard !parts.isEmpty else { return nil }
-        return "Recent lows: " + parts.joined(separator: "  ·  ")
+    func menuText(language: AppLanguage = .english) -> String? {
+        language.recentLowsText(sessionLowPercent: sessionLowPercent, weeklyLowPercent: weeklyLowPercent)
     }
 
-    var sparklineText: String? {
-        var parts: [String] = []
-        if let sessionTrend {
-            parts.append("5h \(sessionTrend)")
-        }
-        if let weeklyTrend {
-            parts.append("7d \(weeklyTrend)")
-        }
-        guard !parts.isEmpty else { return nil }
-        return "Recent trend: " + parts.joined(separator: "  ·  ")
+    func sparklineText(language: AppLanguage = .english) -> String? {
+        language.recentTrendText(sessionTrend: sessionTrend, weeklyTrend: weeklyTrend)
     }
 }
 

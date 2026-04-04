@@ -40,6 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let weeklyPacingMode = "weeklyPacingMode"
         static let sourceStrategy = "sourceStrategy"
         static let notificationsEnabled = "notificationsEnabled"
+        static let appLanguage = "appLanguage"
     }
 
     private let provider = CodexQuotaProvider()
@@ -67,7 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var refreshRequestGate = RefreshRequestGate()
     private var hasTriggeredStartupAPIRefresh = false
     private var lastNotificationSnapshot: QuotaNotificationSnapshot?
-    private lazy var preferencesWindowController = makePreferencesWindowController()
+    private var preferencesWindowController: PreferencesWindowController!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -77,9 +78,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             PreferenceKey.showLastUpdated: true,
             PreferenceKey.weeklyPacingMode: WeeklyPacingMode.balanced56.rawValue,
             PreferenceKey.sourceStrategy: QuotaSourceStrategy.auto.rawValue,
-            PreferenceKey.notificationsEnabled: true
+            PreferenceKey.notificationsEnabled: true,
+            PreferenceKey.appLanguage: AppLanguage.english.rawValue
         ])
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        preferencesWindowController = makePreferencesWindowController()
         configureStatusItem()
         configureMenu()
         setupFileWatchers()
@@ -154,17 +157,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc
     private func switchAccount(_ sender: NSMenuItem) {
+        let language = selectedAppLanguage
         guard let account = accountItemLookup[sender.tag] else { return }
 
         if let snapshotIdentifier = account.snapshotIdentifier, account.canSwitchLocally {
             do {
                 try provider.switchToStoredAccount(identifier: snapshotIdentifier)
-                showFeedback("Switched to \(account.displayName)")
+                showFeedback(language == .english ? "Switched to \(account.displayName)" : "已切换到 \(account.displayName)")
                 refreshAccountsAsync()
                 refreshAsync(mode: .automatic)
                 return
             } catch {
-                showFeedback("Switch failed: \(error.localizedDescription)")
+                showFeedback(language == .english ? "Switch failed: \(error.localizedDescription)" : "切换失败：\(error.localizedDescription)")
             }
         }
 
@@ -183,11 +187,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc
     private func saveCurrentAccountSnapshot(_ sender: Any?) {
+        let language = selectedAppLanguage
         if let account = provider.captureCurrentAuthSnapshot() {
-            showFeedback("Saved snapshot for \(account.displayName)")
+            showFeedback(language == .english ? "Saved snapshot for \(account.displayName)" : "已保存 \(account.displayName) 的快照")
             refreshAccountsAsync()
         } else {
-            showFeedback("Could not save current account snapshot")
+            showFeedback(language == .english ? "Could not save current account snapshot" : "无法保存当前账号快照")
         }
     }
 
@@ -205,11 +210,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc
     private func showAbout(_ sender: Any?) {
+        let language = selectedAppLanguage
         let alert = NSAlert()
-        alert.messageText = "About Codex Quota Peek"
-        alert.informativeText = "Menu bar quota monitor for Codex.\nManual refresh uses the official usage API.\nAuto refresh follows local Codex logs."
+        alert.messageText = language.aboutTitle
+        alert.informativeText = language.aboutBody
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: language.okButton)
         alert.runModal()
     }
 
@@ -228,6 +234,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func configureMenu() {
+        let language = selectedAppLanguage
         menu.autoenablesItems = false
         menu.minimumWidth = 340
 
@@ -248,7 +255,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         planItem.isEnabled = false
 
         let saveAccountSnapshotItem = NSMenuItem(
-            title: "Save Current Account Snapshot",
+            title: language.saveCurrentAccountSnapshotTitle,
             action: #selector(saveCurrentAccountSnapshot(_:)),
             keyEquivalent: ""
         )
@@ -256,16 +263,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         saveAccountSnapshotItem.target = self
 
         let accountSwitchHintItem = NSMenuItem(
-            title: "Saved accounts switch locally. History-only accounts re-login in Terminal.",
+            title: language.accountSwitchHintTitle,
             action: nil,
             keyEquivalent: ""
         )
         accountSwitchHintItem.tag = MenuTag.accountSwitchHint
         accountSwitchHintItem.isEnabled = false
 
-        let switchAccountItem = NSMenuItem(title: "Switch Account…", action: nil, keyEquivalent: "")
+        let switchAccountItem = NSMenuItem(title: language.switchAccountTitle, action: nil, keyEquivalent: "")
         switchAccountItem.tag = MenuTag.switchAccountMenu
-        let switchAccountMenu = NSMenu(title: "Switch Account")
+        let switchAccountMenu = NSMenu(title: language.switchAccountMenuTitle)
         switchAccountMenu.items = [
             saveAccountSnapshotItem,
             .separator(),
@@ -286,25 +293,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         paceNoticeItem.isEnabled = false
         paceNoticeItem.isHidden = true
 
-        let updatedAtItem = NSMenuItem(title: "Last updated: --", action: nil, keyEquivalent: "")
+        let updatedAtItem = NSMenuItem(title: "--", action: nil, keyEquivalent: "")
         updatedAtItem.tag = MenuTag.updatedAt
         updatedAtItem.isEnabled = false
         updatedAtItem.isHidden = true
 
-        let sourceItem = NSMenuItem(title: "Source: local logs", action: nil, keyEquivalent: "")
+        let sourceItem = NSMenuItem(title: language.sourceText(for: .realtimeLogs), action: nil, keyEquivalent: "")
         sourceItem.tag = MenuTag.source
         sourceItem.isEnabled = false
 
-        let creditsItem = NSMenuItem(title: "Credits: --", action: nil, keyEquivalent: "")
+        let creditsItem = NSMenuItem(title: "\(language.creditsLabel): --", action: nil, keyEquivalent: "")
         creditsItem.tag = MenuTag.credits
         creditsItem.isEnabled = false
 
-        let trendItem = NSMenuItem(title: "Recent lows: --", action: nil, keyEquivalent: "")
+        let trendItem = NSMenuItem(title: "\(language.recentLowsLabel): --", action: nil, keyEquivalent: "")
         trendItem.tag = MenuTag.trend
         trendItem.isEnabled = false
         trendItem.isHidden = true
 
-        let sparklineItem = NSMenuItem(title: "Recent trend: --", action: nil, keyEquivalent: "")
+        let sparklineItem = NSMenuItem(title: "\(language.recentTrendLabel): --", action: nil, keyEquivalent: "")
         sparklineItem.tag = MenuTag.sparkline
         sparklineItem.isEnabled = false
         sparklineItem.isHidden = true
@@ -314,39 +321,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         feedbackItem.isEnabled = false
         feedbackItem.isHidden = true
 
-        let refreshItem = NSMenuItem(title: "Refresh Now (API)", action: #selector(refreshNow(_:)), keyEquivalent: "")
+        let refreshItem = NSMenuItem(title: language.refreshNowTitle, action: #selector(refreshNow(_:)), keyEquivalent: "")
         refreshItem.tag = MenuTag.refresh
         refreshItem.target = self
 
-        let copyItem = NSMenuItem(title: "Copy Details", action: #selector(copyDetails(_:)), keyEquivalent: "c")
+        let copyItem = NSMenuItem(title: language.copyDetailsTitle, action: #selector(copyDetails(_:)), keyEquivalent: "c")
         copyItem.tag = MenuTag.copy
         copyItem.target = self
 
-        let openCodexFolderItem = NSMenuItem(title: "Open Codex Folder", action: #selector(openCodexFolder(_:)), keyEquivalent: "")
+        let openCodexFolderItem = NSMenuItem(title: language.openCodexFolderTitle, action: #selector(openCodexFolder(_:)), keyEquivalent: "")
         openCodexFolderItem.tag = MenuTag.openCodexFolder
         openCodexFolderItem.target = self
 
-        let openLogsDatabaseItem = NSMenuItem(title: "Reveal Logs Database", action: #selector(openLogsDatabase(_:)), keyEquivalent: "")
+        let openLogsDatabaseItem = NSMenuItem(title: language.revealLogsDatabaseTitle, action: #selector(openLogsDatabase(_:)), keyEquivalent: "")
         openLogsDatabaseItem.tag = MenuTag.openLogsDatabase
         openLogsDatabaseItem.target = self
 
-        let openStatusPageItem = NSMenuItem(title: "Status Page", action: #selector(openStatusPage(_:)), keyEquivalent: "")
+        let openStatusPageItem = NSMenuItem(title: language.statusPageTitle, action: #selector(openStatusPage(_:)), keyEquivalent: "")
         openStatusPageItem.tag = MenuTag.openStatusPage
         openStatusPageItem.target = self
 
-        let openUsageDashboardItem = NSMenuItem(title: "Usage Dashboard", action: #selector(openUsageDashboard(_:)), keyEquivalent: "")
+        let openUsageDashboardItem = NSMenuItem(title: language.usageDashboardTitle, action: #selector(openUsageDashboard(_:)), keyEquivalent: "")
         openUsageDashboardItem.tag = MenuTag.openUsageDashboard
         openUsageDashboardItem.target = self
 
-        let aboutItem = NSMenuItem(title: "About Codex Quota Peek", action: #selector(showAbout(_:)), keyEquivalent: "")
+        let aboutItem = NSMenuItem(title: language.aboutTitle, action: #selector(showAbout(_:)), keyEquivalent: "")
         aboutItem.tag = MenuTag.about
         aboutItem.target = self
 
-        let preferencesItem = NSMenuItem(title: "Preferences...", action: #selector(openPreferences(_:)), keyEquivalent: ",")
+        let preferencesItem = NSMenuItem(title: language.preferencesMenuTitle, action: #selector(openPreferences(_:)), keyEquivalent: ",")
         preferencesItem.tag = MenuTag.preferences
         preferencesItem.target = self
 
-        let quitItem = NSMenuItem(title: "Quit", action: #selector(quit(_:)), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: language.quitTitle, action: #selector(quit(_:)), keyEquivalent: "q")
         quitItem.tag = MenuTag.quit
         quitItem.target = self
 
@@ -406,10 +413,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     generatedAt: Date(),
                     source: result.source,
                     trendSummary: trendSummary ?? nil,
-                    weeklyPacingMode: selectedWeeklyPacingMode
+                    weeklyPacingMode: selectedWeeklyPacingMode,
+                    language: selectedAppLanguage
                 )
             } catch {
-                presentation = .unavailable(error.localizedDescription)
+                presentation = .unavailable(error.localizedDescription, language: selectedAppLanguage)
             }
 
             DispatchQueue.main.async {
@@ -581,6 +589,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func apply(_ presentation: StatusPresentation) {
+        let language = selectedAppLanguage
         lastPresentation = presentation
         badgeView.line1 = presentation.line1
         badgeView.line2 = presentation.line2
@@ -611,11 +620,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             subtitle: ""
         )
         item(MenuTag.account)?.attributedTitle = styledMetaRow(
-            label: presentation.accountRow?.label ?? "Account",
+            label: presentation.accountRow?.label ?? language.accountLabel,
             value: presentation.accountRow?.value ?? "--"
         )
         item(MenuTag.plan)?.attributedTitle = styledMetaRow(
-            label: presentation.planRow?.label ?? "Plan",
+            label: presentation.planRow?.label ?? language.planLabel,
             value: presentation.planRow?.value ?? "--"
         )
         if isMenuOpen {
@@ -627,6 +636,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let primary = presentation.primaryRow {
             item(MenuTag.primary)?.attributedTitle = styledQuotaRow(
                 label: primary.label,
+                language: language,
                 percent: primary.percentText,
                 reset: primary.resetText,
                 paceText: showsPaceAlert ? primary.paceText : nil,
@@ -635,6 +645,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         } else {
             item(MenuTag.primary)?.attributedTitle = styledQuotaRow(
                 label: "5 hours",
+                language: language,
                 percent: "--",
                 reset: "--",
                 paceText: nil,
@@ -645,6 +656,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let secondary = presentation.secondaryRow {
             item(MenuTag.secondary)?.attributedTitle = styledQuotaRow(
                 label: secondary.label,
+                language: language,
                 percent: secondary.percentText,
                 reset: secondary.resetText,
                 paceText: showsPaceAlert ? secondary.paceText : nil,
@@ -654,6 +666,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         } else {
             item(MenuTag.secondary)?.attributedTitle = styledQuotaRow(
                 label: "7 days",
+                language: language,
                 percent: "--",
                 reset: "--",
                 paceText: nil,
@@ -765,6 +778,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func rebuildAccountItems() {
+        let language = selectedAppLanguage
         accountItemLookup.removeAll()
         guard let switchMenu = item(MenuTag.switchAccountMenu)?.submenu else {
             return
@@ -785,11 +799,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         for (offset, account) in pendingAccounts.enumerated() {
             let title: String
             if account.isCurrent {
-                title = "Current: \(account.displayName)\(account.planDisplayName.map { " (\($0))" } ?? "")\(savedSuffix(for: account))"
+                title = language.currentAccountTitle(account.displayName) + "\(account.planDisplayName.map { " (\($0))" } ?? "")\(savedSuffix(for: account))"
             } else if account.canSwitchLocally {
-                title = "Switch to: \(account.displayName)\(account.planDisplayName.map { " (\($0))" } ?? "")\(savedSuffix(for: account))"
+                title = language.switchToAccountTitle(account.displayName) + "\(account.planDisplayName.map { " (\($0))" } ?? "")\(savedSuffix(for: account))"
             } else {
-                title = "Re-login as \(account.displayName)"
+                title = language.reloginAccountTitle(account.displayName)
             }
             let item = NSMenuItem(title: title, action: #selector(switchAccount(_:)), keyEquivalent: "")
             item.target = self
@@ -803,7 +817,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func savedSuffix(for account: CodexKnownAccount) -> String {
         guard let date = account.snapshotUpdatedAt else { return "" }
-        return " · saved \(StatusPresentation.relativeUpdatedAtLabel(for: date))"
+        return selectedAppLanguage.savedSuffix(StatusPresentation.relativeUpdatedAtLabel(for: date, language: selectedAppLanguage))
     }
 
     private func styledTitle(title: String, subtitle: String) -> NSAttributedString {
@@ -880,6 +894,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func styledQuotaRow(
         label: String,
+        language: AppLanguage,
         percent: String,
         reset: String,
         paceText: String?,
@@ -912,8 +927,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         header.append(NSAttributedString(string: "\n"))
         header.append(progressBar)
 
-        let leftText = percentMarker.isEmpty ? "\(percentValue) left" : "\(percentValue) \(percentMarker) left"
-        let rightText = "Resets \(reset)"
+        let leftText = percentMarker.isEmpty ? "\(percentValue) \(language.leftLabel)" : "\(percentValue) \(percentMarker) \(language.leftLabel)"
+        let rightText = "\(language.resetsLabel) \(reset)"
         let spacerCount = max(2, progressSlots - leftText.count - rightText.count)
         let detail = NSMutableAttributedString(
             string: "\n\(percentValue)",
@@ -940,7 +955,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         detail.append(
             NSAttributedString(
-                string: "left",
+                string: language.leftLabel,
                 attributes: [
                     .font: detailFont,
                     .foregroundColor: quotaColor(for: percent)
@@ -1034,7 +1049,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func styledUpdatedAt(_ text: String, source: String) -> NSAttributedString {
         NSAttributedString(
-            string: "Updated \(text)  \(source)",
+            string: "\(selectedAppLanguage.updatedPrefix) \(text)  \(source)",
             attributes: [
                 .font: NSFont.systemFont(ofSize: 11, weight: .regular),
                 .foregroundColor: NSColor.secondaryLabelColor
@@ -1074,7 +1089,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func styledCredits(_ text: String) -> NSAttributedString {
         NSMutableAttributedString(
-            string: "Credits: ",
+            string: "\(selectedAppLanguage.creditsLabel): ",
             attributes: [
                 .font: NSFont.systemFont(ofSize: 12, weight: .regular),
                 .foregroundColor: NSColor.secondaryLabelColor
@@ -1181,16 +1196,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         QuotaSourceStrategy(rawValue: defaults.string(forKey: PreferenceKey.sourceStrategy) ?? "") ?? .auto
     }
 
+    private var selectedAppLanguage: AppLanguage {
+        AppLanguage(rawValue: defaults.string(forKey: PreferenceKey.appLanguage) ?? "") ?? .english
+    }
+
     private var notificationsEnabled: Bool {
         defaults.bool(forKey: PreferenceKey.notificationsEnabled)
     }
 
     private var weeklyPaceExplanation: String {
-        QuotaDisplayPolicy.weeklyPaceExplanation(for: selectedWeeklyPacingMode)
+        QuotaDisplayPolicy.weeklyPaceExplanation(for: selectedWeeklyPacingMode, language: selectedAppLanguage)
     }
 
     private func makePreferencesWindowController() -> PreferencesWindowController {
-        let controller = PreferencesWindowController()
+        let controller = PreferencesWindowController(language: selectedAppLanguage)
         controller.onToggleShowColors = { [weak self] enabled in
             self?.setShowColors(enabled)
         }
@@ -1213,11 +1232,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         controller.onSelectSourceStrategy = { [weak self] strategy in
             self?.setSourceStrategy(strategy)
         }
+        controller.onSelectLanguage = { [weak self] language in
+            self?.setAppLanguage(language)
+        }
         return controller
     }
 
     private func syncPreferencesWindow() {
         preferencesWindowController.update(with: PreferencesViewState(
+            language: selectedAppLanguage,
             showColors: showsColors,
             showPaceAlert: showsPaceAlert,
             showLastUpdated: showsLastUpdated,
@@ -1232,41 +1255,55 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         defaults.set(enabled, forKey: PreferenceKey.showColors)
         apply(lastPresentation)
         syncPreferencesWindow()
-        showFeedback("Show Colors \(enabled ? "enabled" : "disabled")")
+        showFeedback(selectedAppLanguage == .english ? "Show Colors \(enabled ? "enabled" : "disabled")" : "颜色显示\(enabled ? "已开启" : "已关闭")")
     }
 
     private func setSourceStrategy(_ strategy: QuotaSourceStrategy) {
         defaults.set(strategy.rawValue, forKey: PreferenceKey.sourceStrategy)
         syncPreferencesWindow()
         refreshAsync(mode: .automatic)
-        showFeedback("Source Strategy: \(strategy.title)")
+        showFeedback(selectedAppLanguage == .english ? "Source Strategy: \(strategy.title(language: selectedAppLanguage))" : "数据源策略：\(strategy.title(language: selectedAppLanguage))")
+    }
+
+    private func setAppLanguage(_ language: AppLanguage) {
+        defaults.set(language.rawValue, forKey: PreferenceKey.appLanguage)
+        let wasVisible = preferencesWindowController.window?.isVisible == true
+        preferencesWindowController.close()
+        preferencesWindowController = makePreferencesWindowController()
+        configureMenu()
+        syncPreferencesWindow()
+        if wasVisible {
+            openPreferences(nil)
+        }
+        refreshAsync(mode: .automatic)
+        showFeedback(language == .english ? "Language: English" : "语言：中文")
     }
 
     private func setNotificationsEnabled(_ enabled: Bool) {
         defaults.set(enabled, forKey: PreferenceKey.notificationsEnabled)
         syncPreferencesWindow()
-        showFeedback("Notifications \(enabled ? "enabled" : "disabled")")
+        showFeedback(selectedAppLanguage == .english ? "Notifications \(enabled ? "enabled" : "disabled")" : "通知\(enabled ? "已开启" : "已关闭")")
     }
 
     private func setShowPaceAlert(_ enabled: Bool) {
         defaults.set(enabled, forKey: PreferenceKey.showPaceAlert)
         apply(lastPresentation)
         syncPreferencesWindow()
-        showFeedback("Show Pace Alert \(enabled ? "enabled" : "disabled")")
+        showFeedback(selectedAppLanguage == .english ? "Show Pace Alert \(enabled ? "enabled" : "disabled")" : "节奏提醒\(enabled ? "已开启" : "已关闭")")
     }
 
     private func setShowLastUpdated(_ enabled: Bool) {
         defaults.set(enabled, forKey: PreferenceKey.showLastUpdated)
         apply(lastPresentation)
         syncPreferencesWindow()
-        showFeedback("Show Last Updated \(enabled ? "enabled" : "disabled")")
+        showFeedback(selectedAppLanguage == .english ? "Show Last Updated \(enabled ? "enabled" : "disabled")" : "最近更新时间\(enabled ? "已开启" : "已关闭")")
     }
 
     private func setWeeklyPacingMode(_ mode: WeeklyPacingMode) {
         defaults.set(mode.rawValue, forKey: PreferenceKey.weeklyPacingMode)
         syncPreferencesWindow()
         refreshAsync(mode: .automatic)
-        showFeedback("Weekly pace: \(mode.title)")
+        showFeedback(selectedAppLanguage == .english ? "Weekly pace: \(mode.title)" : "每周节奏：\(mode.title)")
     }
 }
 

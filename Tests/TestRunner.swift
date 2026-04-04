@@ -234,8 +234,8 @@ func testDisplayPresentationUsesPaceMarkersAndSourceText() {
 
 func testTrendSummaryMenuText() {
     let summary = CodexQuotaTrendSummary(sessionLowPercent: 73, weeklyLowPercent: 82, sessionTrend: "._=+##", weeklyTrend: "--==++")
-    expect(summary.menuText == "Recent lows: 5h 73%  ·  7d 82%", "trend summary formats compact menu text")
-    expect(summary.sparklineText == "Recent trend: 5h ._=+##  ·  7d --==++", "trend summary formats sparkline text")
+    expect(summary.menuText(language: .english) == "Recent lows: 5h 73%  ·  7d 82%", "trend summary formats compact menu text")
+    expect(summary.sparklineText(language: .english) == "Recent trend: 5h ._=+##  ·  7d --==++", "trend summary formats sparkline text")
 }
 
 func testSparklineSampling() {
@@ -420,17 +420,34 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
         "weekly pacing tooltip reflects selected weekly workload"
     )
     expect(
-        QuotaDisplayPolicy.weeklyPacingHintTitle.contains("ahead of your selected pace"),
+        QuotaDisplayPolicy.weeklyPacingHintTitle().contains("ahead of your selected pace"),
         "weekly pacing hint explains what triggers the marker"
     )
     expect(
-        QuotaDisplayPolicy.weeklyPacingHintDetail.contains("% left never changes"),
+        QuotaDisplayPolicy.weeklyPacingHintDetail().contains("% left never changes"),
         "weekly pacing hint explains that presets do not change quota remaining"
     )
     expect(
         QuotaDisplayPolicy.weeklyPaceExplanation(for: .balanced56).contains("56-hour work week"),
         "weekly row explanation includes the selected weekly workload"
     )
+}
+
+func testChineseLanguagePresentationLocalizesCoreLabels() {
+    let presentation = StatusPresentation(
+        snapshot: makeSnapshot(primaryUsed: 10, secondaryUsed: 20),
+        accountInfo: CodexAccountInfo(displayName: "User", email: "user@example.com", planDisplayName: "Pro"),
+        generatedAt: Date(),
+        source: .realtimeLogs,
+        trendSummary: CodexQuotaTrendSummary(sessionLowPercent: 73, weeklyLowPercent: 82, sessionTrend: "._=+##", weeklyTrend: "--==++"),
+        weeklyPacingMode: .balanced56,
+        language: .chinese
+    )
+
+    expect(presentation.accountRow?.label == "账号", "presentation localizes account label")
+    expect(presentation.sourceText == "来源：本地日志", "presentation localizes source label")
+    expect(presentation.updatedAtText == "刚刚更新", "presentation localizes relative update label")
+    expect(presentation.trendText == "近期低点: 5 小时 73%  ·  7 天 82%", "presentation localizes trend summary")
 }
 
 func testNotificationPolicyTriggersOnlyOnEscalation() {
@@ -502,6 +519,7 @@ testRelativeUpdatedAtLabels()
         testAutomaticRefreshDoesNotRegressWithinSameResetWindow()
         testStartupAPIRefreshFallsBackWithoutOverridingCurrentRules()
         testWeeklyPacingModeCanBeLooserThanFullWeek()
+        testChineseLanguagePresentationLocalizesCoreLabels()
         testNotificationPolicyTriggersOnlyOnEscalation()
         testNotificationPolicyStaysQuietForRepeatedState()
         print("All tests passed.")

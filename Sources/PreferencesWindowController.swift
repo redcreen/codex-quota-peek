@@ -1,6 +1,7 @@
 import AppKit
 
 struct PreferencesViewState {
+    var language: AppLanguage
     var showColors: Bool
     var showPaceAlert: Bool
     var showLastUpdated: Bool
@@ -30,6 +31,7 @@ private final class CardView: NSView {
 }
 
 final class PreferencesWindowController: NSWindowController {
+    private let language: AppLanguage
     var onToggleShowColors: ((Bool) -> Void)?
     var onToggleShowPaceAlert: ((Bool) -> Void)?
     var onToggleShowLastUpdated: ((Bool) -> Void)?
@@ -37,30 +39,34 @@ final class PreferencesWindowController: NSWindowController {
     var onToggleLaunchAtLogin: ((Bool) -> Void)?
     var onSelectWeeklyPacingMode: ((WeeklyPacingMode) -> Void)?
     var onSelectSourceStrategy: ((QuotaSourceStrategy) -> Void)?
+    var onSelectLanguage: ((AppLanguage) -> Void)?
 
-    private let showColorsButton = NSButton(checkboxWithTitle: "Show colors in menu and status bar", target: nil, action: nil)
-    private let showPaceAlertButton = NSButton(checkboxWithTitle: "Show weekly pace alerts", target: nil, action: nil)
-    private let showLastUpdatedButton = NSButton(checkboxWithTitle: "Show last updated labels", target: nil, action: nil)
-    private let notificationsButton = NSButton(checkboxWithTitle: "Show quota notifications", target: nil, action: nil)
-    private let launchAtLoginButton = NSButton(checkboxWithTitle: "Launch at login", target: nil, action: nil)
-    private let autoSourceButton = NSButton(radioButtonWithTitle: QuotaSourceStrategy.auto.title, target: nil, action: nil)
-    private let apiSourceButton = NSButton(radioButtonWithTitle: QuotaSourceStrategy.preferAPI.title, target: nil, action: nil)
-    private let localLogsSourceButton = NSButton(radioButtonWithTitle: QuotaSourceStrategy.preferLocalLogs.title, target: nil, action: nil)
+    private let showColorsButton = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    private let showPaceAlertButton = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    private let showLastUpdatedButton = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    private let notificationsButton = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    private let launchAtLoginButton = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    private let autoSourceButton = NSButton(radioButtonWithTitle: "", target: nil, action: nil)
+    private let apiSourceButton = NSButton(radioButtonWithTitle: "", target: nil, action: nil)
+    private let localLogsSourceButton = NSButton(radioButtonWithTitle: "", target: nil, action: nil)
+    private let englishLanguageButton = NSButton(radioButtonWithTitle: AppLanguage.english.optionTitle, target: nil, action: nil)
+    private let chineseLanguageButton = NSButton(radioButtonWithTitle: AppLanguage.chinese.optionTitle, target: nil, action: nil)
 
-    private let standardPaceButton = NSButton(radioButtonWithTitle: WeeklyPacingMode.workWeek40.menuTitle, target: nil, action: nil)
-    private let balancedPaceButton = NSButton(radioButtonWithTitle: WeeklyPacingMode.balanced56.menuTitle, target: nil, action: nil)
-    private let heavyPaceButton = NSButton(radioButtonWithTitle: WeeklyPacingMode.heavy70.menuTitle, target: nil, action: nil)
+    private let standardPaceButton = NSButton(radioButtonWithTitle: "", target: nil, action: nil)
+    private let balancedPaceButton = NSButton(radioButtonWithTitle: "", target: nil, action: nil)
+    private let heavyPaceButton = NSButton(radioButtonWithTitle: "", target: nil, action: nil)
 
     private let weeklyExplanationLabel = NSTextField(wrappingLabelWithString: "")
 
-    init() {
+    init(language: AppLanguage) {
+        self.language = language
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 620, height: 560),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
         )
-        window.title = "Codex Quota Peek Preferences"
+        window.title = language.preferencesWindowTitle
         window.isReleasedWhenClosed = false
         window.center()
         super.init(window: window)
@@ -72,6 +78,14 @@ final class PreferencesWindowController: NSWindowController {
     }
 
     func update(with state: PreferencesViewState) {
+        standardPaceButton.title = WeeklyPacingMode.workWeek40.menuTitle(language: language)
+        balancedPaceButton.title = WeeklyPacingMode.balanced56.menuTitle(language: language)
+        heavyPaceButton.title = WeeklyPacingMode.heavy70.menuTitle(language: language)
+        autoSourceButton.title = QuotaSourceStrategy.auto.title(language: language)
+        apiSourceButton.title = QuotaSourceStrategy.preferAPI.title(language: language)
+        localLogsSourceButton.title = QuotaSourceStrategy.preferLocalLogs.title(language: language)
+        englishLanguageButton.state = state.language == .english ? .on : .off
+        chineseLanguageButton.state = state.language == .chinese ? .on : .off
         showColorsButton.state = state.showColors ? .on : .off
         showPaceAlertButton.state = state.showPaceAlert ? .on : .off
         showLastUpdatedButton.state = state.showLastUpdated ? .on : .off
@@ -84,7 +98,7 @@ final class PreferencesWindowController: NSWindowController {
         autoSourceButton.state = state.sourceStrategy == .auto ? .on : .off
         apiSourceButton.state = state.sourceStrategy == .preferAPI ? .on : .off
         localLogsSourceButton.state = state.sourceStrategy == .preferLocalLogs ? .on : .off
-        weeklyExplanationLabel.stringValue = QuotaDisplayPolicy.weeklyPaceExplanation(for: state.weeklyPacingMode)
+        weeklyExplanationLabel.stringValue = QuotaDisplayPolicy.weeklyPaceExplanation(for: state.weeklyPacingMode, language: language)
     }
 
     private func setup() {
@@ -128,6 +142,7 @@ final class PreferencesWindowController: NSWindowController {
         ])
 
         contentStack.addArrangedSubview(makeHeader())
+        contentStack.addArrangedSubview(makeLanguageCard())
         contentStack.addArrangedSubview(makeDisplayCard())
         contentStack.addArrangedSubview(makeSourceCard())
         contentStack.addArrangedSubview(makeWeeklyPacingCard())
@@ -140,11 +155,11 @@ final class PreferencesWindowController: NSWindowController {
         stack.alignment = .leading
         stack.spacing = 6
 
-        let titleLabel = NSTextField(labelWithString: "Preferences")
+        let titleLabel = NSTextField(labelWithString: language.preferencesTitle)
         titleLabel.font = NSFont.systemFont(ofSize: 26, weight: .semibold)
         titleLabel.textColor = .labelColor
 
-        let subtitleLabel = NSTextField(wrappingLabelWithString: "Tune what appears in the menu bar, how weekly pace warnings behave, and how the app starts.")
+        let subtitleLabel = NSTextField(wrappingLabelWithString: language.preferencesSubtitle)
         subtitleLabel.font = NSFont.systemFont(ofSize: 13)
         subtitleLabel.textColor = .secondaryLabelColor
         subtitleLabel.maximumNumberOfLines = 0
@@ -155,29 +170,44 @@ final class PreferencesWindowController: NSWindowController {
         return stack
     }
 
+    private func makeLanguageCard() -> NSView {
+        let englishSummary = language == .english ? "Use English throughout the app UI." : "整个应用界面使用英文。"
+        let chineseSummary = language == .english ? "Use Simplified Chinese throughout the app UI." : "整个应用界面使用简体中文。"
+        let rows = [
+            pacingRow(for: englishLanguageButton, action: #selector(selectLanguage(_:)), summary: englishSummary),
+            pacingRow(for: chineseLanguageButton, action: #selector(selectLanguage(_:)), summary: chineseSummary)
+        ]
+
+        return sectionCard(
+            title: language.languageSectionTitle,
+            description: language.languageSectionDescription,
+            body: verticalRows(rows, spacing: 14)
+        )
+    }
+
     private func makeDisplayCard() -> NSView {
         let rows = [
             optionRow(
-                control: configureCheckbox(showColorsButton, action: #selector(toggleShowColors(_:))),
-                detail: "Use green, yellow, and red to make remaining quota easier to scan."
+                control: configureCheckbox(showColorsButton, action: #selector(toggleShowColors(_:)), title: language.showColorsTitle),
+                detail: language.showColorsDetail
             ),
             optionRow(
-                control: configureCheckbox(showPaceAlertButton, action: #selector(toggleShowPaceAlert(_:))),
-                detail: "Show inline weekly warnings when your usage is running ahead of your chosen pace."
+                control: configureCheckbox(showPaceAlertButton, action: #selector(toggleShowPaceAlert(_:)), title: language.showPaceAlertsTitle),
+                detail: language.showPaceAlertsDetail
             ),
             optionRow(
-                control: configureCheckbox(showLastUpdatedButton, action: #selector(toggleShowLastUpdated(_:))),
-                detail: "Show relative freshness labels like just updated, 12s, or 3m."
+                control: configureCheckbox(showLastUpdatedButton, action: #selector(toggleShowLastUpdated(_:)), title: language.showLastUpdatedTitle),
+                detail: language.showLastUpdatedDetail
             ),
             optionRow(
-                control: configureCheckbox(notificationsButton, action: #selector(toggleNotifications(_:))),
-                detail: "Send a macOS notification only when quota crosses a new threshold or a fresh pace warning appears."
+                control: configureCheckbox(notificationsButton, action: #selector(toggleNotifications(_:)), title: language.notificationsTitle),
+                detail: language.notificationsDetail
             )
         ]
 
         return sectionCard(
-            title: "Display",
-            description: "Control which metadata stays visible in the menu bar and dropdown.",
+            title: language.displaySectionTitle,
+            description: language.displaySectionDescription,
             body: verticalRows(rows, spacing: 14)
         )
     }
@@ -189,29 +219,29 @@ final class PreferencesWindowController: NSWindowController {
         weeklyExplanationLabel.preferredMaxLayoutWidth = 430
 
         let rows = [
-            pacingRow(for: standardPaceButton, action: #selector(selectWeeklyPacing(_:)), summary: WeeklyPacingMode.workWeek40.summary),
-            pacingRow(for: balancedPaceButton, action: #selector(selectWeeklyPacing(_:)), summary: WeeklyPacingMode.balanced56.summary),
-            pacingRow(for: heavyPaceButton, action: #selector(selectWeeklyPacing(_:)), summary: WeeklyPacingMode.heavy70.summary),
+            pacingRow(for: standardPaceButton, action: #selector(selectWeeklyPacing(_:)), summary: WeeklyPacingMode.workWeek40.summary(language: language)),
+            pacingRow(for: balancedPaceButton, action: #selector(selectWeeklyPacing(_:)), summary: WeeklyPacingMode.balanced56.summary(language: language)),
+            pacingRow(for: heavyPaceButton, action: #selector(selectWeeklyPacing(_:)), summary: WeeklyPacingMode.heavy70.summary(language: language)),
             weeklyExplanationLabel
         ]
 
         return sectionCard(
-            title: QuotaDisplayPolicy.weeklyPacingSectionTitle,
-            description: "This setting only changes when the weekly ! warning appears. It never changes the actual % left value.",
+            title: QuotaDisplayPolicy.weeklyPacingSectionTitle(language: language),
+            description: QuotaDisplayPolicy.weeklyPacingHintDetail(language: language),
             body: verticalRows(rows, spacing: 14)
         )
     }
 
     private func makeSourceCard() -> NSView {
         let rows = [
-            pacingRow(for: autoSourceButton, action: #selector(selectSourceStrategy(_:)), summary: QuotaSourceStrategy.auto.summary),
-            pacingRow(for: apiSourceButton, action: #selector(selectSourceStrategy(_:)), summary: QuotaSourceStrategy.preferAPI.summary),
-            pacingRow(for: localLogsSourceButton, action: #selector(selectSourceStrategy(_:)), summary: QuotaSourceStrategy.preferLocalLogs.summary)
+            pacingRow(for: autoSourceButton, action: #selector(selectSourceStrategy(_:)), summary: QuotaSourceStrategy.auto.summary(language: language)),
+            pacingRow(for: apiSourceButton, action: #selector(selectSourceStrategy(_:)), summary: QuotaSourceStrategy.preferAPI.summary(language: language)),
+            pacingRow(for: localLogsSourceButton, action: #selector(selectSourceStrategy(_:)), summary: QuotaSourceStrategy.preferLocalLogs.summary(language: language))
         ]
 
         return sectionCard(
-            title: "Data Source Strategy",
-            description: "Choose how startup and automatic refresh balance freshness against local stability. Manual Refresh Now still asks the API for the latest value.",
+            title: language.dataSourceSectionTitle,
+            description: language.dataSourceSectionDescription,
             body: verticalRows(rows, spacing: 14)
         )
     }
@@ -219,14 +249,14 @@ final class PreferencesWindowController: NSWindowController {
     private func makeAppCard() -> NSView {
         let rows = [
             optionRow(
-                control: configureCheckbox(launchAtLoginButton, action: #selector(toggleLaunchAtLogin(_:))),
-                detail: "Start Codex Quota Peek automatically when you sign in to macOS."
+                control: configureCheckbox(launchAtLoginButton, action: #selector(toggleLaunchAtLogin(_:)), title: language.launchAtLoginTitle),
+                detail: language.launchAtLoginDetail
             )
         ]
 
         return sectionCard(
-            title: "App",
-            description: "Daily startup behavior and launch preferences.",
+            title: language.appSectionTitle,
+            description: language.appSectionDescription,
             body: verticalRows(rows, spacing: 14)
         )
     }
@@ -311,9 +341,10 @@ final class PreferencesWindowController: NSWindowController {
         return stack
     }
 
-    private func configureCheckbox(_ button: NSButton, action: Selector) -> NSButton {
+    private func configureCheckbox(_ button: NSButton, action: Selector, title: String) -> NSButton {
         button.target = self
         button.action = action
+        button.title = title
         button.font = NSFont.systemFont(ofSize: 14, weight: .medium)
         button.contentTintColor = .labelColor
         return button
@@ -330,6 +361,11 @@ final class PreferencesWindowController: NSWindowController {
     @objc
     private func toggleShowColors(_ sender: NSButton) {
         onToggleShowColors?(sender.state == .on)
+    }
+
+    @objc
+    private func selectLanguage(_ sender: NSButton) {
+        onSelectLanguage?(sender === chineseLanguageButton ? .chinese : .english)
     }
 
     @objc

@@ -113,6 +113,7 @@ struct StatusPresentation {
     let updatedAtText: String
     let sourceText: String
     let creditsText: String?
+    let language: AppLanguage
 
     init(
         line1: String,
@@ -128,7 +129,8 @@ struct StatusPresentation {
         sparklineText: String? = nil,
         updatedAtText: String = "--",
         sourceText: String = "Source: local logs",
-        creditsText: String? = nil
+        creditsText: String? = nil,
+        language: AppLanguage = .english
     ) {
         self.line1 = line1
         self.line2 = line2
@@ -144,15 +146,17 @@ struct StatusPresentation {
         self.updatedAtText = updatedAtText
         self.sourceText = sourceText
         self.creditsText = creditsText
+        self.language = language
     }
 
     static let loading = StatusPresentation(
         line1: "H --",
         line2: "W --",
-        tooltip: "Loading Codex limits..."
+        tooltip: AppLanguage.english.loadingTooltip,
+        language: .english
     )
 
-    static func unavailable(_ reason: String) -> StatusPresentation {
+    static func unavailable(_ reason: String, language: AppLanguage = .english) -> StatusPresentation {
         StatusPresentation(
             line1: "H --",
             line2: "W --",
@@ -160,8 +164,9 @@ struct StatusPresentation {
             paceMessage: nil,
             paceSeverity: nil,
             updatedAtText: "--",
-            sourceText: "Source: unavailable",
-            creditsText: nil
+            sourceText: language.unavailableSourceText,
+            creditsText: nil,
+            language: language
         )
     }
 
@@ -171,7 +176,8 @@ struct StatusPresentation {
         generatedAt: Date,
         source: CodexQuotaFetchSource,
         trendSummary: CodexQuotaTrendSummary? = nil,
-        weeklyPacingMode: WeeklyPacingMode = .balanced56
+        weeklyPacingMode: WeeklyPacingMode = .balanced56,
+        language: AppLanguage = .english
     ) {
         let primary = snapshot.rateLimits.primary
         let secondary = snapshot.rateLimits.secondary
@@ -179,80 +185,74 @@ struct StatusPresentation {
         line1 = primary.map { "H \(StatusPresentation.statusPercentText(for: $0))" } ?? "H --"
         line2 = secondary.map { "W \(StatusPresentation.statusPercentText(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true))" } ?? "W --"
         accountRow = accountInfo.map {
-            AccountRow(label: "Account", value: $0.email ?? $0.displayName)
+            AccountRow(label: language.accountLabel, value: $0.email ?? $0.displayName)
         }
         planRow = accountInfo.map {
-            AccountRow(label: "Plan", value: $0.planDisplayName)
+            AccountRow(label: language.planLabel, value: $0.planDisplayName)
         }
         primaryRow = primary.map {
             MenuRow(
-                label: StatusPresentation.windowLabel(for: $0),
+                label: StatusPresentation.windowLabel(for: $0, language: language),
                 percentText: StatusPresentation.statusPercentText(for: $0),
                 resetText: StatusPresentation.resetLabel(for: $0),
                 isUsingFasterThanAverage: $0.isUsingFasterThanAverage,
-                paceText: StatusPresentation.inlinePaceText(for: $0),
+                paceText: StatusPresentation.inlinePaceText(for: $0, language: language),
                 paceSeverity: StatusPresentation.paceSeverity(for: $0)
             )
         }
         secondaryRow = secondary.map {
             MenuRow(
-                label: StatusPresentation.windowLabel(for: $0),
+                label: StatusPresentation.windowLabel(for: $0, language: language),
                 percentText: StatusPresentation.statusPercentText(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
                 resetText: StatusPresentation.resetLabel(for: $0),
                 isUsingFasterThanAverage: StatusPresentation.isUsingFasterThanAverage(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
-                paceText: StatusPresentation.inlinePaceText(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
+                paceText: StatusPresentation.inlinePaceText(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true, language: language),
                 paceSeverity: StatusPresentation.paceSeverity(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true)
             )
         }
-        paceMessage = StatusPresentation.paceMessage(primary: primary, secondary: secondary, weeklyPacingMode: weeklyPacingMode)
+        paceMessage = StatusPresentation.paceMessage(primary: primary, secondary: secondary, weeklyPacingMode: weeklyPacingMode, language: language)
         paceSeverity = StatusPresentation.paceSeverity(primary: primary, secondary: secondary, weeklyPacingMode: weeklyPacingMode)
-        trendText = trendSummary?.menuText
-        sparklineText = trendSummary?.sparklineText
-        updatedAtText = StatusPresentation.relativeUpdatedAtLabel(for: generatedAt)
-        creditsText = StatusPresentation.creditsText(for: snapshot.credits)
-        switch source {
-        case .api:
-            sourceText = "Source: API"
-        case .realtimeLogs:
-            sourceText = "Source: local logs"
-        case .archivedSessions:
-            sourceText = "Source: archived logs"
-        }
+        trendText = trendSummary?.menuText(language: language)
+        sparklineText = trendSummary?.sparklineText(language: language)
+        updatedAtText = StatusPresentation.relativeUpdatedAtLabel(for: generatedAt, language: language)
+        creditsText = StatusPresentation.creditsText(for: snapshot.credits, language: language)
+        sourceText = language.sourceText(for: source)
+        self.language = language
 
         var parts: [String] = []
         if let accountInfo {
-            parts.append("Account: \(accountInfo.displayName)")
+            parts.append("\(language.accountLabel): \(accountInfo.displayName)")
             if let email = accountInfo.email {
-                parts.append("Email: \(email)")
+                parts.append((language == .english ? "Email" : "邮箱") + ": \(email)")
             }
-            parts.append("Plan: \(accountInfo.planDisplayName)")
+            parts.append("\(language.planLabel): \(accountInfo.planDisplayName)")
         }
         if let plan = snapshot.planType {
-            parts.append("Plan: \(plan)")
+            parts.append("\(language.planLabel): \(plan)")
         }
         if let primary {
-            parts.append("Primary remaining: \(StatusPresentation.statusPercentText(for: primary))")
+            parts.append("\(StatusPresentation.windowLabel(for: primary, language: language)) \(language.leftLabel): \(StatusPresentation.statusPercentText(for: primary))")
             if let date = primary.resetDate {
-                parts.append("Primary resets: \(StatusPresentation.dateFormatter.string(from: date))")
+                parts.append("\(StatusPresentation.windowLabel(for: primary, language: language)) \(language.resetsLabel.lowercased()): \(StatusPresentation.dateFormatter.string(from: date))")
             }
             if primary.isUsingFasterThanAverage, let elapsedFraction = primary.elapsedFraction {
-                parts.append("Primary pace: above average for this window (\(Int((elapsedFraction * 100).rounded()))% of time elapsed, \(primary.usedRoundedPercent)% used)")
+                parts.append("\(StatusPresentation.windowLabel(for: primary, language: language)) pace: \(Int((elapsedFraction * 100).rounded()))% elapsed, \(primary.usedRoundedPercent)% used")
             }
         }
         if let secondary {
-            parts.append("Weekly remaining: \(StatusPresentation.statusPercentText(for: secondary))")
+            parts.append("\(StatusPresentation.windowLabel(for: secondary, language: language)) \(language.leftLabel): \(StatusPresentation.statusPercentText(for: secondary))")
             if let date = secondary.resetDate {
-                parts.append("Weekly resets: \(StatusPresentation.dateFormatter.string(from: date))")
+                parts.append("\(StatusPresentation.windowLabel(for: secondary, language: language)) \(language.resetsLabel.lowercased()): \(StatusPresentation.dateFormatter.string(from: date))")
             }
             if secondary.isUsingFasterThanAverage, let elapsedFraction = secondary.elapsedFraction {
-                parts.append("Weekly pace: above average for this window (\(Int((elapsedFraction * 100).rounded()))% of time elapsed, \(secondary.usedRoundedPercent)% used)")
+                parts.append("\(StatusPresentation.windowLabel(for: secondary, language: language)) pace: \(Int((elapsedFraction * 100).rounded()))% elapsed, \(secondary.usedRoundedPercent)% used")
             }
         }
         if let paceMessage {
-            parts.append("Pace alert: \(paceMessage)")
+            parts.append((language == .english ? "Pace alert" : "节奏提醒") + ": \(paceMessage)")
         }
         if let creditsText {
-            parts.append("Credits: \(creditsText)")
+            parts.append("\(language.creditsLabel): \(creditsText)")
         }
         if let trendText {
             parts.append(trendText)
@@ -260,8 +260,8 @@ struct StatusPresentation {
         if let sparklineText {
             parts.append(sparklineText)
         }
-        parts.append("Source: \(sourceText)")
-        parts.append("Updated: \(StatusPresentation.dateFormatter.string(from: generatedAt))")
+        parts.append(sourceText)
+        parts.append("\(language.updatedPrefix): \(StatusPresentation.dateFormatter.string(from: generatedAt))")
         tooltip = parts.joined(separator: "\n")
     }
 
@@ -284,23 +284,8 @@ struct StatusPresentation {
         return formatter
     }()
 
-    private static func windowLabel(for window: LimitWindow) -> String {
-        switch window.windowMinutes {
-        case 300:
-            return "5 hours"
-        case 10080:
-            return "7 days"
-        case let minutes?:
-            if minutes % 1440 == 0 {
-                return "\(minutes / 1440) days"
-            }
-            if minutes % 60 == 0 {
-                return "\(minutes / 60) hours"
-            }
-            return "\(minutes) min"
-        case nil:
-            return "Window"
-        }
+    private static func windowLabel(for window: LimitWindow, language: AppLanguage = .english) -> String {
+        language.windowLabel(for: window.windowMinutes)
     }
 
     private static func resetLabel(for window: LimitWindow) -> String {
@@ -322,30 +307,28 @@ struct StatusPresentation {
     private static func paceMessage(
         primary: LimitWindow?,
         secondary: LimitWindow?,
-        weeklyPacingMode: WeeklyPacingMode
+        weeklyPacingMode: WeeklyPacingMode,
+        language: AppLanguage = .english
     ) -> String? {
         var labels: [String] = []
         if let primary, isUsingFasterThanAverage(for: primary) {
-            labels.append(QuotaDisplayPolicy.menuWindowTitle(for: windowLabel(for: primary)))
+            labels.append(QuotaDisplayPolicy.menuWindowTitle(for: windowLabel(for: primary, language: language)))
         }
         if let secondary, isUsingFasterThanAverage(for: secondary, weeklyPacingMode: weeklyPacingMode, isWeekly: true) {
-            labels.append(QuotaDisplayPolicy.menuWindowTitle(for: windowLabel(for: secondary)))
+            labels.append(QuotaDisplayPolicy.menuWindowTitle(for: windowLabel(for: secondary, language: language)))
         }
 
-        guard !labels.isEmpty else { return nil }
-        if labels.count == 1 {
-            return "\(labels[0]) above average"
-        }
-        return labels.joined(separator: " + ") + " above average"
+        return language.paceMessage(labels: labels)
     }
 
     private static func inlinePaceText(
         for window: LimitWindow,
         weeklyPacingMode: WeeklyPacingMode = .balanced56,
-        isWeekly: Bool = false
+        isWeekly: Bool = false,
+        language: AppLanguage = .english
     ) -> String? {
         guard isUsingFasterThanAverage(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly) else { return nil }
-        return " Pace above avg "
+        return language.paceAboveAverageText
     }
 
     private static func paceSeverity(
@@ -434,28 +417,13 @@ struct StatusPresentation {
         return min(max(elapsedSeconds / activeWeekSeconds, 0), 1)
     }
 
-    static func relativeUpdatedAtLabel(for date: Date, now: Date = Date()) -> String {
+    static func relativeUpdatedAtLabel(for date: Date, now: Date = Date(), language: AppLanguage = .english) -> String {
         let seconds = max(0, Int(now.timeIntervalSince(date)))
-        if seconds <= 5 {
-            return "just updated"
-        }
-        if seconds < 60 {
-            return "\(seconds)s"
-        }
-        return "\(seconds / 60)m"
+        return language.relativeUpdatedAtLabel(seconds: seconds)
     }
 
-    static func creditsText(for credits: CreditsInfo?) -> String? {
+    static func creditsText(for credits: CreditsInfo?, language: AppLanguage = .english) -> String? {
         guard let credits else { return nil }
-        if credits.unlimited == true {
-            return "Unlimited"
-        }
-        if let balance = credits.balance, !balance.isEmpty {
-            return "\(balance) left"
-        }
-        if credits.hasCredits == false {
-            return "0 left"
-        }
-        return nil
+        return language.creditsText(balance: credits.balance, hasCredits: credits.hasCredits, unlimited: credits.unlimited)
     }
 }

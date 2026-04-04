@@ -204,7 +204,7 @@ open "dist/CodexQuotaPeek.app"
    已完成第一步：低额度和新的 `! / !!` 节奏告警会触发 macOS 通知，而且会去重，避免每次刷新都重复提醒。后续可以继续补即将重置等更细的通知。
 
 5. 应用语言切换
-   计划增加应用内 `English / 中文` 切换，默认英文。README 已经双语，下一步是把菜单、偏好设置和提示文案也真正本地化。
+   已完成第一步：应用内已经支持 `English / 中文` 切换，默认英文。菜单、偏好设置和主要提示文案会跟随切换。CLI 目前仍默认英文。
 
 6. 发布与工程化
    已完成第一步：仓库现在带有 GitHub Actions，会自动跑测试、构建 app/CLI，并生成 zip 发布包 artifact。后续继续完善版本管理、Release 和 changelog。
@@ -462,7 +462,7 @@ To grow this project into a more sustainable product, the current roadmap is:
    The first step is now done: low remaining quota and newly triggered `! / !!` pace warnings can send deduplicated macOS notifications. Upcoming reset reminders can be added next.
 
 5. App language switching
-   Add an in-app `English / Chinese` language toggle with English as the default. The README is already bilingual; the app UI should follow.
+   The first step is now done: the app includes an in-app `English / 中文` toggle with English as the default. The menu, preferences window, and core status copy now follow the selected language. The CLI still stays in English for now.
 
 6. Release and engineering polish
    The first step is now done: the repo includes GitHub Actions that run tests, build the app and CLI, and package the release zip as an artifact. Versioning, Releases, and changelogs can come next.
