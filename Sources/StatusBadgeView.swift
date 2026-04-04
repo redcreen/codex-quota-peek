@@ -1,7 +1,7 @@
 import AppKit
 
 final class StatusBadgeView: NSView {
-    var line1: String = "P --" {
+    var line1: String = "H --" {
         didSet { invalidateLayout() }
     }
 
@@ -12,34 +12,38 @@ final class StatusBadgeView: NSView {
     override var intrinsicContentSize: NSSize {
         let line1Size = line1.size(withAttributes: lineAttributes)
         let line2Size = line2.size(withAttributes: lineAttributes)
-        let width = ceil(max(line1Size.width, line2Size.width) + padding * 2)
-        return NSSize(width: max(46, width), height: 20)
+        let textWidth = ceil(max(line1Size.width, line2Size.width))
+        let width = iconSize + iconSpacing + textWidth + padding * 2
+        return NSSize(width: max(44, width), height: 18)
     }
 
-    private let padding: CGFloat = 6
+    private let padding: CGFloat = 4
+    private let iconSize: CGFloat = 14
+    private let iconSpacing: CGFloat = 5
 
     private let lineAttributes: [NSAttributedString.Key: Any] = [
-        .font: NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .semibold),
+        .font: NSFont.monospacedDigitSystemFont(ofSize: 8, weight: .semibold),
         .foregroundColor: NSColor.white
     ]
 
     override func draw(_ dirtyRect: NSRect) {
-        let rect = bounds.insetBy(dx: 1, dy: 1)
-        let path = NSBezierPath(roundedRect: rect, xRadius: 4.5, yRadius: 4.5)
+        drawIcon()
+        drawText(line1, yOffset: 8.3)
+        drawText(line2, yOffset: 0.3)
+    }
 
-        let gradient = NSGradient(colors: [
-            NSColor(calibratedRed: 0.32, green: 0.69, blue: 0.93, alpha: 1.0),
-            NSColor(calibratedRed: 0.18, green: 0.53, blue: 0.83, alpha: 1.0)
-        ])
-        gradient?.draw(in: path, angle: -90)
+    private func drawIcon() {
+        guard let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
+              let icon = NSImage(contentsOf: iconURL) else {
+            return
+        }
 
-        drawText(line1, yOffset: 9.6)
-        drawText(line2, yOffset: 0.9)
+        let y = round((bounds.height - iconSize) / 2)
+        icon.draw(in: NSRect(x: padding, y: y, width: iconSize, height: iconSize))
     }
 
     private func drawText(_ text: String, yOffset: CGFloat) {
-        let size = text.size(withAttributes: lineAttributes)
-        let point = NSPoint(x: round((bounds.width - size.width) / 2), y: yOffset)
+        let point = NSPoint(x: round(padding + iconSize + iconSpacing), y: yOffset)
         text.draw(at: point, withAttributes: lineAttributes)
     }
 

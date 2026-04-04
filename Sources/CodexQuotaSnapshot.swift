@@ -69,14 +69,14 @@ struct StatusPresentation {
     }
 
     static let loading = StatusPresentation(
-        line1: "P --",
+        line1: "H --",
         line2: "W --",
         tooltip: "Loading Codex limits..."
     )
 
     static func unavailable(_ reason: String) -> StatusPresentation {
         StatusPresentation(
-            line1: "P --",
+            line1: "H --",
             line2: "W --",
             tooltip: reason
         )
@@ -86,7 +86,7 @@ struct StatusPresentation {
         let primary = snapshot.rateLimits.primary
         let secondary = snapshot.rateLimits.secondary
 
-        line1 = primary.map { "P \($0.remainingPercent)%" } ?? "P --"
+        line1 = primary.map { "H \($0.remainingPercent)%" } ?? "H --"
         line2 = secondary.map { "W \($0.remainingPercent)%" } ?? "W --"
         primaryRow = primary.map {
             MenuRow(
