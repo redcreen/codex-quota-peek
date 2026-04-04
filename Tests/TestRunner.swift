@@ -178,6 +178,9 @@ func testQuotaDisplayColorThresholds() {
     expect(QuotaDisplayPolicy.colorLevel(forPercentText: "29%!!") == .critical, "below thirty percent is red tier")
     let split = QuotaDisplayPolicy.splitPercentComponents("95%!!")
     expect(split.0 == "95%" && split.1 == "!!", "percent text splits into value and pace marker")
+    expect(QuotaDisplayPolicy.menuWindowTitle(for: "5 hours") == "Session", "session menu title is user friendly")
+    expect(QuotaDisplayPolicy.menuWindowTitle(for: "1 week") == "Weekly", "weekly menu title is user friendly")
+    expect(QuotaDisplayPolicy.progressBar(forPercentText: "50%", slots: 10) == "█████░░░░░", "progress bar reflects remaining percent")
 }
 
 func testAuthSnapshotStoreReadsSavedAccountMetadata() {

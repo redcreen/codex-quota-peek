@@ -554,9 +554,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         item(MenuTag.title)?.attributedTitle = styledTitle(
             title: "Codex Quota Peek",
-            subtitle: [presentation.accountRow?.value, presentation.planRow?.value]
-                .compactMap { $0 }
-                .joined(separator: " · ")
+            subtitle: "Updated \(presentation.updatedAtText)"
         )
         item(MenuTag.account)?.attributedTitle = styledLabel(
             label: presentation.accountRow?.label ?? "Account",
@@ -767,46 +765,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func styledQuotaRow(label: String, percent: String, reset: String) -> NSAttributedString {
-        let paddedLabel = label.padding(toLength: 10, withPad: " ", startingAt: 0)
+        let title = QuotaDisplayPolicy.menuWindowTitle(for: label)
         let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
         let (percentValue, percentMarker) = splitPercentComponents(percent)
-        let paddedPercentValue = percentValue.leftPadding(toLength: 4)
-        let paddedPercentMarker = percentMarker.padding(toLength: 2, withPad: " ", startingAt: 0)
-        let line = NSMutableAttributedString(
-            string: "\(paddedLabel)  ",
+        let progressBar = QuotaDisplayPolicy.progressBar(forPercentText: percent)
+        let header = NSMutableAttributedString(
+            string: title,
             attributes: [
-                .font: font,
+                .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
                 .foregroundColor: NSColor.labelColor
             ]
         )
-        line.append(
+        header.append(
             NSAttributedString(
-                string: paddedPercentValue,
+                string: "\n\(progressBar)",
                 attributes: [
                     .font: font,
                     .foregroundColor: quotaColor(for: percent)
                 ]
             )
         )
-        line.append(
-            NSAttributedString(
-                string: paddedPercentMarker,
-                attributes: [
-                    .font: font,
-                    .foregroundColor: quotaColor(for: percent)
-                ]
-            )
+
+        let detail = NSMutableAttributedString(
+            string: "\n\(percentValue)\(percentMarker.isEmpty ? "" : percentMarker) left",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11, weight: .medium),
+                .foregroundColor: quotaColor(for: percent)
+            ]
         )
-        line.append(
+        detail.append(
             NSAttributedString(
-                string: "  \(reset)",
+                string: "    Resets \(reset)",
                 attributes: [
-                    .font: font,
+                    .font: NSFont.systemFont(ofSize: 11, weight: .regular),
                     .foregroundColor: NSColor.secondaryLabelColor
                 ]
             )
         )
-        return line
+        header.append(detail)
+        return header
     }
 
     private func splitPercentComponents(_ percentText: String) -> (String, String) {
