@@ -138,6 +138,10 @@ open "dist/CodexQuotaPeek.app"
 
 ### 工作原理
 
+完整架构和实现说明见：
+
+- [docs/architecture.md](/Users/redcreen/Project/codex%20limit/docs/architecture.md)
+
 应用的工作方式很直接：
 
 1. 启动时立即读取一次本机 Codex 额度数据
@@ -419,6 +423,10 @@ open "dist/CodexQuotaPeek.app"
 ```
 
 ### How It Works
+
+For the full architecture and implementation notes, see:
+
+- [docs/architecture.md](/Users/redcreen/Project/codex%20limit/docs/architecture.md)
 
 The app works like this:
 
