@@ -295,13 +295,21 @@ enum AppLanguage: String, CaseIterable {
         }
     }
 
-    func recentLowsText(sessionLowPercent: Int?, weeklyLowPercent: Int?) -> String? {
+    func recentLowsText(sessionLowPercent: Int?, sessionLowDate: Date?, weeklyLowPercent: Int?, weeklyLowDate: Date?) -> String? {
         var parts: [String] = []
         if let sessionLowPercent {
-            parts.append((self == .english ? "5h" : "5 小时") + " \(sessionLowPercent)%")
+            var part = (self == .english ? "5h" : "5 小时") + " \(sessionLowPercent)%"
+            if let sessionLowDate {
+                part += self == .english ? " @ \(trendTimestamp(sessionLowDate, recentWindow: .day))" : " @ \(trendTimestamp(sessionLowDate, recentWindow: .day))"
+            }
+            parts.append(part)
         }
         if let weeklyLowPercent {
-            parts.append((self == .english ? "7d" : "7 天") + " \(weeklyLowPercent)%")
+            var part = (self == .english ? "7d" : "7 天") + " \(weeklyLowPercent)%"
+            if let weeklyLowDate {
+                part += self == .english ? " @ \(trendTimestamp(weeklyLowDate, recentWindow: .week))" : " @ \(trendTimestamp(weeklyLowDate, recentWindow: .week))"
+            }
+            parts.append(part)
         }
         guard !parts.isEmpty else { return nil }
         return "\(recentLowsLabel): " + parts.joined(separator: "  ·  ")
@@ -317,6 +325,22 @@ enum AppLanguage: String, CaseIterable {
         }
         guard !parts.isEmpty else { return nil }
         return "\(recentTrendLabel): " + parts.joined(separator: "  ·  ")
+    }
+
+    private enum TrendWindow {
+        case day
+        case week
+    }
+
+    private func trendTimestamp(_ date: Date, recentWindow: TrendWindow) -> String {
+        let formatter = DateFormatter()
+        switch recentWindow {
+        case .day:
+            formatter.dateFormat = self == .english ? "HH:mm" : "HH:mm"
+        case .week:
+            formatter.setLocalizedDateFormatFromTemplate(self == .english ? "MMM d" : "M月d日")
+        }
+        return formatter.string(from: date)
     }
 
     func relativeUpdatedAtLabel(seconds: Int) -> String {

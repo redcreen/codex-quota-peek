@@ -18,12 +18,19 @@ struct CodexQuotaFetchResult {
 
 struct CodexQuotaTrendSummary {
     let sessionLowPercent: Int?
+    let sessionLowDate: Date?
     let weeklyLowPercent: Int?
+    let weeklyLowDate: Date?
     let sessionTrend: String?
     let weeklyTrend: String?
 
     func menuText(language: AppLanguage = .english) -> String? {
-        language.recentLowsText(sessionLowPercent: sessionLowPercent, weeklyLowPercent: weeklyLowPercent)
+        language.recentLowsText(
+            sessionLowPercent: sessionLowPercent,
+            sessionLowDate: sessionLowDate,
+            weeklyLowPercent: weeklyLowPercent,
+            weeklyLowDate: weeklyLowDate
+        )
     }
 
     func sparklineText(language: AppLanguage = .english) -> String? {
@@ -132,35 +139,45 @@ final class CodexQuotaProvider {
         let sessionCutoff = latestDate.addingTimeInterval(-(24 * 60 * 60))
         let weeklyCutoff = latestDate.addingTimeInterval(-(7 * 24 * 60 * 60))
 
-        let sessionLow = parsedRows
-            .filter { ($0.sourceDate ?? .distantPast) >= sessionCutoff }
-            .compactMap { $0.snapshot.rateLimits.primary?.remainingPercent }
-            .min()
+        let sessionRows = parsedRows.filter { ($0.sourceDate ?? .distantPast) >= sessionCutoff }
+        let sessionLowRow = sessionRows
+            .compactMap { row -> (Int, Date)? in
+                guard let percent = row.snapshot.rateLimits.primary?.remainingPercent,
+                      let date = row.sourceDate else { return nil }
+                return (percent, date)
+            }
+            .min { lhs, rhs in
+                lhs.0 == rhs.0 ? lhs.1 < rhs.1 : lhs.0 < rhs.0
+            }
         let sessionTrend = Self.sparkline(
-            values: parsedRows
-                .filter { ($0.sourceDate ?? .distantPast) >= sessionCutoff }
-                .compactMap { $0.snapshot.rateLimits.primary?.remainingPercent },
+            values: sessionRows.compactMap { $0.snapshot.rateLimits.primary?.remainingPercent },
             points: 8
         )
 
-        let weeklyLow = parsedRows
-            .filter { ($0.sourceDate ?? .distantPast) >= weeklyCutoff }
-            .compactMap { $0.snapshot.rateLimits.secondary?.remainingPercent }
-            .min()
+        let weeklyRows = parsedRows.filter { ($0.sourceDate ?? .distantPast) >= weeklyCutoff }
+        let weeklyLowRow = weeklyRows
+            .compactMap { row -> (Int, Date)? in
+                guard let percent = row.snapshot.rateLimits.secondary?.remainingPercent,
+                      let date = row.sourceDate else { return nil }
+                return (percent, date)
+            }
+            .min { lhs, rhs in
+                lhs.0 == rhs.0 ? lhs.1 < rhs.1 : lhs.0 < rhs.0
+            }
         let weeklyTrend = Self.sparkline(
-            values: parsedRows
-                .filter { ($0.sourceDate ?? .distantPast) >= weeklyCutoff }
-                .compactMap { $0.snapshot.rateLimits.secondary?.remainingPercent },
+            values: weeklyRows.compactMap { $0.snapshot.rateLimits.secondary?.remainingPercent },
             points: 8
         )
 
-        if sessionLow == nil, weeklyLow == nil, sessionTrend == nil, weeklyTrend == nil {
+        if sessionLowRow == nil, weeklyLowRow == nil, sessionTrend == nil, weeklyTrend == nil {
             return nil
         }
 
         return CodexQuotaTrendSummary(
-            sessionLowPercent: sessionLow,
-            weeklyLowPercent: weeklyLow,
+            sessionLowPercent: sessionLowRow?.0,
+            sessionLowDate: sessionLowRow?.1,
+            weeklyLowPercent: weeklyLowRow?.0,
+            weeklyLowDate: weeklyLowRow?.1,
             sessionTrend: sessionTrend,
             weeklyTrend: weeklyTrend
         )

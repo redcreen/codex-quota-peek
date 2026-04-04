@@ -198,7 +198,7 @@ open "dist/CodexQuotaPeek.app"
    计划增加 `Auto / Prefer API / Prefer local logs` 这样的策略，让用户更清楚当前值为什么来自这个来源。
 
 3. 历史趋势与节奏分析
-   不只显示现在剩多少，还会补上最近一段时间的变化趋势，用来解释为什么会出现 `! / !!`。
+   已完成当前阶段：除了最近趋势和近期低点，现在也会显示低点出现的大致时间，用来判断危险值是刚发生还是较早前出现。
 
 4. 主动通知
    已完成当前阶段：低额度、新出现的 `! / !!` 节奏告警，以及窗口即将重置时，都会触发去重后的 macOS 通知，避免每次刷新都重复提醒。
@@ -456,7 +456,7 @@ To grow this project into a more sustainable product, the current roadmap is:
    Planned options include `Auto`, `Prefer API`, and `Prefer local logs` so users can choose the balance between freshness and local stability.
 
 3. History and pacing analysis
-   The next layer is trend visibility: not just how much is left, but how usage has been moving and why `! / !!` appeared.
+   The current stage is done: besides recent trends and low-water marks, the app now also shows roughly when each low happened so you can tell whether the risky point was recent or historical.
 
 4. Proactive notifications
    The current stage is done: low remaining quota, newly triggered `! / !!` pace warnings, and upcoming reset windows can now send deduplicated macOS notifications.

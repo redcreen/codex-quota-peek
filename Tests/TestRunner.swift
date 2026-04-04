@@ -233,8 +233,17 @@ func testDisplayPresentationUsesPaceMarkersAndSourceText() {
 }
 
 func testTrendSummaryMenuText() {
-    let summary = CodexQuotaTrendSummary(sessionLowPercent: 73, weeklyLowPercent: 82, sessionTrend: "._=+##", weeklyTrend: "--==++")
-    expect(summary.menuText(language: .english) == "Recent lows: 5h 73%  ·  7d 82%", "trend summary formats compact menu text")
+    let summary = CodexQuotaTrendSummary(
+        sessionLowPercent: 73,
+        sessionLowDate: Date(timeIntervalSince1970: 1_775_291_731),
+        weeklyLowPercent: 82,
+        weeklyLowDate: Date(timeIntervalSince1970: 1_775_896_800),
+        sessionTrend: "._=+##",
+        weeklyTrend: "--==++"
+    )
+    let menuText = summary.menuText(language: .english) ?? ""
+    expect(menuText.contains("Recent lows: 5h 73% @"), "trend summary includes session low timestamp")
+    expect(menuText.contains("7d 82% @"), "trend summary includes weekly low timestamp")
     expect(summary.sparklineText(language: .english) == "Recent trend: 5h ._=+##  ·  7d --==++", "trend summary formats sparkline text")
 }
 
@@ -439,7 +448,14 @@ func testChineseLanguagePresentationLocalizesCoreLabels() {
         accountInfo: CodexAccountInfo(displayName: "User", email: "user@example.com", planDisplayName: "Pro"),
         generatedAt: Date(),
         source: .realtimeLogs,
-        trendSummary: CodexQuotaTrendSummary(sessionLowPercent: 73, weeklyLowPercent: 82, sessionTrend: "._=+##", weeklyTrend: "--==++"),
+        trendSummary: CodexQuotaTrendSummary(
+            sessionLowPercent: 73,
+            sessionLowDate: Date(),
+            weeklyLowPercent: 82,
+            weeklyLowDate: Date(),
+            sessionTrend: "._=+##",
+            weeklyTrend: "--==++"
+        ),
         weeklyPacingMode: .balanced56,
         language: .chinese
     )
@@ -447,7 +463,7 @@ func testChineseLanguagePresentationLocalizesCoreLabels() {
     expect(presentation.accountRow?.label == "账号", "presentation localizes account label")
     expect(presentation.sourceText == "来源：本地日志", "presentation localizes source label")
     expect(presentation.updatedAtText == "刚刚更新", "presentation localizes relative update label")
-    expect(presentation.trendText == "近期低点: 5 小时 73%  ·  7 天 82%", "presentation localizes trend summary")
+    expect(presentation.trendText?.contains("近期低点: 5 小时 73% @") == true, "presentation localizes trend summary")
 }
 
 func testNotificationPolicyTriggersOnlyOnEscalation() {
