@@ -245,7 +245,7 @@ struct StatusPresentation {
     }
 
     private static func statusPercentText(for window: LimitWindow) -> String {
-        "\(window.remainingPercent)%\(window.isUsingFasterThanAverage ? "!" : "")"
+        "\(window.remainingPercent)%\(paceMarker(for: window))"
     }
 
     private static func paceMessage(primary: LimitWindow?, secondary: LimitWindow?) -> String? {
@@ -270,10 +270,26 @@ struct StatusPresentation {
         return maxOffset >= 15 ? .critical : .warning
     }
 
+    private static func paceSeverity(for window: LimitWindow) -> PaceSeverity? {
+        guard let offset = overAverageOffset(for: window) else { return nil }
+        return offset >= 15 ? .critical : .warning
+    }
+
     private static func overAverageOffset(for window: LimitWindow?) -> Double? {
         guard let window, let elapsedFraction = window.elapsedFraction, window.isUsingFasterThanAverage else {
             return nil
         }
         return window.usedPercent - (elapsedFraction * 100.0)
+    }
+
+    private static func paceMarker(for window: LimitWindow) -> String {
+        switch paceSeverity(for: window) {
+        case .warning:
+            return "!"
+        case .critical:
+            return "!!"
+        case nil:
+            return ""
+        }
     }
 }

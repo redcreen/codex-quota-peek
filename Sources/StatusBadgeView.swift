@@ -80,7 +80,11 @@ final class StatusBadgeView: NSView {
     }
 
     private func quotaColor(for text: String) -> NSColor {
-        guard let percent = Int(text.replacingOccurrences(of: "%", with: "")) else {
+        guard let percent = Int(
+            text
+                .replacingOccurrences(of: "%", with: "")
+                .replacingOccurrences(of: "!", with: "")
+        ) else {
             return .white
         }
 
