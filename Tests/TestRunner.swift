@@ -277,6 +277,15 @@ func testCliHelpPrefersRefreshOverUpdate() {
     expect(!helpText.contains("--update"), "CLI help no longer mentions update flag")
 }
 
+func testRefreshRequestGateOnlyAppliesLatestRequest() {
+    var gate = RefreshRequestGate()
+    let first = gate.issue()
+    let second = gate.issue()
+
+    expect(!gate.shouldApply(first), "older refresh request is discarded")
+    expect(gate.shouldApply(second), "latest refresh request is allowed to apply")
+}
+
 @main
 struct TestRunner {
     static func main() {
@@ -290,6 +299,7 @@ struct TestRunner {
         testQuotaDisplayColorThresholds()
         testAuthSnapshotStoreReadsSavedAccountMetadata()
         testCliHelpPrefersRefreshOverUpdate()
+        testRefreshRequestGateOnlyAppliesLatestRequest()
         print("All tests passed.")
     }
 }

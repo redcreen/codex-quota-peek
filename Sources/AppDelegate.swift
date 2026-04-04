@@ -60,6 +60,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var feedbackHideWorkItem: DispatchWorkItem?
     private var lastSuccessfulAPIResult: CodexQuotaFetchResult?
     private var accountItemLookup: [Int: CodexKnownAccount] = [:]
+    private var refreshRequestGate = RefreshRequestGate()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -396,6 +397,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func refreshAsync(mode: QuotaRefreshMode) {
+        let requestID = refreshRequestGate.issue()
         let provider = self.provider
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
@@ -422,6 +424,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
 
             DispatchQueue.main.async {
+                guard self.refreshRequestGate.shouldApply(requestID) else {
+                    return
+                }
                 self.apply(presentation)
                 if self.shouldReopenMenuAfterRefresh {
                     self.shouldReopenMenuAfterRefresh = false
