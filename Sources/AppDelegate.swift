@@ -121,6 +121,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.button?.toolTip = presentation.tooltip
         statusItem.length = image.size.width
 
+        let accountSummary = [presentation.accountRow?.value, presentation.planRow?.value]
+            .compactMap { $0 }
+            .joined(separator: " · ")
+        headerView.updateSubtitle(accountSummary.isEmpty ? "--" : accountSummary)
         accountInfoView.update(
             label: presentation.accountRow?.label ?? "Account",
             value: presentation.accountRow?.value ?? "--"

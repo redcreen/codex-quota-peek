@@ -3,6 +3,7 @@ import AppKit
 final class MenuHeaderView: NSView {
     private let imageView = NSImageView()
     private let titleLabel = NSTextField(labelWithString: "Codex Quota Peek")
+    private let subtitleLabel = NSTextField(labelWithString: "--")
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -15,7 +16,7 @@ final class MenuHeaderView: NSView {
     }
 
     private func setup() {
-        frame = NSRect(x: 0, y: 0, width: 252, height: 32)
+        frame = NSRect(x: 0, y: 0, width: 252, height: 44)
 
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.image = NSImage(systemSymbolName: "gauge.open.with.lines.needle.33percent", accessibilityDescription: nil)
@@ -26,18 +27,32 @@ final class MenuHeaderView: NSView {
         titleLabel.font = NSFont.systemFont(ofSize: 14, weight: .semibold)
         titleLabel.textColor = .labelColor
 
+        subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        subtitleLabel.font = NSFont.systemFont(ofSize: 11, weight: .regular)
+        subtitleLabel.textColor = .secondaryLabelColor
+        subtitleLabel.lineBreakMode = .byTruncatingMiddle
+
         addSubview(imageView)
         addSubview(titleLabel)
+        addSubview(subtitleLabel)
 
         NSLayoutConstraint.activate([
             imageView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
-            imageView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            imageView.centerYAnchor.constraint(equalTo: centerYAnchor, constant: -6),
             imageView.widthAnchor.constraint(equalToConstant: 16),
             imageView.heightAnchor.constraint(equalToConstant: 16),
 
             titleLabel.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 8),
-            titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor)
+            titleLabel.topAnchor.constraint(equalTo: topAnchor, constant: 8),
+
+            subtitleLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
+            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 2),
+            subtitleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12)
         ])
+    }
+
+    func updateSubtitle(_ text: String) {
+        subtitleLabel.stringValue = text
     }
 }
 
