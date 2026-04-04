@@ -149,7 +149,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
         process.arguments = [
             "-e",
-            "tell application \"Terminal\" to do script \"echo Switching to \(targetLabel.quotedForShell()); codex login --device-auth\"",
+            "tell application \"Terminal\" to do script \"echo History account selected: \(targetLabel.quotedForShell()); echo Re-login is required to switch accounts.; codex login --device-auth\"",
             "-e",
             "tell application \"Terminal\" to activate"
         ]
@@ -190,7 +190,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         planItem.tag = MenuTag.plan
         planItem.isEnabled = false
 
-        let recentAccountsHeader = NSMenuItem(title: "Recent Accounts", action: nil, keyEquivalent: "")
+        let recentAccountsHeader = NSMenuItem(title: "Account History", action: nil, keyEquivalent: "")
         recentAccountsHeader.tag = MenuTag.recentAccountsHeader
         recentAccountsHeader.isEnabled = false
 
@@ -211,7 +211,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updatedAtItem.tag = MenuTag.updatedAt
         updatedAtItem.isEnabled = false
 
-        let accountSwitchHintItem = NSMenuItem(title: "Selecting an account opens Codex login in Terminal", action: nil, keyEquivalent: "")
+        let accountSwitchHintItem = NSMenuItem(
+            title: "History only. Switching requires re-login in Terminal.",
+            action: nil,
+            keyEquivalent: ""
+        )
         accountSwitchHintItem.tag = MenuTag.accountSwitchHint
         accountSwitchHintItem.isEnabled = false
 
@@ -604,7 +608,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         for (offset, account) in pendingAccounts.enumerated() {
-            let title = account.isCurrent ? "Current: \(account.displayName)" : "Sign in as \(account.displayName)"
+            let title = account.isCurrent ? "Current: \(account.displayName)" : "Re-login as \(account.displayName)"
             let item = NSMenuItem(title: title, action: #selector(switchAccount(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = account.email ?? account.displayName
