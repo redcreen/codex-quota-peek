@@ -12,14 +12,18 @@ A lightweight macOS menu bar app for checking the latest Codex quota usage at a 
 
 它会在菜单栏中显示两行简洁信息：
 
-- `P xx%`：主额度窗口剩余百分比
+- `H xx%`：主额度窗口剩余百分比
 - `W xx%`：周额度窗口剩余百分比
+- 超平均使用时会追加 `!` 或 `!!`
 
 点开菜单后，还可以看到更完整的信息：
 
 - 额度窗口时长
 - 当前剩余百分比
 - 对应重置时间
+- 最近更新时间
+- 当前账号与套餐
+- 节奏提醒、快捷入口和偏好设置
 
 ### 语言说明
 
@@ -37,6 +41,7 @@ A lightweight macOS menu bar app for checking the latest Codex quota usage at a 
 - 不需要手动翻日志或数据库
 - 可以在菜单栏里持续看到最新剩余额度
 - 可以快速判断当前还能不能继续高频使用
+- 可以更早发现“虽然额度还够，但当前消耗速度已经偏快”
 
 ### 使用方法
 
@@ -48,6 +53,18 @@ A lightweight macOS menu bar app for checking the latest Codex quota usage at a 
 4. 应用启动后会常驻在 macOS 状态栏
 
 如果 macOS 提示安全限制，可以在“系统设置 -> 隐私与安全性”里允许打开。
+
+#### 当前功能
+
+- 状态栏显示 `H / W` 两个额度窗口
+- 绿色 / 黄色 / 红色额度提示
+- 超平均使用时显示 `! / !!`
+- 下拉菜单显示账号、套餐、重置时间、`Last updated`
+- `Refresh Now` 刷新后自动保持菜单交互连续
+- `Preferences` 子菜单，可开关颜色、节奏提醒、更新时间
+- `Launch at Login`
+- `Open Codex Folder`
+- `Reveal Logs Database`
 
 #### 从源码构建
 
@@ -67,12 +84,18 @@ open "dist/CodexQuotaPeek.app"
 应用的工作方式很直接：
 
 1. 启动时立即读取一次本机 Codex 额度数据
-2. 之后按固定间隔自动刷新
-3. 优先读取 `~/.codex/logs_1.sqlite` 中最新的实时 `codex.rate_limits` 事件
-4. 如果实时数据暂时不可用，再回退读取 `~/.codex/archived_sessions/*.jsonl`
-5. 将结果渲染成菜单栏 badge 和下拉菜单
+2. 监听本地 Codex 日志与认证文件变化，尽量即时刷新
+3. 同时保留固定间隔自动刷新作为兜底
+4. 优先读取 `~/.codex/logs_1.sqlite` 中最新的实时 `codex.rate_limits` 事件
+5. 如果实时数据暂时不可用，再回退读取 `~/.codex/archived_sessions/*.jsonl`
+6. 将结果渲染成菜单栏 badge 和下拉菜单
 
-当前版本默认每 60 秒自动刷新一次，并且菜单中支持手动 `Refresh Now`。
+当前版本默认保留 `5` 秒自动刷新兜底，并且会监听：
+
+- `~/.codex/logs_1.sqlite`
+- `~/.codex/auth.json`
+
+菜单中也支持手动 `Refresh Now`。
 
 ### 制作过程
 
@@ -83,7 +106,9 @@ open "dist/CodexQuotaPeek.app"
 3. 用原生 `AppKit` 做菜单栏应用，而不是依赖更重的桌面框架
 4. 先实现双行 badge，再补充更丰富的下拉菜单
 5. 修复旧快照误匹配、解析失败回退等问题
-6. 最后补上可直接分发的 `.app` 和 `.zip`
+6. 逐步修正状态栏实例、菜单打不开、刷新不及时等交互问题
+7. 补上颜色规则、节奏提醒、更新时间、登录启动和偏好设置
+8. 最后补上可直接分发的 `.app` 和 `.zip`
 
 #### 关键输入模板
 
@@ -151,14 +176,18 @@ open "dist/CodexQuotaPeek.app"
 
 It shows two compact lines in the menu bar:
 
-- `P xx%`: remaining percentage for the primary quota window
+- `H xx%`: remaining percentage for the primary quota window
 - `W xx%`: remaining percentage for the weekly quota window
+- `! / !!`: usage pace is above the current window average
 
 When you open the dropdown menu, it also shows:
 
 - window duration
 - remaining percentage
 - reset time
+- last updated time
+- account and plan
+- pace alerts, shortcuts, and preferences
 
 ### Language Notes
 
@@ -176,6 +205,7 @@ This app is built to solve a few practical issues:
 - You do not need to inspect local logs or databases manually
 - You can keep a live quota indicator in the macOS menu bar
 - You can quickly judge whether you still have enough quota for heavy usage
+- You can spot when your current consumption pace is ahead of the average window pace
 
 ### How To Use
 
@@ -187,6 +217,18 @@ This app is built to solve a few practical issues:
 4. It will stay in the macOS menu bar
 
 If macOS blocks the app the first time, allow it from `System Settings -> Privacy & Security`.
+
+#### Current Features
+
+- `H / W` quota windows in the menu bar
+- green / yellow / red quota coloring
+- `! / !!` pace markers when usage is ahead of average
+- dropdown details for account, plan, reset time, and `Last updated`
+- `Refresh Now` keeps the interaction flow smooth
+- `Preferences` submenu for colors, pace alerts, and updated-time visibility
+- `Launch at Login`
+- `Open Codex Folder`
+- `Reveal Logs Database`
 
 #### Build from source
 
@@ -206,12 +248,18 @@ open "dist/CodexQuotaPeek.app"
 The app works like this:
 
 1. It loads Codex quota data immediately at launch
-2. It refreshes again on a fixed interval
-3. It first reads the latest realtime `codex.rate_limits` events from `~/.codex/logs_1.sqlite`
-4. If realtime data is unavailable, it falls back to `~/.codex/archived_sessions/*.jsonl`
-5. It renders the result into the menu bar badge and dropdown menu
+2. It watches local Codex files for changes and refreshes as quickly as possible
+3. It also keeps a fixed-interval refresh as a fallback
+4. It first reads the latest realtime `codex.rate_limits` events from `~/.codex/logs_1.sqlite`
+5. If realtime data is unavailable, it falls back to `~/.codex/archived_sessions/*.jsonl`
+6. It renders the result into the menu bar badge and dropdown menu
 
-The current version refreshes every 60 seconds and also includes a manual `Refresh Now` action.
+The current version keeps a `5s` fallback timer and also watches:
+
+- `~/.codex/logs_1.sqlite`
+- `~/.codex/auth.json`
+
+It also includes a manual `Refresh Now` action.
 
 ### Build Process
 
@@ -222,8 +270,10 @@ This project was built from scratch. The main steps were:
 3. Build a native menu bar app with `AppKit`
 4. Start with the compact two-line badge
 5. Add the richer dropdown menu with percentage and reset time
-6. Fix stale snapshot matching and parsing edge cases
-7. Package the final `.app` and distributable `.zip`
+6. Fix stale snapshot matching, parsing edge cases, and duplicate menu bar instances
+7. Refine menu interaction, refresh behavior, and real-time file watching
+8. Add color rules, pace alerts, login launch, quick actions, and preferences
+9. Package the final `.app` and distributable `.zip`
 
 #### Key Prompt Inputs
 
