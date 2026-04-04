@@ -509,15 +509,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             )
         }
 
-        if showsPaceAlert, let paceMessage = presentation.paceMessage {
-            item(MenuTag.paceNotice)?.isHidden = false
+        item(MenuTag.paceNotice)?.isHidden = false
+        if !showsPaceAlert {
+            item(MenuTag.paceNotice)?.attributedTitle = styledMutedStatus("Pace alert hidden")
+        } else if let paceMessage = presentation.paceMessage {
             item(MenuTag.paceNotice)?.attributedTitle = styledPaceNotice(
                 paceMessage,
                 severity: presentation.paceSeverity ?? .warning
             )
         } else {
-            item(MenuTag.paceNotice)?.isHidden = true
-            item(MenuTag.paceNotice)?.title = ""
+            item(MenuTag.paceNotice)?.attributedTitle = styledMutedStatus("Pace normal")
         }
 
         item(MenuTag.updatedAt)?.isHidden = !showsLastUpdated
@@ -717,6 +718,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func styledUpdatedAt(_ text: String) -> NSAttributedString {
         NSAttributedString(
             string: "Last updated: \(text)",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11, weight: .regular),
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
+    }
+
+    private func styledMutedStatus(_ text: String) -> NSAttributedString {
+        NSAttributedString(
+            string: text,
             attributes: [
                 .font: NSFont.systemFont(ofSize: 11, weight: .regular),
                 .foregroundColor: NSColor.secondaryLabelColor
