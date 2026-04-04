@@ -91,7 +91,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc
     private func quit(_ sender: Any?) {
-        NSApp.terminate(nil)
+        let alert = NSAlert()
+        alert.messageText = "Quit Codex Quota Peek?"
+        alert.informativeText = "The menu bar app will close until you open it again."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Quit")
+        alert.addButton(withTitle: "Cancel")
+
+        if alert.runModal() == .alertFirstButtonReturn {
+            NSApp.terminate(nil)
+        }
     }
 
     @objc
@@ -256,7 +265,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ]
         preferencesItem.submenu = preferencesMenu
 
-        let quitItem = NSMenuItem(title: "Quit", action: #selector(quit(_:)), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "Quit...", action: #selector(quit(_:)), keyEquivalent: "q")
         quitItem.tag = MenuTag.quit
         quitItem.target = self
 
