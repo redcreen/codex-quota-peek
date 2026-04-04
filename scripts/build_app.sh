@@ -3,11 +3,11 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 BUILD_DIR="$ROOT_DIR/build"
-APP_DIR="$ROOT_DIR/dist/CodexLimitBar.app"
+APP_DIR="$ROOT_DIR/dist/QuotaPeek.app"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
-EXECUTABLE="$MACOS_DIR/CodexLimitBar"
+EXECUTABLE="$MACOS_DIR/QuotaPeek"
 
 mkdir -p "$BUILD_DIR" "$MACOS_DIR" "$RESOURCES_DIR"
 
@@ -29,13 +29,13 @@ cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
   <key>CFBundleExecutable</key>
-  <string>CodexLimitBar</string>
+  <string>QuotaPeek</string>
   <key>CFBundleIdentifier</key>
-  <string>local.codex.limitbar</string>
+  <string>local.quotapeek</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>CodexLimitBar</string>
+  <string>QuotaPeek</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>

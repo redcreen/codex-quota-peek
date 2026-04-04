@@ -1,4 +1,4 @@
-# Codex Limit Bar
+# QuotaPeek
 
 A tiny macOS menu bar app that reads the latest Codex rate limit event from `~/.codex` and shows the remaining primary and weekly quota as a two-line badge.
 
@@ -11,7 +11,7 @@ A tiny macOS menu bar app that reads the latest Codex rate limit event from `~/.
 ## Run
 
 ```bash
-open "dist/CodexLimitBar.app"
+open "dist/QuotaPeek.app"
 ```
 
 ## Display
