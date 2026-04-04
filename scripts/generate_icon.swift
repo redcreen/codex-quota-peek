@@ -38,15 +38,34 @@ let hubPath = NSBezierPath(ovalIn: hubRect)
 NSColor.white.setFill()
 hubPath.fill()
 
-let quotaText = "CQ"
+let qCircleRect = NSRect(x: 322, y: 300, width: 380, height: 380)
+let qCirclePath = NSBezierPath(ovalIn: qCircleRect)
+qCirclePath.lineWidth = 44
+NSColor.white.setStroke()
+qCirclePath.stroke()
+
+let qTail = NSBezierPath()
+qTail.move(to: NSPoint(x: 608, y: 366))
+qTail.line(to: NSPoint(x: 706, y: 270))
+qTail.lineWidth = 36
+qTail.lineCapStyle = .round
+NSColor.white.setStroke()
+qTail.stroke()
+
+let innerDiskRect = NSRect(x: 402, y: 380, width: 220, height: 220)
+let innerDiskPath = NSBezierPath(ovalIn: innerDiskRect)
+NSColor(calibratedRed: 0.03, green: 0.22, blue: 0.52, alpha: 0.96).setFill()
+innerDiskPath.fill()
+
+let quotaText = "Q"
 let paragraph = NSMutableParagraphStyle()
 paragraph.alignment = .center
 let attributes: [NSAttributedString.Key: Any] = [
-    .font: NSFont.systemFont(ofSize: 176, weight: .black),
+    .font: NSFont.systemFont(ofSize: 172, weight: .black),
     .foregroundColor: NSColor.white,
     .paragraphStyle: paragraph
 ]
-quotaText.draw(in: NSRect(x: 0, y: 86, width: 1024, height: 210), withAttributes: attributes)
+quotaText.draw(in: NSRect(x: 0, y: 362, width: 1024, height: 180), withAttributes: attributes)
 
 image.unlockFocus()
 
