@@ -20,9 +20,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let openCodexFolder = 113
         static let openLogsDatabase = 114
         static let preferences = 115
-        static let showColors = 116
-        static let showPaceAlert = 117
-        static let showLastUpdated = 118
         static let feedback = 119
         static let source = 120
         static let saveAccountSnapshot = 121
@@ -30,11 +27,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let openStatusPage = 123
         static let about = 124
         static let openUsageDashboard = 125
-        static let weeklyPacingSection = 126
-        static let weeklyPacing40 = 127
-        static let weeklyPacing56 = 128
-        static let weeklyPacing70 = 129
-        static let weeklyPacingHint = 130
         static let accountsStart = 2000
     }
 
@@ -69,6 +61,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var accountItemLookup: [Int: CodexKnownAccount] = [:]
     private var refreshRequestGate = RefreshRequestGate()
     private var hasTriggeredStartupAPIRefresh = false
+    private lazy var preferencesWindowController = makePreferencesWindowController()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -129,46 +122,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc
     private func toggleShowColors(_ sender: Any?) {
-        let enabled = !showsColors
-        defaults.set(enabled, forKey: PreferenceKey.showColors)
-        updatePreferenceMenuItems()
-        apply(lastPresentation)
-        showFeedback("Show Colors \(enabled ? "enabled" : "disabled")")
+        setShowColors(!showsColors)
     }
 
     @objc
     private func toggleShowPaceAlert(_ sender: Any?) {
-        let enabled = !showsPaceAlert
-        defaults.set(enabled, forKey: PreferenceKey.showPaceAlert)
-        updatePreferenceMenuItems()
-        apply(lastPresentation)
-        showFeedback("Show Pace Alert \(enabled ? "enabled" : "disabled")")
+        setShowPaceAlert(!showsPaceAlert)
     }
 
     @objc
     private func toggleShowLastUpdated(_ sender: Any?) {
-        let enabled = !showsLastUpdated
-        defaults.set(enabled, forKey: PreferenceKey.showLastUpdated)
-        updatePreferenceMenuItems()
-        apply(lastPresentation)
-        showFeedback("Show Last Updated \(enabled ? "enabled" : "disabled")")
+        setShowLastUpdated(!showsLastUpdated)
     }
 
     @objc
-    private func selectWeeklyPacingMode(_ sender: NSMenuItem) {
-        let mode: WeeklyPacingMode
-        switch sender.tag {
-        case MenuTag.weeklyPacing40:
-            mode = .workWeek40
-        case MenuTag.weeklyPacing70:
-            mode = .heavy70
-        default:
-            mode = .balanced56
-        }
-        defaults.set(mode.rawValue, forKey: PreferenceKey.weeklyPacingMode)
-        updatePreferenceMenuItems()
-        refreshAsync(mode: .automatic)
-        showFeedback("Weekly pace: \(mode.title)")
+    private func openPreferences(_ sender: Any?) {
+        syncPreferencesWindow()
+        preferencesWindowController.showWindow(nil)
+        preferencesWindowController.window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     @objc
@@ -351,64 +323,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         aboutItem.tag = MenuTag.about
         aboutItem.target = self
 
-        let preferencesItem = NSMenuItem(title: "Preferences", action: nil, keyEquivalent: "")
+        let preferencesItem = NSMenuItem(title: "Preferences...", action: #selector(openPreferences(_:)), keyEquivalent: ",")
         preferencesItem.tag = MenuTag.preferences
-
-        let showColorsItem = NSMenuItem(title: "Show Colors", action: #selector(toggleShowColors(_:)), keyEquivalent: "")
-        showColorsItem.tag = MenuTag.showColors
-        showColorsItem.target = self
-
-        let showPaceAlertItem = NSMenuItem(title: "Show Pace Alert", action: #selector(toggleShowPaceAlert(_:)), keyEquivalent: "")
-        showPaceAlertItem.tag = MenuTag.showPaceAlert
-        showPaceAlertItem.target = self
-
-        let showLastUpdatedItem = NSMenuItem(title: "Show Last Updated", action: #selector(toggleShowLastUpdated(_:)), keyEquivalent: "")
-        showLastUpdatedItem.tag = MenuTag.showLastUpdated
-        showLastUpdatedItem.target = self
-
-        let launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin(_:)), keyEquivalent: "")
-        launchAtLoginItem.tag = MenuTag.launchAtLogin
-        launchAtLoginItem.target = self
-
-        let weeklyPacingSectionItem = NSMenuItem(title: QuotaDisplayPolicy.weeklyPacingSectionTitle, action: nil, keyEquivalent: "")
-        weeklyPacingSectionItem.tag = MenuTag.weeklyPacingSection
-        weeklyPacingSectionItem.isEnabled = false
-
-        let weeklyPacingHintItem = NSMenuItem(title: QuotaDisplayPolicy.weeklyPacingHintTitle, action: nil, keyEquivalent: "")
-        weeklyPacingHintItem.tag = MenuTag.weeklyPacingHint
-        weeklyPacingHintItem.isEnabled = false
-        weeklyPacingHintItem.toolTip = QuotaDisplayPolicy.weeklyPacingHintDetail
-
-        let weeklyPacing40Item = NSMenuItem(title: WeeklyPacingMode.workWeek40.menuTitle, action: #selector(selectWeeklyPacingMode(_:)), keyEquivalent: "")
-        weeklyPacing40Item.tag = MenuTag.weeklyPacing40
-        weeklyPacing40Item.target = self
-        weeklyPacing40Item.toolTip = WeeklyPacingMode.workWeek40.detailedTooltipText()
-
-        let weeklyPacing56Item = NSMenuItem(title: WeeklyPacingMode.balanced56.menuTitle, action: #selector(selectWeeklyPacingMode(_:)), keyEquivalent: "")
-        weeklyPacing56Item.tag = MenuTag.weeklyPacing56
-        weeklyPacing56Item.target = self
-        weeklyPacing56Item.toolTip = WeeklyPacingMode.balanced56.detailedTooltipText()
-
-        let weeklyPacing70Item = NSMenuItem(title: WeeklyPacingMode.heavy70.menuTitle, action: #selector(selectWeeklyPacingMode(_:)), keyEquivalent: "")
-        weeklyPacing70Item.tag = MenuTag.weeklyPacing70
-        weeklyPacing70Item.target = self
-        weeklyPacing70Item.toolTip = WeeklyPacingMode.heavy70.detailedTooltipText()
-
-        let preferencesMenu = NSMenu(title: "Preferences")
-        preferencesMenu.items = [
-            showColorsItem,
-            showPaceAlertItem,
-            showLastUpdatedItem,
-            .separator(),
-            weeklyPacingSectionItem,
-            weeklyPacingHintItem,
-            weeklyPacing40Item,
-            weeklyPacing56Item,
-            weeklyPacing70Item,
-            .separator(),
-            launchAtLoginItem
-        ]
-        preferencesItem.submenu = preferencesMenu
+        preferencesItem.target = self
 
         let quitItem = NSMenuItem(title: "Quit", action: #selector(quit(_:)), keyEquivalent: "q")
         quitItem.tag = MenuTag.quit
@@ -442,7 +359,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ]
 
         updateLaunchAtLoginMenuItem()
-        updatePreferenceMenuItems()
     }
 
     private func refreshAsync(mode: QuotaRefreshMode, completion: (() -> Void)? = nil) {
@@ -756,21 +672,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func updateLaunchAtLoginMenuItem() {
-        item(MenuTag.launchAtLogin)?.state = isLaunchAtLoginEnabled() ? .on : .off
-    }
-
-    private func updatePreferenceMenuItems() {
-        item(MenuTag.showColors)?.state = showsColors ? .on : .off
-        item(MenuTag.showPaceAlert)?.state = showsPaceAlert ? .on : .off
-        item(MenuTag.showLastUpdated)?.state = showsLastUpdated ? .on : .off
-        item(MenuTag.weeklyPacingSection)?.attributedTitle = styledPreferenceSection(QuotaDisplayPolicy.weeklyPacingSectionTitle)
-        item(MenuTag.weeklyPacingHint)?.attributedTitle = styledPreferenceHint(
-            QuotaDisplayPolicy.weeklyPacingHintTitle,
-            detail: QuotaDisplayPolicy.weeklyPacingHintDetail
-        )
-        item(MenuTag.weeklyPacing40)?.state = selectedWeeklyPacingMode == .workWeek40 ? .on : .off
-        item(MenuTag.weeklyPacing56)?.state = selectedWeeklyPacingMode == .balanced56 ? .on : .off
-        item(MenuTag.weeklyPacing70)?.state = selectedWeeklyPacingMode == .heavy70 ? .on : .off
+        syncPreferencesWindow()
     }
 
     private func showFeedback(_ message: String) {
@@ -1122,36 +1024,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
     }
 
-    private func styledPreferenceSection(_ text: String) -> NSAttributedString {
-        NSAttributedString(
-            string: text,
-            attributes: [
-                .font: NSFont.systemFont(ofSize: 11, weight: .semibold),
-                .foregroundColor: NSColor.secondaryLabelColor
-            ]
-        )
-    }
-
-    private func styledPreferenceHint(_ title: String, detail: String) -> NSAttributedString {
-        let result = NSMutableAttributedString(
-            string: title,
-            attributes: [
-                .font: NSFont.systemFont(ofSize: 11, weight: .regular),
-                .foregroundColor: NSColor.secondaryLabelColor
-            ]
-        )
-        result.append(
-            NSAttributedString(
-                string: "\n\(detail)",
-                attributes: [
-                    .font: NSFont.systemFont(ofSize: 10, weight: .regular),
-                    .foregroundColor: NSColor.tertiaryLabelColor
-                ]
-            )
-        )
-        return result
-    }
-
     private func isLaunchAtLoginEnabled() -> Bool {
         let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "CodexQuotaPeek"
         let script = """
@@ -1231,6 +1103,65 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private var weeklyPaceExplanation: String {
         QuotaDisplayPolicy.weeklyPaceExplanation(for: selectedWeeklyPacingMode)
+    }
+
+    private func makePreferencesWindowController() -> PreferencesWindowController {
+        let controller = PreferencesWindowController()
+        controller.onToggleShowColors = { [weak self] enabled in
+            self?.setShowColors(enabled)
+        }
+        controller.onToggleShowPaceAlert = { [weak self] enabled in
+            self?.setShowPaceAlert(enabled)
+        }
+        controller.onToggleShowLastUpdated = { [weak self] enabled in
+            self?.setShowLastUpdated(enabled)
+        }
+        controller.onToggleLaunchAtLogin = { [weak self] enabled in
+            self?.setLaunchAtLogin(enabled: enabled)
+            self?.syncPreferencesWindow()
+        }
+        controller.onSelectWeeklyPacingMode = { [weak self] mode in
+            self?.setWeeklyPacingMode(mode)
+        }
+        return controller
+    }
+
+    private func syncPreferencesWindow() {
+        preferencesWindowController.update(with: PreferencesViewState(
+            showColors: showsColors,
+            showPaceAlert: showsPaceAlert,
+            showLastUpdated: showsLastUpdated,
+            launchAtLogin: isLaunchAtLoginEnabled(),
+            weeklyPacingMode: selectedWeeklyPacingMode
+        ))
+    }
+
+    private func setShowColors(_ enabled: Bool) {
+        defaults.set(enabled, forKey: PreferenceKey.showColors)
+        apply(lastPresentation)
+        syncPreferencesWindow()
+        showFeedback("Show Colors \(enabled ? "enabled" : "disabled")")
+    }
+
+    private func setShowPaceAlert(_ enabled: Bool) {
+        defaults.set(enabled, forKey: PreferenceKey.showPaceAlert)
+        apply(lastPresentation)
+        syncPreferencesWindow()
+        showFeedback("Show Pace Alert \(enabled ? "enabled" : "disabled")")
+    }
+
+    private func setShowLastUpdated(_ enabled: Bool) {
+        defaults.set(enabled, forKey: PreferenceKey.showLastUpdated)
+        apply(lastPresentation)
+        syncPreferencesWindow()
+        showFeedback("Show Last Updated \(enabled ? "enabled" : "disabled")")
+    }
+
+    private func setWeeklyPacingMode(_ mode: WeeklyPacingMode) {
+        defaults.set(mode.rawValue, forKey: PreferenceKey.weeklyPacingMode)
+        syncPreferencesWindow()
+        refreshAsync(mode: .automatic)
+        showFeedback("Weekly pace: \(mode.title)")
     }
 }
 
