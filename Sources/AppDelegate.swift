@@ -84,8 +84,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             PreferenceKey.notificationsEnabled: true,
             PreferenceKey.lowQuotaNotificationsEnabled: true,
             PreferenceKey.paceNotificationsEnabled: true,
-            PreferenceKey.resetNotificationsEnabled: true,
-            PreferenceKey.appLanguage: AppLanguage.english.rawValue
+            PreferenceKey.resetNotificationsEnabled: true
         ])
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
         preferencesWindowController = makePreferencesWindowController()
@@ -1204,7 +1203,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private var selectedAppLanguage: AppLanguage {
-        AppLanguage(rawValue: defaults.string(forKey: PreferenceKey.appLanguage) ?? "") ?? .english
+        if let raw = defaults.string(forKey: PreferenceKey.appLanguage),
+           let language = AppLanguage(rawValue: raw) {
+            return language
+        }
+        return AppLanguage.systemPreferred()
     }
 
     private var notificationsEnabled: Bool {

@@ -466,6 +466,11 @@ func testChineseLanguagePresentationLocalizesCoreLabels() {
     expect(presentation.trendText?.contains("近期低点: 5 小时 73% @") == true, "presentation localizes trend summary")
 }
 
+func testSystemLanguagePreferenceFallsBackToMacOSLocale() {
+    expect(AppLanguage.systemPreferred(preferredLanguages: ["zh-Hans-CN"]) == .chinese, "system language detection maps Chinese locales to Chinese UI")
+    expect(AppLanguage.systemPreferred(preferredLanguages: ["en-US"]) == .english, "system language detection keeps English locales on English UI")
+}
+
 func testNotificationPolicyTriggersOnlyOnEscalation() {
     let previous = QuotaNotificationSnapshot(
         sessionLevel: .none,
@@ -633,6 +638,7 @@ testRelativeUpdatedAtLabels()
         testStartupAPIRefreshFallsBackWithoutOverridingCurrentRules()
         testWeeklyPacingModeCanBeLooserThanFullWeek()
         testChineseLanguagePresentationLocalizesCoreLabels()
+        testSystemLanguagePreferenceFallsBackToMacOSLocale()
         testNotificationPolicyTriggersOnlyOnEscalation()
         testNotificationPolicyStaysQuietForRepeatedState()
         testNotificationPolicyEmitsResetReminderOnce()

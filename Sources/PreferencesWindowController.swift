@@ -70,7 +70,7 @@ final class PreferencesWindowController: NSWindowController {
     init(language: AppLanguage) {
         self.language = language
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 620, height: 560),
+            contentRect: NSRect(x: 0, y: 0, width: 840, height: 640),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
@@ -151,17 +151,15 @@ final class PreferencesWindowController: NSWindowController {
             contentStack.topAnchor.constraint(equalTo: documentView.topAnchor, constant: 28),
             contentStack.bottomAnchor.constraint(equalTo: documentView.bottomAnchor, constant: -28),
             contentStack.centerXAnchor.constraint(equalTo: documentView.centerXAnchor),
-            contentStack.widthAnchor.constraint(lessThanOrEqualToConstant: 500),
+            contentStack.widthAnchor.constraint(lessThanOrEqualToConstant: 760),
             contentStack.leadingAnchor.constraint(greaterThanOrEqualTo: documentView.leadingAnchor, constant: 28),
             contentStack.trailingAnchor.constraint(lessThanOrEqualTo: documentView.trailingAnchor, constant: -28)
         ])
 
         contentStack.addArrangedSubview(makeHeader())
-        contentStack.addArrangedSubview(makeLanguageCard())
-        contentStack.addArrangedSubview(makeDisplayCard())
-        contentStack.addArrangedSubview(makeSourceCard())
-        contentStack.addArrangedSubview(makeWeeklyPacingCard())
-        contentStack.addArrangedSubview(makeAppCard())
+        contentStack.addArrangedSubview(twoColumnRow(makeLanguageCard(), makeAppCard()))
+        contentStack.addArrangedSubview(twoColumnRow(makeDisplayCard(), makeNotificationsCard()))
+        contentStack.addArrangedSubview(twoColumnRow(makeSourceCard(), makeWeeklyPacingCard()))
     }
 
     private func makeHeader() -> NSView {
@@ -213,7 +211,18 @@ final class PreferencesWindowController: NSWindowController {
             optionRow(
                 control: configureCheckbox(showLastUpdatedButton, action: #selector(toggleShowLastUpdated(_:)), title: language.showLastUpdatedTitle),
                 detail: language.showLastUpdatedDetail
-            ),
+            )
+        ]
+
+        return sectionCard(
+            title: language.displaySectionTitle,
+            description: language.displaySectionDescription,
+            body: verticalRows(rows, spacing: 14)
+        )
+    }
+
+    private func makeNotificationsCard() -> NSView {
+        let rows = [
             optionRow(
                 control: configureCheckbox(notificationsButton, action: #selector(toggleNotifications(_:)), title: language.notificationsTitle),
                 detail: language.notificationsDetail
@@ -233,9 +242,10 @@ final class PreferencesWindowController: NSWindowController {
         ]
 
         return sectionCard(
-            title: language.displaySectionTitle,
-            description: language.displaySectionDescription,
-            body: verticalRows(rows, spacing: 14)
+            title: language.notificationsSectionTitle,
+            description: language.notificationsSectionDescription,
+            body: verticalRows(rows, spacing: 14),
+            width: 360
         )
     }
 
@@ -284,11 +294,12 @@ final class PreferencesWindowController: NSWindowController {
         return sectionCard(
             title: language.appSectionTitle,
             description: language.appSectionDescription,
-            body: verticalRows(rows, spacing: 14)
+            body: verticalRows(rows, spacing: 14),
+            width: 360
         )
     }
 
-    private func sectionCard(title: String, description: String, body: NSView) -> NSView {
+    private func sectionCard(title: String, description: String, body: NSView, width: CGFloat = 360) -> NSView {
         let card = CardView()
         card.translatesAutoresizingMaskIntoConstraints = false
 
@@ -305,7 +316,7 @@ final class PreferencesWindowController: NSWindowController {
             stack.trailingAnchor.constraint(equalTo: card.trailingAnchor),
             stack.topAnchor.constraint(equalTo: card.topAnchor),
             stack.bottomAnchor.constraint(equalTo: card.bottomAnchor),
-            card.widthAnchor.constraint(equalToConstant: 500)
+            card.widthAnchor.constraint(equalToConstant: width)
         ])
 
         let titleLabel = NSTextField(labelWithString: title)
@@ -316,12 +327,21 @@ final class PreferencesWindowController: NSWindowController {
         descriptionLabel.font = NSFont.systemFont(ofSize: 12.5)
         descriptionLabel.textColor = .secondaryLabelColor
         descriptionLabel.maximumNumberOfLines = 0
-        descriptionLabel.preferredMaxLayoutWidth = 430
+        descriptionLabel.preferredMaxLayoutWidth = width - 70
 
         stack.addArrangedSubview(titleLabel)
         stack.addArrangedSubview(descriptionLabel)
         stack.addArrangedSubview(body)
         return card
+    }
+
+    private func twoColumnRow(_ left: NSView, _ right: NSView) -> NSView {
+        let row = NSStackView(views: [left, right])
+        row.orientation = .horizontal
+        row.alignment = .top
+        row.distribution = .fillEqually
+        row.spacing = 20
+        return row
     }
 
     private func optionRow(control: NSButton, detail: String) -> NSView {
@@ -334,7 +354,7 @@ final class PreferencesWindowController: NSWindowController {
         detailLabel.font = NSFont.systemFont(ofSize: 11.5)
         detailLabel.textColor = .secondaryLabelColor
         detailLabel.maximumNumberOfLines = 0
-        detailLabel.preferredMaxLayoutWidth = 400
+        detailLabel.preferredMaxLayoutWidth = 280
 
         row.addArrangedSubview(control)
         row.addArrangedSubview(detailLabel)
@@ -353,7 +373,7 @@ final class PreferencesWindowController: NSWindowController {
         summaryLabel.font = NSFont.systemFont(ofSize: 11.5)
         summaryLabel.textColor = .secondaryLabelColor
         summaryLabel.maximumNumberOfLines = 0
-        summaryLabel.preferredMaxLayoutWidth = 400
+        summaryLabel.preferredMaxLayoutWidth = 280
 
         row.addArrangedSubview(configuredButton)
         row.addArrangedSubview(summaryLabel)

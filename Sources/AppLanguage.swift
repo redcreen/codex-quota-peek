@@ -4,6 +4,16 @@ enum AppLanguage: String, CaseIterable {
     case english = "en"
     case chinese = "zh-Hans"
 
+    static func systemPreferred(preferredLanguages: [String] = Locale.preferredLanguages) -> AppLanguage {
+        guard let first = preferredLanguages.first?.lowercased() else {
+            return .english
+        }
+        if first.hasPrefix("zh") {
+            return .chinese
+        }
+        return .english
+    }
+
     var optionTitle: String {
         switch self {
         case .english:
@@ -52,10 +62,18 @@ enum AppLanguage: String, CaseIterable {
     var languageSectionDescription: String {
         switch self {
         case .english:
-            return "Choose the interface language used by the menu and preferences window."
+            return "Choose the interface language used by the menu and preferences window. Until you change it here, the app follows your macOS language."
         case .chinese:
-            return "选择菜单和偏好设置窗口使用的界面语言。"
+            return "选择菜单和偏好设置窗口使用的界面语言。在你手动切换之前，应用会跟随 macOS 系统语言。"
         }
+    }
+
+    var notificationsSectionTitle: String {
+        self == .english ? "Notifications" : "通知"
+    }
+
+    var notificationsSectionDescription: String {
+        self == .english ? "Choose which notification categories stay active. The main switch still controls all notifications." : "选择哪些通知类型保持开启。顶部总开关仍然控制全部通知。"
     }
 
     var displaySectionTitle: String {
