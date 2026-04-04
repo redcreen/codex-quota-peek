@@ -400,8 +400,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
             let presentation: StatusPresentation
+            let feedbackMessage: String?
             do {
                 let fetchedResult = try {
+                    if mode == .apiManual {
+                        return try provider.loadSnapshotUsingAPI()
+                    }
+
                     switch QuotaRefreshPolicy.fetchPlan(for: mode, sourceStrategy: self.selectedSourceStrategy) {
                     case .localFirst:
                         return try provider.loadSnapshotForAutomaticRefresh()
@@ -421,8 +426,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     weeklyPacingMode: selectedWeeklyPacingMode,
                     language: selectedAppLanguage
                 )
+                feedbackMessage = mode == .apiManual
+                    ? (selectedAppLanguage == .english ? "Refreshed from API" : "已通过 API 刷新")
+                    : nil
             } catch {
-                presentation = .unavailable(error.localizedDescription, language: selectedAppLanguage)
+                if mode == .apiManual {
+                    presentation = self.lastPresentation
+                    feedbackMessage = selectedAppLanguage == .english
+                        ? "API refresh failed; keeping current value"
+                        : "API 刷新失败，已保留当前数据"
+                } else {
+                    presentation = .unavailable(error.localizedDescription, language: selectedAppLanguage)
+                    feedbackMessage = nil
+                }
             }
 
             DispatchQueue.main.async {
@@ -430,6 +446,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     return
                 }
                 self.apply(presentation)
+                if let feedbackMessage {
+                    self.showFeedback(feedbackMessage)
+                }
                 completion?()
                 self.maybeSendNotification(for: presentation)
                 if self.shouldReopenMenuAfterRefresh {
