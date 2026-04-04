@@ -276,6 +276,7 @@ enum AppLanguage: String, CaseIterable {
     var creditsLabel: String { self == .english ? "Credits" : "Credits" }
     var recentLowsLabel: String { self == .english ? "Recent lows" : "近期低点" }
     var recentTrendLabel: String { self == .english ? "Recent trend" : "近期走势" }
+    var trendLabel: String { self == .english ? "Trend" : "趋势" }
     var leftLabel: String { self == .english ? "left" : "剩余" }
     var resetsLabel: String { self == .english ? "Resets" : "重置" }
     var sourcePrefix: String { self == .english ? "Source" : "来源" }
@@ -337,39 +338,27 @@ enum AppLanguage: String, CaseIterable {
         }
     }
 
-    func recentLowsText(sessionLowPercent: Int?, sessionLowDate: Date?, weeklyLowPercent: Int?, weeklyLowDate: Date?) -> String? {
-        var parts: [String] = []
-        if let sessionLowPercent {
-            var part = (self == .english ? "5h" : "5 小时") + " \(sessionLowPercent)%"
-            if let sessionLowDate {
-                part += self == .english ? " @ \(trendTimestamp(sessionLowDate, recentWindow: .day))" : " @ \(trendTimestamp(sessionLowDate, recentWindow: .day))"
-            }
-            parts.append(part)
+    func trendSummaryText(windowLabel: String, deltaPoints: Int?, lowPercent: Int?, lowDate: Date?, recentWindow: TrendWindow) -> String? {
+        var details: [String] = []
+        if let deltaPoints {
+            details.append(trendDirectionText(deltaPoints))
         }
-        if let weeklyLowPercent {
-            var part = (self == .english ? "7d" : "7 天") + " \(weeklyLowPercent)%"
-            if let weeklyLowDate {
-                part += self == .english ? " @ \(trendTimestamp(weeklyLowDate, recentWindow: .week))" : " @ \(trendTimestamp(weeklyLowDate, recentWindow: .week))"
+        if let lowPercent {
+            var lowText = self == .english ? "low \(lowPercent)%" : "最低 \(lowPercent)%"
+            if let lowDate {
+                lowText += self == .english
+                    ? " at \(trendTimestamp(lowDate, recentWindow: recentWindow))"
+                    : "，时间 \(trendTimestamp(lowDate, recentWindow: recentWindow))"
             }
-            parts.append(part)
+            details.append(lowText)
         }
-        guard !parts.isEmpty else { return nil }
-        return "\(recentLowsLabel): " + parts.joined(separator: "  ·  ")
+        guard !details.isEmpty else { return nil }
+        return self == .english
+            ? "\(windowLabel) trend: \(details.joined(separator: " · "))"
+            : "\(windowLabel)趋势：\(details.joined(separator: " · "))"
     }
 
-    func recentTrendText(sessionTrend: String?, sessionDeltaPoints: Int?, weeklyTrend: String?, weeklyDeltaPoints: Int?) -> String? {
-        var parts: [String] = []
-        if let sessionTrend {
-            parts.append((self == .english ? "5h" : "5 小时") + " \(sessionTrend)\(trendDeltaSuffix(sessionDeltaPoints))")
-        }
-        if let weeklyTrend {
-            parts.append((self == .english ? "7d" : "7 天") + " \(weeklyTrend)\(trendDeltaSuffix(weeklyDeltaPoints))")
-        }
-        guard !parts.isEmpty else { return nil }
-        return "\(recentTrendLabel): " + parts.joined(separator: "  ·  ")
-    }
-
-    private enum TrendWindow {
+    enum TrendWindow {
         case day
         case week
     }
@@ -385,16 +374,15 @@ enum AppLanguage: String, CaseIterable {
         return formatter.string(from: date)
     }
 
-    private func trendDeltaSuffix(_ delta: Int?) -> String {
-        guard let delta else { return "" }
+    private func trendDirectionText(_ delta: Int) -> String {
         if abs(delta) <= 1 {
-            return self == .english ? " · steady" : " · 平稳"
+            return self == .english ? "steady" : "基本平稳"
         }
         if delta > 0 {
-            return self == .english ? " · up \(delta)pt" : " · 上升 \(delta) 点"
+            return self == .english ? "up \(delta)pt" : "上升 \(delta) 点"
         }
         let magnitude = abs(delta)
-        return self == .english ? " · down \(magnitude)pt" : " · 下降 \(magnitude) 点"
+        return self == .english ? "down \(magnitude)pt" : "下降 \(magnitude) 点"
     }
 
     func relativeUpdatedAtLabel(seconds: Int) -> String {

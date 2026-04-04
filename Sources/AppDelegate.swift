@@ -1077,7 +1077,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSAttributedString(
             string: text,
             attributes: [
-                .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .regular),
+                .font: NSFont.systemFont(ofSize: 11, weight: .regular),
                 .foregroundColor: NSColor.tertiaryLabelColor
             ]
         )

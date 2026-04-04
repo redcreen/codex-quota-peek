@@ -27,20 +27,22 @@ struct CodexQuotaTrendSummary {
     let weeklyDeltaPoints: Int?
 
     func menuText(language: AppLanguage = .english) -> String? {
-        language.recentLowsText(
-            sessionLowPercent: sessionLowPercent,
-            sessionLowDate: sessionLowDate,
-            weeklyLowPercent: weeklyLowPercent,
-            weeklyLowDate: weeklyLowDate
+        language.trendSummaryText(
+            windowLabel: language.windowLabel(for: 300),
+            deltaPoints: sessionDeltaPoints,
+            lowPercent: sessionLowPercent,
+            lowDate: sessionLowDate,
+            recentWindow: .day
         )
     }
 
     func sparklineText(language: AppLanguage = .english) -> String? {
-        language.recentTrendText(
-            sessionTrend: sessionTrend,
-            sessionDeltaPoints: sessionDeltaPoints,
-            weeklyTrend: weeklyTrend,
-            weeklyDeltaPoints: weeklyDeltaPoints
+        language.trendSummaryText(
+            windowLabel: language.windowLabel(for: 10080),
+            deltaPoints: weeklyDeltaPoints,
+            lowPercent: weeklyLowPercent,
+            lowDate: weeklyLowDate,
+            recentWindow: .week
         )
     }
 }

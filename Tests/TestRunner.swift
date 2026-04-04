@@ -244,9 +244,11 @@ func testTrendSummaryMenuText() {
         weeklyDeltaPoints: 0
     )
     let menuText = summary.menuText(language: .english) ?? ""
-    expect(menuText.contains("Recent lows: 5h 73% @"), "trend summary includes session low timestamp")
-    expect(menuText.contains("7d 82% @"), "trend summary includes weekly low timestamp")
-    expect(summary.sparklineText(language: .english) == "Recent trend: 5h ._=+## · down 7pt  ·  7d --==++ · steady", "trend summary formats sparkline text")
+    expect(menuText.contains("5 hours trend: down 7pt"), "trend summary explains recent session direction")
+    expect(menuText.contains("low 73% at"), "trend summary includes session low timestamp")
+    let weeklyText = summary.sparklineText(language: .english) ?? ""
+    expect(weeklyText.contains("7 days trend: steady"), "weekly trend summary keeps weekly direction readable")
+    expect(weeklyText.contains("low 82%"), "weekly trend summary keeps weekly low percentage readable")
 }
 
 func testSparklineSampling() {
@@ -467,7 +469,7 @@ func testChineseLanguagePresentationLocalizesCoreLabels() {
     expect(presentation.accountRow?.label == "账号", "presentation localizes account label")
     expect(presentation.sourceText == "来源：本地日志", "presentation localizes source label")
     expect(presentation.updatedAtText == "刚刚更新", "presentation localizes relative update label")
-    expect(presentation.trendText?.contains("近期低点: 5 小时 73% @") == true, "presentation localizes trend summary")
+    expect(presentation.trendText?.contains("5 小时趋势：") == true, "presentation localizes trend summary")
 }
 
 func testSystemLanguagePreferenceFallsBackToMacOSLocale() {
