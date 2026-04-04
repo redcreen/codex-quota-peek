@@ -84,4 +84,5 @@ enum QuotaRefreshPolicy {
 enum QuotaRefreshMode {
     case automatic
     case apiManual
+    case startupAPI
 }

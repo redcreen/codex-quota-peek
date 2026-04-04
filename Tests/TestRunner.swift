@@ -330,6 +330,30 @@ func testAutomaticRefreshDoesNotRegressWithinSameResetWindow() {
     expect(preferred.snapshot.rateLimits.secondary?.remainingPercent == 86, "same reset window does not regress to older higher remaining percent")
 }
 
+func testStartupAPIRefreshFallsBackWithoutOverridingCurrentRules() {
+    let recentAPI = makeResult(
+        source: .api,
+        sourceDate: Date(timeIntervalSince1970: 2_000),
+        primaryUsed: 5,
+        secondaryUsed: 8
+    )
+    let fallbackLogs = makeResult(
+        source: .realtimeLogs,
+        sourceDate: Date(timeIntervalSince1970: 1_900),
+        primaryUsed: 12,
+        secondaryUsed: 10
+    )
+
+    let preferred = QuotaRefreshPolicy.preferredResult(
+        fetchedResult: fallbackLogs,
+        mode: .startupAPI,
+        lastSuccessfulAPIResult: recentAPI,
+        lastAcceptedResult: nil
+    )
+
+    expect(preferred.source == .realtimeLogs, "startup API refresh can fall back to logs without being forced to stale API data")
+}
+
 @main
 struct TestRunner {
     static func main() {
@@ -345,6 +369,7 @@ struct TestRunner {
         testCliHelpPrefersRefreshOverUpdate()
         testRefreshRequestGateOnlyAppliesLatestRequest()
         testAutomaticRefreshDoesNotRegressWithinSameResetWindow()
+        testStartupAPIRefreshFallsBackWithoutOverridingCurrentRules()
         print("All tests passed.")
     }
 }

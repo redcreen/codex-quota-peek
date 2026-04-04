@@ -62,6 +62,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var lastAcceptedResult: CodexQuotaFetchResult?
     private var accountItemLookup: [Int: CodexKnownAccount] = [:]
     private var refreshRequestGate = RefreshRequestGate()
+    private var hasTriggeredStartupAPIRefresh = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -74,7 +75,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         configureMenu()
         setupFileWatchers()
         _ = provider.captureCurrentAuthSnapshot()
-        refreshAsync(mode: .automatic)
+        refreshAsync(mode: .automatic) { [weak self] in
+            self?.triggerStartupAPIRefreshIfNeeded()
+        }
         refreshAccountsAsync()
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { [weak self] _ in
             self?.refreshAsync(mode: .automatic)
@@ -397,7 +400,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updatePreferenceMenuItems()
     }
 
-    private func refreshAsync(mode: QuotaRefreshMode) {
+    private func refreshAsync(mode: QuotaRefreshMode, completion: (() -> Void)? = nil) {
         let requestID = refreshRequestGate.issue()
         let provider = self.provider
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -409,6 +412,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     case .automatic:
                         return try provider.loadSnapshotForAutomaticRefresh()
                     case .apiManual:
+                        return try provider.loadSnapshotUsingAPIOrFallback()
+                    case .startupAPI:
                         return try provider.loadSnapshotUsingAPIOrFallback()
                     }
                 }()
@@ -429,6 +434,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     return
                 }
                 self.apply(presentation)
+                completion?()
                 if self.shouldReopenMenuAfterRefresh {
                     self.shouldReopenMenuAfterRefresh = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
@@ -454,6 +460,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         lastAcceptedResult = preferred
         return preferred
+    }
+
+    private func triggerStartupAPIRefreshIfNeeded() {
+        guard !hasTriggeredStartupAPIRefresh else { return }
+        hasTriggeredStartupAPIRefresh = true
+        refreshAsync(mode: .startupAPI)
     }
 
     @objc
