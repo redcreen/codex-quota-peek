@@ -35,6 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var authMonitorFileDescriptor: Int32 = -1
     private var refreshWorkItem: DispatchWorkItem?
     private var accountRefreshWorkItem: DispatchWorkItem?
+    private var shouldReopenMenuAfterRefresh = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -56,6 +57,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc
     private func refreshNow(_ sender: Any?) {
+        shouldReopenMenuAfterRefresh = true
         refreshAsync()
     }
 
@@ -191,6 +193,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
             DispatchQueue.main.async {
                 self.apply(presentation)
+                if self.shouldReopenMenuAfterRefresh {
+                    self.shouldReopenMenuAfterRefresh = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
+                        self?.statusItem.button?.performClick(nil)
+                    }
+                }
             }
         }
     }
