@@ -354,6 +354,20 @@ func testStartupAPIRefreshFallsBackWithoutOverridingCurrentRules() {
     expect(preferred.source == .realtimeLogs, "startup API refresh can fall back to logs without being forced to stale API data")
 }
 
+func testWeeklyPacingModeCanBeLooserThanFullWeek() {
+    let weekly = LimitWindow(
+        usedPercent: 7,
+        windowMinutes: 10080,
+        resetAfterSeconds: 574_155,
+        resetAt: 1_775_896_800
+    )
+    expect(StatusPresentation.statusPercentText(for: weekly) == "93%!", "full-week pacing still warns on early weekly usage")
+    expect(
+        StatusPresentation.statusPercentText(for: weekly, weeklyPacingMode: .activeHours16x7, isWeekly: true) == "93%",
+        "active-hours weekly pacing can suppress overly sensitive warnings"
+    )
+}
+
 @main
 struct TestRunner {
     static func main() {
@@ -370,6 +384,7 @@ struct TestRunner {
         testRefreshRequestGateOnlyAppliesLatestRequest()
         testAutomaticRefreshDoesNotRegressWithinSameResetWindow()
         testStartupAPIRefreshFallsBackWithoutOverridingCurrentRules()
+        testWeeklyPacingModeCanBeLooserThanFullWeek()
         print("All tests passed.")
     }
 }

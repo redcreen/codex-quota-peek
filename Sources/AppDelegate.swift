@@ -30,6 +30,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let openStatusPage = 123
         static let about = 124
         static let openUsageDashboard = 125
+        static let weeklyPacingMode = 126
+        static let weeklyPacingFullWeek = 127
+        static let weeklyPacingActiveHours = 128
         static let accountsStart = 2000
     }
 
@@ -37,6 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let showColors = "showColors"
         static let showPaceAlert = "showPaceAlert"
         static let showLastUpdated = "showLastUpdated"
+        static let weeklyPacingMode = "weeklyPacingMode"
     }
 
     private let provider = CodexQuotaProvider()
@@ -69,7 +73,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         defaults.register(defaults: [
             PreferenceKey.showColors: true,
             PreferenceKey.showPaceAlert: true,
-            PreferenceKey.showLastUpdated: true
+            PreferenceKey.showLastUpdated: true,
+            PreferenceKey.weeklyPacingMode: WeeklyPacingMode.fullWeek24x7.rawValue
         ])
         configureStatusItem()
         configureMenu()
@@ -145,6 +150,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updatePreferenceMenuItems()
         apply(lastPresentation)
         showFeedback("Show Last Updated \(enabled ? "enabled" : "disabled")")
+    }
+
+    @objc
+    private func selectWeeklyPacingMode(_ sender: NSMenuItem) {
+        let mode: WeeklyPacingMode
+        switch sender.tag {
+        case MenuTag.weeklyPacingActiveHours:
+            mode = .activeHours16x7
+        default:
+            mode = .fullWeek24x7
+        }
+        defaults.set(mode.rawValue, forKey: PreferenceKey.weeklyPacingMode)
+        updatePreferenceMenuItems()
+        refreshAsync(mode: .automatic)
+        showFeedback("Weekly pace: \(mode.title)")
     }
 
     @objc
@@ -346,11 +366,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         launchAtLoginItem.tag = MenuTag.launchAtLogin
         launchAtLoginItem.target = self
 
+        let weeklyPacingModeItem = NSMenuItem(title: "Weekly Pace Mode", action: nil, keyEquivalent: "")
+        weeklyPacingModeItem.tag = MenuTag.weeklyPacingMode
+
+        let weeklyPacingFullWeekItem = NSMenuItem(title: WeeklyPacingMode.fullWeek24x7.title, action: #selector(selectWeeklyPacingMode(_:)), keyEquivalent: "")
+        weeklyPacingFullWeekItem.tag = MenuTag.weeklyPacingFullWeek
+        weeklyPacingFullWeekItem.target = self
+
+        let weeklyPacingActiveHoursItem = NSMenuItem(title: WeeklyPacingMode.activeHours16x7.title, action: #selector(selectWeeklyPacingMode(_:)), keyEquivalent: "")
+        weeklyPacingActiveHoursItem.tag = MenuTag.weeklyPacingActiveHours
+        weeklyPacingActiveHoursItem.target = self
+
+        let weeklyPacingMenu = NSMenu(title: "Weekly Pace Mode")
+        weeklyPacingMenu.items = [
+            weeklyPacingFullWeekItem,
+            weeklyPacingActiveHoursItem
+        ]
+        weeklyPacingModeItem.submenu = weeklyPacingMenu
+
         let preferencesMenu = NSMenu(title: "Preferences")
         preferencesMenu.items = [
             showColorsItem,
             showPaceAlertItem,
             showLastUpdatedItem,
+            weeklyPacingModeItem,
             .separator(),
             launchAtLoginItem
         ]
@@ -414,7 +453,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     snapshot: result.snapshot,
                     accountInfo: accountInfo,
                     generatedAt: Date(),
-                    source: result.source
+                    source: result.source,
+                    weeklyPacingMode: selectedWeeklyPacingMode
                 )
             } catch {
                 presentation = .unavailable(error.localizedDescription)
@@ -657,6 +697,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 paceText: showsPaceAlert ? secondary.paceText : nil,
                 paceSeverity: secondary.paceSeverity
             )
+            item(MenuTag.secondary)?.toolTip = selectedWeeklyPacingMode.tooltipText
         } else {
             item(MenuTag.secondary)?.attributedTitle = styledQuotaRow(
                 label: "7 days",
@@ -665,6 +706,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 paceText: nil,
                 paceSeverity: nil
             )
+            item(MenuTag.secondary)?.toolTip = selectedWeeklyPacingMode.tooltipText
         }
 
         item(MenuTag.paceNotice)?.isHidden = true
@@ -706,6 +748,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item(MenuTag.showColors)?.state = showsColors ? .on : .off
         item(MenuTag.showPaceAlert)?.state = showsPaceAlert ? .on : .off
         item(MenuTag.showLastUpdated)?.state = showsLastUpdated ? .on : .off
+        item(MenuTag.weeklyPacingFullWeek)?.state = selectedWeeklyPacingMode == .fullWeek24x7 ? .on : .off
+        item(MenuTag.weeklyPacingActiveHours)?.state = selectedWeeklyPacingMode == .activeHours16x7 ? .on : .off
     }
 
     private func showFeedback(_ message: String) {
@@ -1128,6 +1172,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private var showsLastUpdated: Bool {
         defaults.bool(forKey: PreferenceKey.showLastUpdated)
+    }
+
+    private var selectedWeeklyPacingMode: WeeklyPacingMode {
+        WeeklyPacingMode(rawValue: defaults.string(forKey: PreferenceKey.weeklyPacingMode) ?? "") ?? .fullWeek24x7
     }
 }
 

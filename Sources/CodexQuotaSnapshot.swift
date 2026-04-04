@@ -163,13 +163,14 @@ struct StatusPresentation {
         snapshot: CodexQuotaSnapshot,
         accountInfo: CodexAccountInfo?,
         generatedAt: Date,
-        source: CodexQuotaFetchSource
+        source: CodexQuotaFetchSource,
+        weeklyPacingMode: WeeklyPacingMode = .fullWeek24x7
     ) {
         let primary = snapshot.rateLimits.primary
         let secondary = snapshot.rateLimits.secondary
 
         line1 = primary.map { "H \(StatusPresentation.statusPercentText(for: $0))" } ?? "H --"
-        line2 = secondary.map { "W \(StatusPresentation.statusPercentText(for: $0))" } ?? "W --"
+        line2 = secondary.map { "W \(StatusPresentation.statusPercentText(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true))" } ?? "W --"
         accountRow = accountInfo.map {
             AccountRow(label: "Account", value: $0.email ?? $0.displayName)
         }
@@ -189,15 +190,15 @@ struct StatusPresentation {
         secondaryRow = secondary.map {
             MenuRow(
                 label: StatusPresentation.windowLabel(for: $0),
-                percentText: StatusPresentation.statusPercentText(for: $0),
+                percentText: StatusPresentation.statusPercentText(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
                 resetText: StatusPresentation.resetLabel(for: $0),
-                isUsingFasterThanAverage: $0.isUsingFasterThanAverage,
-                paceText: StatusPresentation.inlinePaceText(for: $0),
-                paceSeverity: StatusPresentation.paceSeverity(for: $0)
+                isUsingFasterThanAverage: StatusPresentation.isUsingFasterThanAverage(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
+                paceText: StatusPresentation.inlinePaceText(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
+                paceSeverity: StatusPresentation.paceSeverity(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true)
             )
         }
-        paceMessage = StatusPresentation.paceMessage(primary: primary, secondary: secondary)
-        paceSeverity = StatusPresentation.paceSeverity(primary: primary, secondary: secondary)
+        paceMessage = StatusPresentation.paceMessage(primary: primary, secondary: secondary, weeklyPacingMode: weeklyPacingMode)
+        paceSeverity = StatusPresentation.paceSeverity(primary: primary, secondary: secondary, weeklyPacingMode: weeklyPacingMode)
         updatedAtText = StatusPresentation.relativeUpdatedAtLabel(for: generatedAt)
         creditsText = StatusPresentation.creditsText(for: snapshot.credits)
         switch source {
@@ -295,16 +296,24 @@ struct StatusPresentation {
         return shortDateFormatter.string(from: date)
     }
 
-    static func statusPercentText(for window: LimitWindow) -> String {
-        "\(window.remainingPercent)%\(paceMarker(for: window))"
+    static func statusPercentText(
+        for window: LimitWindow,
+        weeklyPacingMode: WeeklyPacingMode = .fullWeek24x7,
+        isWeekly: Bool = false
+    ) -> String {
+        "\(window.remainingPercent)%\(paceMarker(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly))"
     }
 
-    private static func paceMessage(primary: LimitWindow?, secondary: LimitWindow?) -> String? {
+    private static func paceMessage(
+        primary: LimitWindow?,
+        secondary: LimitWindow?,
+        weeklyPacingMode: WeeklyPacingMode
+    ) -> String? {
         var labels: [String] = []
-        if let primary, primary.isUsingFasterThanAverage {
+        if let primary, isUsingFasterThanAverage(for: primary) {
             labels.append(QuotaDisplayPolicy.menuWindowTitle(for: windowLabel(for: primary)))
         }
-        if let secondary, secondary.isUsingFasterThanAverage {
+        if let secondary, isUsingFasterThanAverage(for: secondary, weeklyPacingMode: weeklyPacingMode, isWeekly: true) {
             labels.append(QuotaDisplayPolicy.menuWindowTitle(for: windowLabel(for: secondary)))
         }
 
@@ -315,31 +324,56 @@ struct StatusPresentation {
         return labels.joined(separator: " + ") + " above average"
     }
 
-    private static func inlinePaceText(for window: LimitWindow) -> String? {
-        guard window.isUsingFasterThanAverage else { return nil }
+    private static func inlinePaceText(
+        for window: LimitWindow,
+        weeklyPacingMode: WeeklyPacingMode = .fullWeek24x7,
+        isWeekly: Bool = false
+    ) -> String? {
+        guard isUsingFasterThanAverage(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly) else { return nil }
         return " Pace above avg "
     }
 
-    private static func paceSeverity(primary: LimitWindow?, secondary: LimitWindow?) -> PaceSeverity? {
-        let offsets = [primary, secondary].compactMap { overAverageOffset(for: $0) }
+    private static func paceSeverity(
+        primary: LimitWindow?,
+        secondary: LimitWindow?,
+        weeklyPacingMode: WeeklyPacingMode
+    ) -> PaceSeverity? {
+        let offsets = [
+            overAverageOffset(for: primary),
+            overAverageOffset(for: secondary, weeklyPacingMode: weeklyPacingMode, isWeekly: true)
+        ].compactMap { $0 }
         guard let maxOffset = offsets.max() else { return nil }
         return maxOffset >= 15 ? .critical : .warning
     }
 
-    private static func paceSeverity(for window: LimitWindow) -> PaceSeverity? {
-        guard let offset = overAverageOffset(for: window) else { return nil }
+    static func paceSeverity(
+        for window: LimitWindow,
+        weeklyPacingMode: WeeklyPacingMode = .fullWeek24x7,
+        isWeekly: Bool = false
+    ) -> PaceSeverity? {
+        guard let offset = overAverageOffset(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly) else { return nil }
         return offset >= 15 ? .critical : .warning
     }
 
-    private static func overAverageOffset(for window: LimitWindow?) -> Double? {
-        guard let window, let elapsedFraction = window.elapsedFraction, window.isUsingFasterThanAverage else {
+    private static func overAverageOffset(
+        for window: LimitWindow?,
+        weeklyPacingMode: WeeklyPacingMode = .fullWeek24x7,
+        isWeekly: Bool = false
+    ) -> Double? {
+        guard let window,
+              let elapsedFraction = pacingElapsedFraction(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly),
+              isUsingFasterThanAverage(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly) else {
             return nil
         }
         return window.usedPercent - (elapsedFraction * 100.0)
     }
 
-    static func paceMarker(for window: LimitWindow) -> String {
-        switch paceSeverity(for: window) {
+    static func paceMarker(
+        for window: LimitWindow,
+        weeklyPacingMode: WeeklyPacingMode = .fullWeek24x7,
+        isWeekly: Bool = false
+    ) -> String {
+        switch paceSeverity(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly) {
         case .warning:
             return "!"
         case .critical:
@@ -347,6 +381,33 @@ struct StatusPresentation {
         case nil:
             return ""
         }
+    }
+
+    private static func isUsingFasterThanAverage(
+        for window: LimitWindow,
+        weeklyPacingMode: WeeklyPacingMode = .fullWeek24x7,
+        isWeekly: Bool = false
+    ) -> Bool {
+        guard let elapsedFraction = pacingElapsedFraction(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly) else {
+            return false
+        }
+        return window.usedPercent > elapsedFraction * 100.0
+    }
+
+    private static func pacingElapsedFraction(
+        for window: LimitWindow,
+        weeklyPacingMode: WeeklyPacingMode,
+        isWeekly: Bool
+    ) -> Double? {
+        guard isWeekly else { return window.elapsedFraction }
+        guard weeklyPacingMode == .activeHours16x7 else { return window.elapsedFraction }
+        guard let resetAfterSeconds = window.resetAfterSeconds else { return window.elapsedFraction }
+
+        let totalWeekSeconds = 7.0 * 24.0 * 60.0 * 60.0
+        let activeWeekSeconds = 7.0 * 16.0 * 60.0 * 60.0
+        let remainingSeconds = min(max(Double(resetAfterSeconds), 0), totalWeekSeconds)
+        let elapsedSeconds = totalWeekSeconds - remainingSeconds
+        return min(max(elapsedSeconds / activeWeekSeconds, 0), 1)
     }
 
     static func relativeUpdatedAtLabel(for date: Date, now: Date = Date()) -> String {
