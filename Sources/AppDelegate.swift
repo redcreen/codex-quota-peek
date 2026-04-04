@@ -23,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let showColors = 116
         static let showPaceAlert = 117
         static let showLastUpdated = 118
+        static let feedback = 119
         static let accountsStart = 2000
     }
 
@@ -50,6 +51,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var refreshWorkItem: DispatchWorkItem?
     private var accountRefreshWorkItem: DispatchWorkItem?
     private var shouldReopenMenuAfterRefresh = false
+    private var feedbackHideWorkItem: DispatchWorkItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -106,23 +108,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc
     private func toggleShowColors(_ sender: Any?) {
-        defaults.set(!showsColors, forKey: PreferenceKey.showColors)
+        let enabled = !showsColors
+        defaults.set(enabled, forKey: PreferenceKey.showColors)
         updatePreferenceMenuItems()
         apply(lastPresentation)
+        showFeedback("Show Colors \(enabled ? "enabled" : "disabled")")
     }
 
     @objc
     private func toggleShowPaceAlert(_ sender: Any?) {
-        defaults.set(!showsPaceAlert, forKey: PreferenceKey.showPaceAlert)
+        let enabled = !showsPaceAlert
+        defaults.set(enabled, forKey: PreferenceKey.showPaceAlert)
         updatePreferenceMenuItems()
         apply(lastPresentation)
+        showFeedback("Show Pace Alert \(enabled ? "enabled" : "disabled")")
     }
 
     @objc
     private func toggleShowLastUpdated(_ sender: Any?) {
-        defaults.set(!showsLastUpdated, forKey: PreferenceKey.showLastUpdated)
+        let enabled = !showsLastUpdated
+        defaults.set(enabled, forKey: PreferenceKey.showLastUpdated)
         updatePreferenceMenuItems()
         apply(lastPresentation)
+        showFeedback("Show Last Updated \(enabled ? "enabled" : "disabled")")
     }
 
     @objc
@@ -198,6 +206,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         accountSwitchHintItem.tag = MenuTag.accountSwitchHint
         accountSwitchHintItem.isEnabled = false
 
+        let feedbackItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        feedbackItem.tag = MenuTag.feedback
+        feedbackItem.isEnabled = false
+        feedbackItem.isHidden = true
+
         let refreshItem = NSMenuItem(title: "Refresh Now", action: #selector(refreshNow(_:)), keyEquivalent: "")
         refreshItem.tag = MenuTag.refresh
         refreshItem.target = self
@@ -254,6 +267,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             .separator(),
             recentAccountsHeader,
             accountSwitchHintItem,
+            feedbackItem,
             .separator(),
             primaryItem,
             secondaryItem,
@@ -524,6 +538,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item(MenuTag.showColors)?.state = showsColors ? .on : .off
         item(MenuTag.showPaceAlert)?.state = showsPaceAlert ? .on : .off
         item(MenuTag.showLastUpdated)?.state = showsLastUpdated ? .on : .off
+    }
+
+    private func showFeedback(_ message: String) {
+        feedbackHideWorkItem?.cancel()
+        item(MenuTag.feedback)?.isHidden = false
+        item(MenuTag.feedback)?.attributedTitle = NSAttributedString(
+            string: message,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11, weight: .medium),
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
+
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.item(MenuTag.feedback)?.isHidden = true
+            self?.item(MenuTag.feedback)?.title = ""
+        }
+        feedbackHideWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0, execute: workItem)
     }
 
     func menuWillOpen(_ menu: NSMenu) {
