@@ -15,27 +15,27 @@ final class MenuHeaderView: NSView {
     }
 
     private func setup() {
-        frame = NSRect(x: 0, y: 0, width: 260, height: 34)
+        frame = NSRect(x: 0, y: 0, width: 252, height: 32)
 
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.image = NSImage(systemSymbolName: "gauge.open.with.lines.needle.33percent", accessibilityDescription: nil)
-        imageView.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 15, weight: .medium)
+        imageView.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
         imageView.contentTintColor = .labelColor
 
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.font = NSFont.systemFont(ofSize: 15, weight: .semibold)
+        titleLabel.font = NSFont.systemFont(ofSize: 14, weight: .semibold)
         titleLabel.textColor = .labelColor
 
         addSubview(imageView)
         addSubview(titleLabel)
 
         NSLayoutConstraint.activate([
-            imageView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
+            imageView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
             imageView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            imageView.widthAnchor.constraint(equalToConstant: 18),
-            imageView.heightAnchor.constraint(equalToConstant: 18),
+            imageView.widthAnchor.constraint(equalToConstant: 16),
+            imageView.heightAnchor.constraint(equalToConstant: 16),
 
-            titleLabel.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 10),
+            titleLabel.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 8),
             titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])
     }
@@ -57,21 +57,21 @@ final class MenuValueRowView: NSView {
     }
 
     private func setup() {
-        frame = NSRect(x: 0, y: 0, width: 260, height: 34)
+        frame = NSRect(x: 0, y: 0, width: 252, height: 30)
 
         for label in [leftLabel, percentLabel, timeLabel] {
             label.translatesAutoresizingMaskIntoConstraints = false
             label.backgroundColor = .clear
         }
 
-        leftLabel.font = NSFont.systemFont(ofSize: 14, weight: .semibold)
+        leftLabel.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
         leftLabel.textColor = .labelColor
 
-        percentLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 14, weight: .semibold)
+        percentLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .semibold)
         percentLabel.textColor = .secondaryLabelColor
         percentLabel.alignment = .right
 
-        timeLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 14, weight: .semibold)
+        timeLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .semibold)
         timeLabel.textColor = .secondaryLabelColor
         timeLabel.alignment = .right
 
@@ -80,15 +80,15 @@ final class MenuValueRowView: NSView {
         addSubview(timeLabel)
 
         NSLayoutConstraint.activate([
-            leftLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
+            leftLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
             leftLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
 
-            timeLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
+            timeLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
             timeLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
 
-            percentLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -12),
+            percentLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -10),
             percentLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            percentLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 42)
+            percentLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 40)
         ])
     }
 
@@ -104,7 +104,7 @@ final class MenuActionRowView: NSView {
 
     init(title: String, target: AnyObject?, action: Selector?) {
         self.button = NSButton(title: title, target: target, action: action)
-        super.init(frame: NSRect(x: 0, y: 0, width: 260, height: 30))
+        super.init(frame: NSRect(x: 0, y: 0, width: 252, height: 28))
         setup()
     }
 
@@ -116,7 +116,7 @@ final class MenuActionRowView: NSView {
         button.translatesAutoresizingMaskIntoConstraints = false
         button.isBordered = false
         button.bezelStyle = .inline
-        button.font = NSFont.systemFont(ofSize: 13, weight: .regular)
+        button.font = NSFont.systemFont(ofSize: 12, weight: .regular)
         button.contentTintColor = .labelColor
         button.alignment = .left
         button.setButtonType(.momentaryChange)
@@ -124,10 +124,10 @@ final class MenuActionRowView: NSView {
         addSubview(button)
 
         NSLayoutConstraint.activate([
-            button.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
-            button.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
-            button.topAnchor.constraint(equalTo: topAnchor, constant: 2),
-            button.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -2)
+            button.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            button.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            button.topAnchor.constraint(equalTo: topAnchor, constant: 1),
+            button.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -1)
         ])
     }
 }

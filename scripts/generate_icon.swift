@@ -42,11 +42,11 @@ let quotaText = "CQ"
 let paragraph = NSMutableParagraphStyle()
 paragraph.alignment = .center
 let attributes: [NSAttributedString.Key: Any] = [
-    .font: NSFont.systemFont(ofSize: 220, weight: .black),
+    .font: NSFont.systemFont(ofSize: 176, weight: .black),
     .foregroundColor: NSColor.white,
     .paragraphStyle: paragraph
 ]
-quotaText.draw(in: NSRect(x: 0, y: 70, width: 1024, height: 250), withAttributes: attributes)
+quotaText.draw(in: NSRect(x: 0, y: 86, width: 1024, height: 210), withAttributes: attributes)
 
 image.unlockFocus()
 
