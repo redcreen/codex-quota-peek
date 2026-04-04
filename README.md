@@ -88,8 +88,8 @@ codexQuotaPeek accounts list
 
 集成：
 
+- 集成总览见 [integrations/README.md](/Users/redcreen/Project/codex%20limit/integrations/README.md)
 - OpenClaw `status` 注入插件位于 [integrations/openclaw-status-codex-quota](/Users/redcreen/Project/codex%20limit/integrations/openclaw-status-codex-quota)
-- 使用说明见 [integrations/openclaw-status-codex-quota/README.md](/Users/redcreen/Project/codex%20limit/integrations/openclaw-status-codex-quota/README.md)
 
 #### 从源码构建
 
@@ -377,8 +377,8 @@ If macOS blocks the app the first time, allow it from `System Settings -> Privac
 
 #### Integrations
 
+- Integration index: [integrations/README.md](/Users/redcreen/Project/codex%20limit/integrations/README.md)
 - OpenClaw `status` injection plugin lives in [integrations/openclaw-status-codex-quota](/Users/redcreen/Project/codex%20limit/integrations/openclaw-status-codex-quota)
-- Plugin docs are in [integrations/openclaw-status-codex-quota/README.md](/Users/redcreen/Project/codex%20limit/integrations/openclaw-status-codex-quota/README.md)
 
 #### Build from source
 
