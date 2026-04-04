@@ -1,0 +1,64 @@
+{
+  "id": "status-codex-quota",
+  "uiHints": {
+    "enabled": {
+      "label": "Enabled",
+      "help": "Enable Codex quota injection for status output."
+    },
+    "openclawCommand": {
+      "label": "OpenClaw Command",
+      "help": "CLI command used to fetch the base status output. Defaults to 'openclaw'."
+    },
+    "quotaCommand": {
+      "label": "Quota Command",
+      "help": "CLI command used to fetch Codex quota. Defaults to 'codexQuotaPeek'."
+    },
+    "quotaTimeoutMs": {
+      "label": "Quota Timeout",
+      "help": "Maximum time to wait for the quota CLI before skipping injection."
+    },
+    "statusTimeoutMs": {
+      "label": "Status Timeout",
+      "help": "Maximum time to wait for the base status CLI when /status is routed through this plugin."
+    },
+    "cliInject": {
+      "label": "Inject Into CLI Status",
+      "help": "Append Codex quota to plain-text 'openclaw status' output."
+    },
+    "slashOverride": {
+      "label": "Override /status",
+      "help": "Handle /status through the plugin so quota can be appended in chat command output."
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean"
+      },
+      "openclawCommand": {
+        "type": "string"
+      },
+      "quotaCommand": {
+        "type": "string"
+      },
+      "quotaTimeoutMs": {
+        "type": "integer",
+        "minimum": 100,
+        "maximum": 5000
+      },
+      "statusTimeoutMs": {
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 60000
+      },
+      "cliInject": {
+        "type": "boolean"
+      },
+      "slashOverride": {
+        "type": "boolean"
+      }
+    }
+  }
+}

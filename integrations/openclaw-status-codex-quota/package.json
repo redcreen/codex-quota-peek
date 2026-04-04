@@ -1,0 +1,28 @@
+{
+  "name": "status-codex-quota",
+  "version": "0.1.0",
+  "description": "OpenClaw plugin that injects Codex quota into status output",
+  "type": "module",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test",
+    "install:local": "./scripts/install.sh",
+    "uninstall:local": "./scripts/uninstall.sh"
+  },
+  "keywords": [
+    "openclaw",
+    "openclaw-plugin",
+    "codex",
+    "quota",
+    "status"
+  ],
+  "peerDependencies": {
+    "openclaw": "*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.js"
+    ]
+  }
+}
