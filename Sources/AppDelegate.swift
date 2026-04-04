@@ -16,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let paceNotice = 109
         static let updatedAt = 110
         static let accountSwitchHint = 111
+        static let launchAtLogin = 112
         static let accountsStart = 2000
     }
 
@@ -154,6 +155,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         copyItem.tag = MenuTag.copy
         copyItem.target = self
 
+        let launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin(_:)), keyEquivalent: "")
+        launchAtLoginItem.tag = MenuTag.launchAtLogin
+        launchAtLoginItem.target = self
+
         let quitItem = NSMenuItem(title: "Quit", action: #selector(quit(_:)), keyEquivalent: "q")
         quitItem.tag = MenuTag.quit
         quitItem.target = self
@@ -173,9 +178,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             .separator(),
             refreshItem,
             copyItem,
+            launchAtLoginItem,
             .separator(),
             quitItem
         ]
+
+        updateLaunchAtLoginMenuItem()
     }
 
     private func refreshAsync() {
@@ -201,6 +209,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 }
             }
         }
+    }
+
+    @objc
+    private func toggleLaunchAtLogin(_ sender: Any?) {
+        let shouldEnable = item(MenuTag.launchAtLogin)?.state != .on
+        setLaunchAtLogin(enabled: shouldEnable)
+        updateLaunchAtLoginMenuItem()
     }
 
     private func setupFileWatchers() {
@@ -400,6 +415,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.item(withTag: tag)
     }
 
+    private func updateLaunchAtLoginMenuItem() {
+        item(MenuTag.launchAtLogin)?.state = isLaunchAtLoginEnabled() ? .on : .off
+    }
+
     func menuWillOpen(_ menu: NSMenu) {
         isMenuOpen = true
         refreshAccountsAsync()
@@ -553,6 +572,67 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 .foregroundColor: NSColor.secondaryLabelColor
             ]
         )
+    }
+
+    private func isLaunchAtLoginEnabled() -> Bool {
+        let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "CodexQuotaPeek"
+        let script = """
+        tell application "System Events"
+            return exists login item "\(appName)"
+        end tell
+        """
+        let output = runAppleScript(script)
+        return output.trimmingCharacters(in: .whitespacesAndNewlines) == "true"
+    }
+
+    private func setLaunchAtLogin(enabled: Bool) {
+        let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "CodexQuotaPeek"
+        let appPath = Bundle.main.bundleURL.path
+        let script: String
+
+        if enabled {
+            script = """
+            tell application "System Events"
+                if not (exists login item "\(appName)") then
+                    make login item at end with properties {name:"\(appName)", path:"\(appPath)", hidden:false}
+                end if
+            end tell
+            """
+        } else {
+            script = """
+            tell application "System Events"
+                if exists login item "\(appName)" then
+                    delete login item "\(appName)"
+                end if
+            end tell
+            """
+        }
+
+        _ = runAppleScript(script)
+    }
+
+    private func runAppleScript(_ script: String) -> String {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-e", script]
+
+        let outputPipe = Pipe()
+        let errorPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = errorPipe
+
+        do {
+            try process.run()
+            process.waitUntilExit()
+        } catch {
+            return ""
+        }
+
+        if process.terminationStatus != 0 {
+            return ""
+        }
+
+        return String(data: outputPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
     }
 }
 
