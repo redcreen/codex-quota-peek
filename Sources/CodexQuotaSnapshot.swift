@@ -108,6 +108,7 @@ struct StatusPresentation {
     let secondaryRow: MenuRow?
     let paceMessage: String?
     let paceSeverity: PaceSeverity?
+    let trendText: String?
     let updatedAtText: String
     let sourceText: String
     let creditsText: String?
@@ -122,6 +123,7 @@ struct StatusPresentation {
         secondaryRow: MenuRow? = nil,
         paceMessage: String? = nil,
         paceSeverity: PaceSeverity? = nil,
+        trendText: String? = nil,
         updatedAtText: String = "--",
         sourceText: String = "Source: local logs",
         creditsText: String? = nil
@@ -135,6 +137,7 @@ struct StatusPresentation {
         self.secondaryRow = secondaryRow
         self.paceMessage = paceMessage
         self.paceSeverity = paceSeverity
+        self.trendText = trendText
         self.updatedAtText = updatedAtText
         self.sourceText = sourceText
         self.creditsText = creditsText
@@ -164,6 +167,7 @@ struct StatusPresentation {
         accountInfo: CodexAccountInfo?,
         generatedAt: Date,
         source: CodexQuotaFetchSource,
+        trendSummary: CodexQuotaTrendSummary? = nil,
         weeklyPacingMode: WeeklyPacingMode = .balanced56
     ) {
         let primary = snapshot.rateLimits.primary
@@ -199,6 +203,7 @@ struct StatusPresentation {
         }
         paceMessage = StatusPresentation.paceMessage(primary: primary, secondary: secondary, weeklyPacingMode: weeklyPacingMode)
         paceSeverity = StatusPresentation.paceSeverity(primary: primary, secondary: secondary, weeklyPacingMode: weeklyPacingMode)
+        trendText = trendSummary?.menuText
         updatedAtText = StatusPresentation.relativeUpdatedAtLabel(for: generatedAt)
         creditsText = StatusPresentation.creditsText(for: snapshot.credits)
         switch source {
@@ -244,6 +249,9 @@ struct StatusPresentation {
         }
         if let creditsText {
             parts.append("Credits: \(creditsText)")
+        }
+        if let trendText {
+            parts.append(trendText)
         }
         parts.append("Source: \(sourceText)")
         parts.append("Updated: \(StatusPresentation.dateFormatter.string(from: generatedAt))")

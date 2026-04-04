@@ -27,6 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let openStatusPage = 123
         static let about = 124
         static let openUsageDashboard = 125
+        static let trend = 126
         static let accountsStart = 2000
     }
 
@@ -292,6 +293,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         creditsItem.tag = MenuTag.credits
         creditsItem.isEnabled = false
 
+        let trendItem = NSMenuItem(title: "Recent lows: --", action: nil, keyEquivalent: "")
+        trendItem.tag = MenuTag.trend
+        trendItem.isEnabled = false
+        trendItem.isHidden = true
+
         let feedbackItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         feedbackItem.tag = MenuTag.feedback
         feedbackItem.isEnabled = false
@@ -341,6 +347,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             primaryItem,
             secondaryItem,
             creditsItem,
+            trendItem,
             paceNoticeItem,
             sourceItem,
             updatedAtItem,
@@ -380,11 +387,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 }()
                 let result = resolvePreferredResult(fetchedResult, for: mode)
                 let accountInfo = provider.loadAccountInfo()
+                let trendSummary = try? provider.loadTrendSummary()
                 presentation = StatusPresentation(
                     snapshot: result.snapshot,
                     accountInfo: accountInfo,
                     generatedAt: Date(),
                     source: result.source,
+                    trendSummary: trendSummary ?? nil,
                     weeklyPacingMode: selectedWeeklyPacingMode
                 )
             } catch {
@@ -652,6 +661,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item(MenuTag.credits)?.isHidden = presentation.creditsText == nil
         if let creditsText = presentation.creditsText {
             item(MenuTag.credits)?.attributedTitle = styledCredits(creditsText)
+        }
+
+        item(MenuTag.trend)?.isHidden = presentation.trendText == nil
+        if let trendText = presentation.trendText {
+            item(MenuTag.trend)?.attributedTitle = styledTrend(trendText)
         }
     }
 
@@ -981,6 +995,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             string: "Updated \(text)  \(source)",
             attributes: [
                 .font: NSFont.systemFont(ofSize: 11, weight: .regular),
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
+    }
+
+    private func styledTrend(_ text: String) -> NSAttributedString {
+        NSAttributedString(
+            string: text,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11.5, weight: .medium),
                 .foregroundColor: NSColor.secondaryLabelColor
             ]
         )

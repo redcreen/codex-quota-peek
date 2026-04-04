@@ -232,6 +232,11 @@ func testDisplayPresentationUsesPaceMarkersAndSourceText() {
     expect(presentation.primaryRow?.paceText == " Pace above avg ", "row keeps inline pace hint")
 }
 
+func testTrendSummaryMenuText() {
+    let summary = CodexQuotaTrendSummary(sessionLowPercent: 73, weeklyLowPercent: 82)
+    expect(summary.menuText == "Recent lows: 5h 73%  ·  7d 82%", "trend summary formats compact menu text")
+}
+
 func testRelativeUpdatedAtLabels() {
     let now = Date(timeIntervalSince1970: 2_000)
     expect(StatusPresentation.relativeUpdatedAtLabel(for: Date(timeIntervalSince1970: 1_997), now: now) == "just updated", "fresh timestamps show just updated")
@@ -432,7 +437,8 @@ struct TestRunner {
 testManualRefreshDoesNotForceCachedAPIOverFetchedLogs()
 testSourceStrategyFetchPlans()
 testDisplayPresentationUsesPaceMarkersAndSourceText()
-        testRelativeUpdatedAtLabels()
+testTrendSummaryMenuText()
+testRelativeUpdatedAtLabels()
         testQuotaDisplayColorThresholds()
         testAuthSnapshotStoreReadsSavedAccountMetadata()
         testCliHelpPrefersRefreshOverUpdate()

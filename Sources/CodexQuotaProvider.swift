@@ -16,6 +16,23 @@ struct CodexQuotaFetchResult {
     let sourceDate: Date?
 }
 
+struct CodexQuotaTrendSummary {
+    let sessionLowPercent: Int?
+    let weeklyLowPercent: Int?
+
+    var menuText: String? {
+        var parts: [String] = []
+        if let sessionLowPercent {
+            parts.append("5h \(sessionLowPercent)%")
+        }
+        if let weeklyLowPercent {
+            parts.append("7d \(weeklyLowPercent)%")
+        }
+        guard !parts.isEmpty else { return nil }
+        return "Recent lows: " + parts.joined(separator: "  ·  ")
+    }
+}
+
 struct CodexAccountInfo {
     let displayName: String
     let email: String?
@@ -91,6 +108,49 @@ final class CodexQuotaProvider {
             domain: "CodexQuotaPeek",
             code: 1,
             userInfo: [NSLocalizedDescriptionKey: "No Codex rate limit data found in ~/.codex."]
+        )
+    }
+
+    func loadTrendSummary() throws -> CodexQuotaTrendSummary? {
+        let dbPath = homeDirectory.appendingPathComponent(".codex/logs_1.sqlite").path
+        guard fileManager.fileExists(atPath: dbPath) else { return nil }
+
+        let sql = """
+        select ts, feedback_log_body
+        from logs
+        where target = 'codex_api::endpoint::responses_websocket'
+          and feedback_log_body like '%websocket event: {"type":"codex.rate_limits"%'
+        order by id desc
+        limit 500;
+        """
+
+        let output = try runSQLite(databasePath: dbPath, sql: sql)
+        let parsedRows = output
+            .split(separator: "\n")
+            .compactMap { Self.parseRealtimeLogRow(String($0)) }
+            .sorted { ($0.sourceDate ?? .distantPast) < ($1.sourceDate ?? .distantPast) }
+
+        guard let latestDate = parsedRows.last?.sourceDate else { return nil }
+        let sessionCutoff = latestDate.addingTimeInterval(-(24 * 60 * 60))
+        let weeklyCutoff = latestDate.addingTimeInterval(-(7 * 24 * 60 * 60))
+
+        let sessionLow = parsedRows
+            .filter { ($0.sourceDate ?? .distantPast) >= sessionCutoff }
+            .compactMap { $0.snapshot.rateLimits.primary?.remainingPercent }
+            .min()
+
+        let weeklyLow = parsedRows
+            .filter { ($0.sourceDate ?? .distantPast) >= weeklyCutoff }
+            .compactMap { $0.snapshot.rateLimits.secondary?.remainingPercent }
+            .min()
+
+        if sessionLow == nil, weeklyLow == nil {
+            return nil
+        }
+
+        return CodexQuotaTrendSummary(
+            sessionLowPercent: sessionLow,
+            weeklyLowPercent: weeklyLow
         )
     }
 
