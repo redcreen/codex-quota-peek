@@ -20,7 +20,7 @@ private struct CLI {
     func run() -> Int32 {
         let args = Array(CommandLine.arguments.dropFirst())
         if args.isEmpty {
-            return printStatus(usingAPI: false, json: false)
+            return printStatus(usingAPI: false, forcingAPI: false, json: false)
         }
 
         switch args[0] {
@@ -30,7 +30,7 @@ private struct CLI {
         case "status":
             return handleStatus(Array(args.dropFirst()))
         case "json":
-            return printStatus(usingAPI: false, json: true)
+            return printStatus(usingAPI: false, forcingAPI: false, json: true)
         case "accounts":
             return handleAccounts(Array(args.dropFirst()))
         default:
@@ -41,14 +41,23 @@ private struct CLI {
     }
 
     private func handleStatus(_ args: [String]) -> Int32 {
-        let usingAPI = args.contains("--api")
+        let forcingAPI = args.contains("--update") || args.contains("--refresh")
+        let usingAPI = args.contains("--api") || forcingAPI
         let json = args.contains("--json")
-        return printStatus(usingAPI: usingAPI, json: json)
+        return printStatus(usingAPI: usingAPI, forcingAPI: forcingAPI, json: json)
     }
 
-    private func printStatus(usingAPI: Bool, json: Bool) -> Int32 {
+    private func printStatus(usingAPI: Bool, forcingAPI: Bool, json: Bool) -> Int32 {
         do {
-            let result = try (usingAPI ? provider.loadSnapshotUsingAPI() : provider.loadSnapshotForAutomaticRefresh())
+            let result = try {
+                if forcingAPI {
+                    return try provider.loadSnapshotUsingAPI()
+                }
+                if usingAPI {
+                    return try provider.loadSnapshotUsingAPIOrFallback()
+                }
+                return try provider.loadSnapshotForAutomaticRefresh()
+            }()
             let accountInfo = provider.loadAccountInfo()
             let generatedAt = Date()
             let presentation = StatusPresentation(
@@ -185,7 +194,7 @@ private struct CLI {
 
             Usage:
               codexQuotaPeek
-              codexQuotaPeek status [--api] [--json]
+              codexQuotaPeek status [--api|--update|--refresh] [--json]
               codexQuotaPeek json
               codexQuotaPeek accounts list
               codexQuotaPeek accounts save

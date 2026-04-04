@@ -68,6 +68,16 @@ A lightweight macOS menu bar app for checking the latest Codex quota usage at a 
 - `Reveal Logs Database`
 - `codexQuotaPeek` CLI：查看额度、输出 JSON、保存和切换账号快照
 
+CLI 示例：
+
+```bash
+codexQuotaPeek status
+codexQuotaPeek status --update
+codexQuotaPeek status --api
+codexQuotaPeek status --refresh --json
+codexQuotaPeek accounts list
+```
+
 #### 从源码构建
 
 ```bash

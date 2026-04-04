@@ -70,6 +70,17 @@ final class CodexQuotaProvider {
         if let remote = try latestFromUsageAPI() {
             return remote
         }
+        throw NSError(
+            domain: "CodexQuotaPeek",
+            code: 2,
+            userInfo: [NSLocalizedDescriptionKey: "Could not fetch quota from the official API."]
+        )
+    }
+
+    func loadSnapshotUsingAPIOrFallback() throws -> CodexQuotaFetchResult {
+        if let remote = try latestFromUsageAPI() {
+            return remote
+        }
         if let live = try latestFromRealtimeLogs() {
             return live
         }

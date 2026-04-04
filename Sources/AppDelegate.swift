@@ -390,7 +390,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     case .automatic:
                         return try provider.loadSnapshotForAutomaticRefresh()
                     case .apiManual:
-                        return try provider.loadSnapshotUsingAPI()
+                        return try provider.loadSnapshotUsingAPIOrFallback()
                     }
                 }()
         let result = resolvePreferredResult(fetchedResult, for: mode)
