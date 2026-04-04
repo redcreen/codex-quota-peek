@@ -13,6 +13,7 @@ enum CodexQuotaFetchSource: String {
 struct CodexQuotaFetchResult {
     let snapshot: CodexQuotaSnapshot
     let source: CodexQuotaFetchSource
+    let sourceDate: Date?
 }
 
 struct CodexAccountInfo {
@@ -44,13 +45,13 @@ final class CodexQuotaProvider {
 
     func loadSnapshotForAutomaticRefresh() throws -> CodexQuotaFetchResult {
         if let live = try latestFromRealtimeLogs() {
-            return CodexQuotaFetchResult(snapshot: live, source: .realtimeLogs)
+            return live
         }
         if let archived = try latestFromArchivedSessions() {
-            return CodexQuotaFetchResult(snapshot: archived, source: .archivedSessions)
+            return archived
         }
         if let remote = try latestFromUsageAPI() {
-            return CodexQuotaFetchResult(snapshot: remote, source: .api)
+            return remote
         }
         throw NSError(
             domain: "CodexQuotaPeek",
@@ -61,13 +62,13 @@ final class CodexQuotaProvider {
 
     func loadSnapshotUsingAPI() throws -> CodexQuotaFetchResult {
         if let remote = try latestFromUsageAPI() {
-            return CodexQuotaFetchResult(snapshot: remote, source: .api)
+            return remote
         }
         if let live = try latestFromRealtimeLogs() {
-            return CodexQuotaFetchResult(snapshot: live, source: .realtimeLogs)
+            return live
         }
         if let archived = try latestFromArchivedSessions() {
-            return CodexQuotaFetchResult(snapshot: archived, source: .archivedSessions)
+            return archived
         }
         throw NSError(
             domain: "CodexQuotaPeek",
@@ -156,7 +157,7 @@ final class CodexQuotaProvider {
         return results
     }
 
-    private func latestFromUsageAPI() throws -> CodexQuotaSnapshot? {
+    private func latestFromUsageAPI() throws -> CodexQuotaFetchResult? {
         guard let auth = loadAuthFile(),
               let accessToken = auth.tokens.accessToken,
               !accessToken.isEmpty else {
@@ -200,15 +201,16 @@ final class CodexQuotaProvider {
         }
 
         let usage = try decoder.decode(WHAMUsageResponse.self, from: responseData)
-        return usage.toQuotaSnapshot()
+        guard let snapshot = usage.toQuotaSnapshot() else { return nil }
+        return CodexQuotaFetchResult(snapshot: snapshot, source: .api, sourceDate: Date())
     }
 
-    private func latestFromRealtimeLogs() throws -> CodexQuotaSnapshot? {
+    private func latestFromRealtimeLogs() throws -> CodexQuotaFetchResult? {
         let dbPath = homeDirectory.appendingPathComponent(".codex/logs_1.sqlite").path
         guard fileManager.fileExists(atPath: dbPath) else { return nil }
 
         let sql = """
-        select feedback_log_body
+        select ts, feedback_log_body
         from logs
         where target = 'codex_api::endpoint::responses_websocket'
           and feedback_log_body like '%websocket event: {"type":"codex.rate_limits"%'
@@ -222,15 +224,18 @@ final class CodexQuotaProvider {
         }
 
         for candidate in output.split(separator: "\n") {
-            if let snapshot = try decodeSnapshotIfPossible(fromLogBody: String(candidate)) {
-                return snapshot
+            let parts = candidate.split(separator: "\t", maxSplits: 1, omittingEmptySubsequences: false)
+            guard parts.count == 2 else { continue }
+            let timestamp = Double(parts[0]).map(Date.init(timeIntervalSince1970:))
+            if let snapshot = try decodeSnapshotIfPossible(fromLogBody: String(parts[1])) {
+                return CodexQuotaFetchResult(snapshot: snapshot, source: .realtimeLogs, sourceDate: timestamp)
             }
         }
 
         return nil
     }
 
-    private func latestFromArchivedSessions() throws -> CodexQuotaSnapshot? {
+    private func latestFromArchivedSessions() throws -> CodexQuotaFetchResult? {
         let directory = homeDirectory.appendingPathComponent(".codex/archived_sessions")
         guard let files = try? fileManager.contentsOfDirectory(
             at: directory,
@@ -247,11 +252,12 @@ final class CodexQuotaProvider {
         }
 
         for file in sortedFiles {
+            let modifiedAt = try? file.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
             guard let content = try? String(contentsOf: file, encoding: .utf8) else { continue }
             for line in content.split(separator: "\n").reversed() {
                 if line.contains("\"type\":\"token_count\""),
                    let snapshot = try decodeSnapshotFromArchivedLine(String(line)) {
-                    return snapshot
+                    return CodexQuotaFetchResult(snapshot: snapshot, source: .archivedSessions, sourceDate: modifiedAt)
                 }
             }
         }

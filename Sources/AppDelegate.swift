@@ -58,6 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var accountRefreshWorkItem: DispatchWorkItem?
     private var shouldReopenMenuAfterRefresh = false
     private var feedbackHideWorkItem: DispatchWorkItem?
+    private var lastSuccessfulAPIResult: CodexQuotaFetchResult?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -318,7 +319,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard let self else { return }
             let presentation: StatusPresentation
             do {
-                let result = try {
+                let fetchedResult = try {
                     switch mode {
                     case .automatic:
                         return try provider.loadSnapshotForAutomaticRefresh()
@@ -326,6 +327,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                         return try provider.loadSnapshotUsingAPI()
                     }
                 }()
+                let result = resolvePreferredResult(fetchedResult, for: mode)
                 let accountInfo = provider.loadAccountInfo()
                 presentation = StatusPresentation(
                     snapshot: result.snapshot,
@@ -347,6 +349,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 }
             }
         }
+    }
+
+    private func resolvePreferredResult(
+        _ fetchedResult: CodexQuotaFetchResult,
+        for mode: RefreshMode
+    ) -> CodexQuotaFetchResult {
+        if fetchedResult.source == .api {
+            lastSuccessfulAPIResult = fetchedResult
+            return fetchedResult
+        }
+
+        guard mode == .automatic, let recentAPI = lastSuccessfulAPIResult else {
+            return fetchedResult
+        }
+
+        let fetchedDate = fetchedResult.sourceDate ?? .distantPast
+        let apiDate = recentAPI.sourceDate ?? .distantPast
+        if fetchedDate < apiDate {
+            return recentAPI
+        }
+
+        return fetchedResult
     }
 
     @objc
