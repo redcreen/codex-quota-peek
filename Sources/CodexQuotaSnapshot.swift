@@ -300,6 +300,9 @@ struct StatusPresentation {
 
     private static func relativeUpdatedAtLabel(for date: Date, now: Date = Date()) -> String {
         let seconds = max(0, Int(now.timeIntervalSince(date)))
+        if seconds <= 5 {
+            return "just updated"
+        }
         if seconds < 60 {
             return "\(seconds)s"
         }
