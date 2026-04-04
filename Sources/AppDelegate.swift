@@ -233,7 +233,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func configureMenu() {
         menu.autoenablesItems = false
-        menu.minimumWidth = 340
+        menu.minimumWidth = 360
 
         let titleItem = NSMenuItem(title: "Codex", action: nil, keyEquivalent: "")
         titleItem.tag = MenuTag.title
@@ -873,9 +873,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         paceSeverity: StatusPresentation.PaceSeverity?
     ) -> NSAttributedString {
         let title = QuotaDisplayPolicy.menuWindowTitle(for: label)
-        let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
+        let barFont = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
+        let detailFont = NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
+        let progressSlots = 32
         let (percentValue, percentMarker) = splitPercentComponents(percent)
-        let progressBar = styledProgressBar(forPercentText: percent, font: font)
+        let progressBar = styledProgressBar(forPercentText: percent, font: barFont, slots: progressSlots)
         let header = NSMutableAttributedString(
             string: title,
             attributes: [
@@ -897,10 +899,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         header.append(NSAttributedString(string: "\n"))
         header.append(progressBar)
 
+        let leftText = percentMarker.isEmpty ? "\(percentValue) left" : "\(percentValue) \(percentMarker) left"
+        let rightText = "Resets \(reset)"
+        let spacerCount = max(2, progressSlots - leftText.count - rightText.count)
         let detail = NSMutableAttributedString(
             string: "\n\(percentValue)",
             attributes: [
-                .font: NSFont.systemFont(ofSize: 11, weight: .medium),
+                .font: detailFont,
                 .foregroundColor: quotaColor(for: percent)
             ]
         )
@@ -909,14 +914,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 NSAttributedString(
                     string: " \(percentMarker) ",
                     attributes: [
-                        .font: NSFont.systemFont(ofSize: 11, weight: .semibold),
+                        .font: detailFont,
                         .foregroundColor: paceColor(for: percentMarker)
                     ]
                 )
             )
         } else {
             detail.append(NSAttributedString(string: " ", attributes: [
-                .font: NSFont.systemFont(ofSize: 11, weight: .medium),
+                .font: detailFont,
                 .foregroundColor: quotaColor(for: percent)
             ]))
         }
@@ -924,16 +929,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             NSAttributedString(
                 string: "left",
                 attributes: [
-                    .font: NSFont.systemFont(ofSize: 11, weight: .medium),
+                    .font: detailFont,
                     .foregroundColor: quotaColor(for: percent)
                 ]
             )
         )
         detail.append(
             NSAttributedString(
-                string: "    Resets \(reset)",
+                string: String(repeating: " ", count: spacerCount) + rightText,
                 attributes: [
-                    .font: NSFont.systemFont(ofSize: 11, weight: .regular),
+                    .font: detailFont,
                     .foregroundColor: NSColor.secondaryLabelColor
                 ]
             )
@@ -942,8 +947,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return header
     }
 
-    private func styledProgressBar(forPercentText percentText: String, font: NSFont) -> NSAttributedString {
-        let segments = QuotaDisplayPolicy.progressSegments(forPercentText: percentText, slots: 24)
+    private func styledProgressBar(forPercentText percentText: String, font: NSFont, slots: Int) -> NSAttributedString {
+        let segments = QuotaDisplayPolicy.progressSegments(forPercentText: percentText, slots: slots)
         let bar = NSMutableAttributedString()
 
         if segments.filled > 0 {
