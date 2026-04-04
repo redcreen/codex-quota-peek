@@ -12,11 +12,11 @@ final class StatusBadgeView: NSView {
     override var intrinsicContentSize: NSSize {
         let alignedWidth = max(alignedTextWidth(for: line1), alignedTextWidth(for: line2))
         let width = iconSize + iconSpacing + alignedWidth + padding * 2
-        return NSSize(width: max(50, width), height: 20)
+        return NSSize(width: max(52, width), height: 20)
     }
 
-    private let padding: CGFloat = 4
-    private let iconSize: CGFloat = 18
+    private let padding: CGFloat = 2
+    private let iconSize: CGFloat = 20
     private let iconSpacing: CGFloat = 6
     private let prefixColumnWidth: CGFloat = 9
 
@@ -27,8 +27,8 @@ final class StatusBadgeView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         drawIcon()
-        drawAlignedText(line1, yOffset: 9.4)
-        drawAlignedText(line2, yOffset: 1.2)
+        drawAlignedText(line1, yOffset: 9.3)
+        drawAlignedText(line2, yOffset: 1.1)
     }
 
     private func drawIcon() {
@@ -37,8 +37,7 @@ final class StatusBadgeView: NSView {
             return
         }
 
-        let y = round((bounds.height - iconSize) / 2)
-        icon.draw(in: NSRect(x: padding, y: y, width: iconSize, height: iconSize))
+        icon.draw(in: NSRect(x: padding, y: 0, width: iconSize, height: iconSize))
     }
 
     private func drawAlignedText(_ text: String, yOffset: CGFloat) {
