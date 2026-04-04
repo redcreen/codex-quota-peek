@@ -77,29 +77,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard let button = statusItem.button else { return }
         button.title = ""
         button.imagePosition = .imageOnly
-        button.target = self
-        button.action = #selector(toggleMenu(_:))
-        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         menu.delegate = self
+        statusItem.menu = menu
 
         badgeView.line1 = lastPresentation.line1
         badgeView.line2 = lastPresentation.line2
         let image = badgeView.renderedImage()
         button.image = image
         statusItem.length = image.size.width
-    }
-
-    @objc
-    private func toggleMenu(_ sender: Any?) {
-        if isMenuOpen {
-            menu.cancelTracking()
-            return
-        }
-
-        refreshAccountsAsync()
-        statusItem.button?.highlight(true)
-        statusItem.popUpMenu(menu)
-        statusItem.button?.highlight(false)
     }
 
     private func configureMenu() {
@@ -288,6 +273,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuWillOpen(_ menu: NSMenu) {
         isMenuOpen = true
+        refreshAccountsAsync()
     }
 
     func menuDidClose(_ menu: NSMenu) {
