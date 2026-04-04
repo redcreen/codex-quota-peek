@@ -17,12 +17,16 @@ final class CodexQuotaProvider {
     private let fileManager = FileManager.default
     private let decoder = JSONDecoder()
     private let homeDirectory: URL
+    private let apiBaseURL = URL(string: "https://chatgpt.com/backend-api")!
 
     init(homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser) {
         self.homeDirectory = homeDirectory
     }
 
     func loadSnapshot() throws -> CodexQuotaSnapshot {
+        if let remote = try latestFromUsageAPI() {
+            return remote
+        }
         if let live = try latestFromRealtimeLogs() {
             return live
         }
@@ -114,6 +118,53 @@ final class CodexQuotaProvider {
         }
 
         return results
+    }
+
+    private func latestFromUsageAPI() throws -> CodexQuotaSnapshot? {
+        guard let auth = loadAuthFile(),
+              let accessToken = auth.tokens.accessToken,
+              !accessToken.isEmpty else {
+            return nil
+        }
+
+        var request = URLRequest(url: apiBaseURL.appendingPathComponent("wham/usage"))
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.timeoutInterval = 8
+
+        let semaphore = DispatchSemaphore(value: 0)
+        var responseData: Data?
+        var response: URLResponse?
+        var responseError: Error?
+
+        URLSession.shared.dataTask(with: request) { data, urlResponse, error in
+            responseData = data
+            response = urlResponse
+            responseError = error
+            semaphore.signal()
+        }.resume()
+
+        _ = semaphore.wait(timeout: .now() + 10)
+
+        if let responseError {
+            throw responseError
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            return nil
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            return nil
+        }
+
+        guard let responseData else {
+            return nil
+        }
+
+        let usage = try decoder.decode(WHAMUsageResponse.self, from: responseData)
+        return usage.toQuotaSnapshot()
     }
 
     private func latestFromRealtimeLogs() throws -> CodexQuotaSnapshot? {
@@ -289,12 +340,15 @@ final class CodexQuotaProvider {
     }
 
     private func loadCurrentAccountID() -> String? {
+        loadAuthFile()?.tokens.accountID
+    }
+
+    private func loadAuthFile() -> CodexAuthFile? {
         let authURL = homeDirectory.appendingPathComponent(".codex/auth.json")
-        guard let data = try? Data(contentsOf: authURL),
-              let auth = try? decoder.decode(CodexAuthFile.self, from: data) else {
+        guard let data = try? Data(contentsOf: authURL) else {
             return nil
         }
-        return auth.tokens.accountID
+        return try? decoder.decode(CodexAuthFile.self, from: data)
     }
 
     private func firstMatch(in text: String, regex: NSRegularExpression?) -> String? {
@@ -366,6 +420,67 @@ private struct ArchivedRateLimits: Decodable {
 
     func toRateLimits() -> RateLimits {
         RateLimits(allowed: nil, limitReached: nil, primary: primary, secondary: secondary)
+    }
+}
+
+private struct WHAMUsageResponse: Decodable {
+    let planType: String?
+    let rateLimit: WHAMRateLimit?
+
+    enum CodingKeys: String, CodingKey {
+        case planType = "plan_type"
+        case rateLimit = "rate_limit"
+    }
+
+    func toQuotaSnapshot() -> CodexQuotaSnapshot? {
+        guard let rateLimit else { return nil }
+        return CodexQuotaSnapshot(planType: planType, rateLimits: rateLimit.toRateLimits())
+    }
+}
+
+private struct WHAMRateLimit: Decodable {
+    let allowed: Bool?
+    let limitReached: Bool?
+    let primaryWindow: WHAMLimitWindow?
+    let secondaryWindow: WHAMLimitWindow?
+
+    enum CodingKeys: String, CodingKey {
+        case allowed
+        case limitReached = "limit_reached"
+        case primaryWindow = "primary_window"
+        case secondaryWindow = "secondary_window"
+    }
+
+    func toRateLimits() -> RateLimits {
+        RateLimits(
+            allowed: allowed,
+            limitReached: limitReached,
+            primary: primaryWindow?.toLimitWindow(),
+            secondary: secondaryWindow?.toLimitWindow()
+        )
+    }
+}
+
+private struct WHAMLimitWindow: Decodable {
+    let usedPercent: Double
+    let limitWindowSeconds: Int?
+    let resetAfterSeconds: Int?
+    let resetAt: TimeInterval?
+
+    enum CodingKeys: String, CodingKey {
+        case usedPercent = "used_percent"
+        case limitWindowSeconds = "limit_window_seconds"
+        case resetAfterSeconds = "reset_after_seconds"
+        case resetAt = "reset_at"
+    }
+
+    func toLimitWindow() -> LimitWindow {
+        LimitWindow(
+            usedPercent: usedPercent,
+            windowMinutes: limitWindowSeconds.map { max(1, $0 / 60) },
+            resetAfterSeconds: resetAfterSeconds,
+            resetAt: resetAt
+        )
     }
 }
 
