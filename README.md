@@ -72,7 +72,6 @@ CLI 示例：
 
 ```bash
 codexQuotaPeek status
-codexQuotaPeek status --update
 codexQuotaPeek status --api
 codexQuotaPeek status --refresh --json
 codexQuotaPeek accounts list

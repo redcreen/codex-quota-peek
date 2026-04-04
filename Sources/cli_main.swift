@@ -41,7 +41,7 @@ private struct CLI {
     }
 
     private func handleStatus(_ args: [String]) -> Int32 {
-        let forcingAPI = args.contains("--update") || args.contains("--refresh")
+        let forcingAPI = args.contains("--refresh")
         let usingAPI = args.contains("--api") || forcingAPI
         let json = args.contains("--json")
         return printStatus(usingAPI: usingAPI, forcingAPI: forcingAPI, json: json)
@@ -194,7 +194,7 @@ private struct CLI {
 
             Usage:
               codexQuotaPeek
-              codexQuotaPeek status [--api|--update|--refresh] [--json]
+              codexQuotaPeek status [--api|--refresh] [--json]
               codexQuotaPeek json
               codexQuotaPeek accounts list
               codexQuotaPeek accounts save

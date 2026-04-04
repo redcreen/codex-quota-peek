@@ -222,6 +222,18 @@ func testAuthSnapshotStoreReadsSavedAccountMetadata() {
     expect(accounts.first?.snapshotIdentifier == "acct-second", "snapshot store uses account id as snapshot identifier")
 }
 
+func testCliHelpPrefersRefreshOverUpdate() {
+    let helpText = """
+    codexQuotaPeek
+
+    Usage:
+      codexQuotaPeek
+      codexQuotaPeek status [--api|--refresh] [--json]
+    """
+    expect(helpText.contains("--refresh"), "CLI help includes refresh flag")
+    expect(!helpText.contains("--update"), "CLI help no longer mentions update flag")
+}
+
 @main
 struct TestRunner {
     static func main() {
@@ -233,6 +245,7 @@ struct TestRunner {
         testRelativeUpdatedAtLabels()
         testQuotaDisplayColorThresholds()
         testAuthSnapshotStoreReadsSavedAccountMetadata()
+        testCliHelpPrefersRefreshOverUpdate()
         print("All tests passed.")
     }
 }
