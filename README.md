@@ -66,11 +66,13 @@ A lightweight macOS menu bar app for checking the latest Codex quota usage at a 
 - `Launch at Login`
 - `Open Codex Folder`
 - `Reveal Logs Database`
+- `codexQuotaPeek` CLI：查看额度、输出 JSON、保存和切换账号快照
 
 #### 从源码构建
 
 ```bash
 ./scripts/build_app.sh
+./scripts/build_cli.sh
 ./scripts/package_release.sh
 ```
 
@@ -78,6 +80,13 @@ A lightweight macOS menu bar app for checking the latest Codex quota usage at a 
 
 ```bash
 ./scripts/test.sh
+```
+
+安装 CLI：
+
+```bash
+./scripts/install_cli.sh
+codexQuotaPeek help
 ```
 
 构建完成后可直接运行：
