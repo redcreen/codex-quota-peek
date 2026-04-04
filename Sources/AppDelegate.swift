@@ -15,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let recentAccountsHeader = 108
         static let paceNotice = 109
         static let updatedAt = 110
+        static let accountSwitchHint = 111
         static let accountsStart = 2000
     }
 
@@ -139,6 +140,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updatedAtItem.tag = MenuTag.updatedAt
         updatedAtItem.isEnabled = false
 
+        let accountSwitchHintItem = NSMenuItem(title: "Selecting an account opens Codex login in Terminal", action: nil, keyEquivalent: "")
+        accountSwitchHintItem.tag = MenuTag.accountSwitchHint
+        accountSwitchHintItem.isEnabled = false
+
         let refreshItem = NSMenuItem(title: "Refresh Now", action: #selector(refreshNow(_:)), keyEquivalent: "")
         refreshItem.tag = MenuTag.refresh
         refreshItem.target = self
@@ -157,6 +162,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             planItem,
             .separator(),
             recentAccountsHeader,
+            accountSwitchHintItem,
             .separator(),
             primaryItem,
             secondaryItem,
@@ -418,11 +424,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         for (offset, account) in pendingAccounts.enumerated() {
-            let title = account.isCurrent ? "\(account.displayName) (Current)" : account.displayName
+            let title = account.isCurrent ? "Current: \(account.displayName)" : "Sign in as \(account.displayName)"
             let item = NSMenuItem(title: title, action: #selector(switchAccount(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = account.email ?? account.displayName
             item.indentationLevel = 1
+            item.isEnabled = !account.isCurrent
             item.tag = MenuTag.accountsStart + offset
             menu.insertItem(item, at: headerIndex + 1 + offset)
         }
