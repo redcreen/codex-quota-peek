@@ -338,24 +338,32 @@ enum AppLanguage: String, CaseIterable {
         }
     }
 
-    func trendSummaryText(windowLabel: String, deltaPoints: Int?, lowPercent: Int?, lowDate: Date?, recentWindow: TrendWindow) -> String? {
+    func trendSummaryText(windowLabel: String, deltaPoints: Int?, currentPercent: Int?, lowPercent: Int?, lowDate: Date?, recentWindow: TrendWindow) -> String? {
         var details: [String] = []
         if let deltaPoints, let trendDirection = trendDirectionText(deltaPoints) {
             details.append(trendDirection)
         }
-        if let lowPercent {
-            var lowText = self == .english ? "low \(lowPercent)%" : "最低 \(lowPercent)%"
-            if let lowDate {
-                lowText += self == .english
-                    ? " at \(trendTimestamp(lowDate, recentWindow: recentWindow))"
-                    : "，时间 \(trendTimestamp(lowDate, recentWindow: recentWindow))"
-            }
+        if let lowPercent, let lowText = lowSummaryText(currentPercent: currentPercent, lowPercent: lowPercent, lowDate: lowDate, recentWindow: recentWindow) {
             details.append(lowText)
         }
         guard !details.isEmpty else { return nil }
         return self == .english
             ? "\(windowLabel) trend: \(details.joined(separator: " · "))"
             : "\(windowLabel)趋势：\(details.joined(separator: " · "))"
+    }
+
+    private func lowSummaryText(currentPercent: Int?, lowPercent: Int, lowDate: Date?, recentWindow: TrendWindow) -> String? {
+        if let currentPercent, (currentPercent - lowPercent) < 5 {
+            return nil
+        }
+
+            var lowText = self == .english ? "low \(lowPercent)%" : "最低 \(lowPercent)%"
+            if let lowDate {
+                lowText += self == .english
+                    ? " at \(trendTimestamp(lowDate, recentWindow: recentWindow))"
+                    : "，时间 \(trendTimestamp(lowDate, recentWindow: recentWindow))"
+            }
+        return lowText
     }
 
     enum TrendWindow {

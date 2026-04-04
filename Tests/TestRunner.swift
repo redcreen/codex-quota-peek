@@ -251,8 +251,10 @@ func testDisplayPresentationUsesPaceMarkersAndSourceText() {
 
 func testTrendSummaryMenuText() {
     let summary = CodexQuotaTrendSummary(
+        sessionCurrentPercent: 83,
         sessionLowPercent: 73,
         sessionLowDate: Date(timeIntervalSince1970: 1_775_291_731),
+        weeklyCurrentPercent: 84,
         weeklyLowPercent: 82,
         weeklyLowDate: Date(timeIntervalSince1970: 1_775_896_800),
         sessionTrend: "._=+##",
@@ -265,8 +267,7 @@ func testTrendSummaryMenuText() {
     expect(menuText.contains("low 73% at"), "trend summary includes session low timestamp")
     let weeklyText = summary.sparklineText(language: .english) ?? ""
     expect(!weeklyText.contains("steady"), "weekly trend summary hides weak steady labels")
-    expect(weeklyText.contains("7 days trend:"), "weekly trend summary still renders a readable header")
-    expect(weeklyText.contains("low 82%"), "weekly trend summary keeps weekly low percentage readable")
+    expect(weeklyText.isEmpty, "weekly trend summary hides low points that are too close to the current value")
 }
 
 func testSparklineSampling() {
@@ -514,8 +515,10 @@ func testChineseLanguagePresentationLocalizesCoreLabels() {
         generatedAt: Date(),
         source: .realtimeLogs,
         trendSummary: CodexQuotaTrendSummary(
+            sessionCurrentPercent: 80,
             sessionLowPercent: 73,
             sessionLowDate: Date(),
+            weeklyCurrentPercent: 82,
             weeklyLowPercent: 82,
             weeklyLowDate: Date(),
             sessionTrend: "._=+##",

@@ -17,8 +17,10 @@ struct CodexQuotaFetchResult {
 }
 
 struct CodexQuotaTrendSummary {
+    let sessionCurrentPercent: Int?
     let sessionLowPercent: Int?
     let sessionLowDate: Date?
+    let weeklyCurrentPercent: Int?
     let weeklyLowPercent: Int?
     let weeklyLowDate: Date?
     let sessionTrend: String?
@@ -30,6 +32,7 @@ struct CodexQuotaTrendSummary {
         language.trendSummaryText(
             windowLabel: language.windowLabel(for: 300),
             deltaPoints: sessionDeltaPoints,
+            currentPercent: sessionCurrentPercent,
             lowPercent: sessionLowPercent,
             lowDate: sessionLowDate,
             recentWindow: .day
@@ -40,6 +43,7 @@ struct CodexQuotaTrendSummary {
         language.trendSummaryText(
             windowLabel: language.windowLabel(for: 10080),
             deltaPoints: weeklyDeltaPoints,
+            currentPercent: weeklyCurrentPercent,
             lowPercent: weeklyLowPercent,
             lowDate: weeklyLowDate,
             recentWindow: .week
@@ -190,8 +194,10 @@ final class CodexQuotaProvider {
         }
 
         return CodexQuotaTrendSummary(
+            sessionCurrentPercent: sessionRows.last?.snapshot.rateLimits.primary?.remainingPercent,
             sessionLowPercent: sessionLowRow?.0,
             sessionLowDate: sessionLowRow?.1,
+            weeklyCurrentPercent: weeklyRows.last?.snapshot.rateLimits.secondary?.remainingPercent,
             weeklyLowPercent: weeklyLowRow?.0,
             weeklyLowDate: weeklyLowRow?.1,
             sessionTrend: sessionTrend,
