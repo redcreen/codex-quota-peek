@@ -363,8 +363,12 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
     )
     expect(StatusPresentation.statusPercentText(for: weekly) == "93%!", "full-week pacing still warns on early weekly usage")
     expect(
-        StatusPresentation.statusPercentText(for: weekly, weeklyPacingMode: .activeHours16x7, isWeekly: true) == "93%",
+        StatusPresentation.statusPercentText(for: weekly, weeklyPacingMode: .activeHoursCustom, isWeekly: true, activeHoursPerDay: 16) == "93%",
         "active-hours weekly pacing can suppress overly sensitive warnings"
+    )
+    expect(
+        WeeklyPacingMode.activeHoursCustom.tooltipText(activeHoursPerDay: 12).contains("12 active hours"),
+        "weekly pacing tooltip reflects configured daily active hours"
     )
 }
 
