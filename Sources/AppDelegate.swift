@@ -374,8 +374,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             secondaryItem,
             creditsItem,
             paceNoticeItem,
-            updatedAtItem,
             sourceItem,
+            updatedAtItem,
             .separator(),
             refreshItem,
             switchAccountItem,
@@ -609,7 +609,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         item(MenuTag.title)?.attributedTitle = styledTitle(
             title: "Codex",
-            subtitle: showsLastUpdated ? "Updated \(presentation.updatedAtText)" : ""
+            subtitle: ""
         )
         item(MenuTag.account)?.attributedTitle = styledHeadlineValue(
             presentation.accountRow?.value ?? "--",
@@ -663,7 +663,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         item(MenuTag.paceNotice)?.isHidden = true
 
-        item(MenuTag.updatedAt)?.isHidden = true
+        item(MenuTag.updatedAt)?.isHidden = !showsLastUpdated
+        if showsLastUpdated {
+            item(MenuTag.updatedAt)?.attributedTitle = styledUpdatedAt(presentation.updatedAtText)
+        }
 
         item(MenuTag.source)?.isHidden = false
         item(MenuTag.source)?.attributedTitle = styledSource(presentation.sourceText)
