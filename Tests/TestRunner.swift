@@ -206,6 +206,7 @@ func testDisplayPresentationUsesPaceMarkersAndSourceText() {
     expect(presentation.sourceText == "Source: API", "presentation keeps source text")
     expect(presentation.creditsText == "233.93 left", "presentation formats credits")
     expect(presentation.paceMessage == "5 hours above average", "presentation shortens pace message")
+    expect(presentation.primaryRow?.paceText == " Pace above avg ", "row keeps inline pace hint")
 }
 
 func testRelativeUpdatedAtLabels() {

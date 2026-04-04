@@ -95,6 +95,8 @@ struct StatusPresentation {
         let percentText: String
         let resetText: String
         let isUsingFasterThanAverage: Bool
+        let paceText: String?
+        let paceSeverity: PaceSeverity?
     }
 
     let line1: String
@@ -179,7 +181,9 @@ struct StatusPresentation {
                 label: StatusPresentation.windowLabel(for: $0),
                 percentText: StatusPresentation.statusPercentText(for: $0),
                 resetText: StatusPresentation.resetLabel(for: $0),
-                isUsingFasterThanAverage: $0.isUsingFasterThanAverage
+                isUsingFasterThanAverage: $0.isUsingFasterThanAverage,
+                paceText: StatusPresentation.inlinePaceText(for: $0),
+                paceSeverity: StatusPresentation.paceSeverity(for: $0)
             )
         }
         secondaryRow = secondary.map {
@@ -187,7 +191,9 @@ struct StatusPresentation {
                 label: StatusPresentation.windowLabel(for: $0),
                 percentText: StatusPresentation.statusPercentText(for: $0),
                 resetText: StatusPresentation.resetLabel(for: $0),
-                isUsingFasterThanAverage: $0.isUsingFasterThanAverage
+                isUsingFasterThanAverage: $0.isUsingFasterThanAverage,
+                paceText: StatusPresentation.inlinePaceText(for: $0),
+                paceSeverity: StatusPresentation.paceSeverity(for: $0)
             )
         }
         paceMessage = StatusPresentation.paceMessage(primary: primary, secondary: secondary)
@@ -307,6 +313,11 @@ struct StatusPresentation {
             return "\(labels[0]) above average"
         }
         return labels.joined(separator: " + ") + " above average"
+    }
+
+    private static func inlinePaceText(for window: LimitWindow) -> String? {
+        guard window.isUsingFasterThanAverage else { return nil }
+        return " Pace above avg "
     }
 
     private static func paceSeverity(primary: LimitWindow?, secondary: LimitWindow?) -> PaceSeverity? {

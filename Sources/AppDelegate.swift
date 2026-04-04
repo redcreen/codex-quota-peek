@@ -624,13 +624,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item(MenuTag.primary)?.attributedTitle = styledQuotaRow(
                 label: primary.label,
                 percent: primary.percentText,
-                reset: primary.resetText
+                reset: primary.resetText,
+                paceText: showsPaceAlert ? primary.paceText : nil,
+                paceSeverity: primary.paceSeverity
             )
         } else {
             item(MenuTag.primary)?.attributedTitle = styledQuotaRow(
                 label: "5 hours",
                 percent: "--",
-                reset: "--"
+                reset: "--",
+                paceText: nil,
+                paceSeverity: nil
             )
         }
 
@@ -638,27 +642,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item(MenuTag.secondary)?.attributedTitle = styledQuotaRow(
                 label: secondary.label,
                 percent: secondary.percentText,
-                reset: secondary.resetText
+                reset: secondary.resetText,
+                paceText: showsPaceAlert ? secondary.paceText : nil,
+                paceSeverity: secondary.paceSeverity
             )
         } else {
             item(MenuTag.secondary)?.attributedTitle = styledQuotaRow(
                 label: "7 days",
                 percent: "--",
-                reset: "--"
+                reset: "--",
+                paceText: nil,
+                paceSeverity: nil
             )
         }
 
-        item(MenuTag.paceNotice)?.isHidden = false
-        if !showsPaceAlert {
-            item(MenuTag.paceNotice)?.attributedTitle = styledMutedStatus("Pace alert hidden")
-        } else if let paceMessage = presentation.paceMessage {
-            item(MenuTag.paceNotice)?.attributedTitle = styledPaceNotice(
-                paceMessage,
-                severity: presentation.paceSeverity ?? .warning
-            )
-        } else {
-            item(MenuTag.paceNotice)?.attributedTitle = styledMutedStatus("Pace normal")
-        }
+        item(MenuTag.paceNotice)?.isHidden = true
 
         item(MenuTag.updatedAt)?.isHidden = true
 
@@ -824,7 +822,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
     }
 
-    private func styledQuotaRow(label: String, percent: String, reset: String) -> NSAttributedString {
+    private func styledQuotaRow(
+        label: String,
+        percent: String,
+        reset: String,
+        paceText: String?,
+        paceSeverity: StatusPresentation.PaceSeverity?
+    ) -> NSAttributedString {
         let title = QuotaDisplayPolicy.menuWindowTitle(for: label)
         let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
         let (percentValue, percentMarker) = splitPercentComponents(percent)
@@ -836,6 +840,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 .foregroundColor: NSColor.labelColor
             ]
         )
+        if let paceText, let paceSeverity {
+            header.append(
+                NSAttributedString(
+                    string: paceText,
+                    attributes: [
+                        .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
+                        .foregroundColor: paceSeverity == .critical ? NSColor.systemRed : NSColor.systemYellow
+                    ]
+                )
+            )
+        }
         header.append(NSAttributedString(string: "\n"))
         header.append(progressBar)
 
@@ -954,16 +969,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func paceColor(for marker: String) -> NSColor {
         marker == "!!" ? NSColor.systemRed : NSColor.systemYellow
-    }
-
-    private func styledPaceNotice(_ text: String, severity: StatusPresentation.PaceSeverity) -> NSAttributedString {
-        NSAttributedString(
-            string: "Pace: \(text)",
-            attributes: [
-                .font: NSFont.systemFont(ofSize: 11, weight: .medium),
-                .foregroundColor: severity == .critical ? NSColor.systemRed : NSColor.systemYellow
-            ]
-        )
     }
 
     private func styledUpdatedAt(_ text: String) -> NSAttributedString {
