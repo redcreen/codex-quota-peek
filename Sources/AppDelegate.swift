@@ -105,16 +105,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc
     private func quit(_ sender: Any?) {
-        let alert = NSAlert()
-        alert.messageText = "Quit Codex Quota Peek?"
-        alert.informativeText = "The menu bar app will close until you open it again."
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "Quit")
-        alert.addButton(withTitle: "Cancel")
-
-        if alert.runModal() == .alertFirstButtonReturn {
-            NSApp.terminate(nil)
-        }
+        NSApp.terminate(nil)
     }
 
     @objc
@@ -233,7 +224,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func configureMenu() {
         menu.autoenablesItems = false
-        menu.minimumWidth = 360
+        menu.minimumWidth = 340
 
         let titleItem = NSMenuItem(title: "Codex", action: nil, keyEquivalent: "")
         titleItem.tag = MenuTag.title
@@ -365,7 +356,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ]
         preferencesItem.submenu = preferencesMenu
 
-        let quitItem = NSMenuItem(title: "Quit...", action: #selector(quit(_:)), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "Quit", action: #selector(quit(_:)), keyEquivalent: "q")
         quitItem.tag = MenuTag.quit
         quitItem.target = self
 
@@ -680,11 +671,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         item(MenuTag.updatedAt)?.isHidden = !showsLastUpdated
         if showsLastUpdated {
-            item(MenuTag.updatedAt)?.attributedTitle = styledUpdatedAt(presentation.updatedAtText)
+            item(MenuTag.updatedAt)?.attributedTitle = styledUpdatedAt(presentation.updatedAtText, source: presentation.sourceText)
         }
 
-        item(MenuTag.source)?.isHidden = false
-        item(MenuTag.source)?.attributedTitle = styledSource(presentation.sourceText)
+        item(MenuTag.source)?.isHidden = true
 
         item(MenuTag.credits)?.isHidden = presentation.creditsText == nil
         if let creditsText = presentation.creditsText {
@@ -875,7 +865,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let title = QuotaDisplayPolicy.menuWindowTitle(for: label)
         let barFont = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
         let detailFont = NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
-        let progressSlots = 32
+        let progressSlots = 28
         let (percentValue, percentMarker) = splitPercentComponents(percent)
         let progressBar = styledProgressBar(forPercentText: percent, font: barFont, slots: progressSlots)
         let header = NSMutableAttributedString(
@@ -1019,9 +1009,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         marker == "!!" ? NSColor.systemRed : NSColor.systemYellow
     }
 
-    private func styledUpdatedAt(_ text: String) -> NSAttributedString {
+    private func styledUpdatedAt(_ text: String, source: String) -> NSAttributedString {
         NSAttributedString(
-            string: "Last updated: \(text)",
+            string: "Updated \(text)  \(source)",
             attributes: [
                 .font: NSFont.systemFont(ofSize: 11, weight: .regular),
                 .foregroundColor: NSColor.secondaryLabelColor
