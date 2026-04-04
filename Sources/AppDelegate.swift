@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let provider = CodexQuotaProvider()
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let badgeView = StatusBadgeView(frame: NSRect(x: 0, y: 0, width: 56, height: 24))
@@ -54,6 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.imagePosition = .imageOnly
         }
 
+        menu.delegate = self
         statusItem.menu = menu
     }
 
@@ -120,6 +121,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.button?.image = image
         statusItem.button?.toolTip = presentation.tooltip
         statusItem.length = image.size.width
+        statusItem.button?.needsDisplay = true
 
         let accountSummary = [presentation.accountRow?.value, presentation.planRow?.value]
             .compactMap { $0 }
@@ -143,5 +145,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             percent: presentation.secondaryRow?.percentText ?? "--",
             time: presentation.secondaryRow?.resetText ?? "--"
         )
+
+        for view in [headerView, accountInfoView, planInfoView, primaryRowView, secondaryRowView, refreshRowView, copyRowView, quitRowView] {
+            view.needsDisplay = true
+        }
+    }
+
+    func menuWillOpen(_ menu: NSMenu) {
+        refresh()
     }
 }
