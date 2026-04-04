@@ -21,7 +21,7 @@ final class StatusBadgeView: NSView {
     private let prefixColumnWidth: CGFloat = 9
     private let iconCropInsetRatio: CGFloat = 0.16
 
-    private let lineAttributes: [NSAttributedString.Key: Any] = [
+    private let prefixAttributes: [NSAttributedString.Key: Any] = [
         .font: NSFont.monospacedDigitSystemFont(ofSize: 8, weight: .semibold),
         .foregroundColor: NSColor.white
     ]
@@ -62,15 +62,35 @@ final class StatusBadgeView: NSView {
         let prefix = parts.first.map(String.init) ?? text
         let suffix = parts.count > 1 ? String(parts[1]) : ""
 
-        prefix.draw(at: NSPoint(x: baseX, y: yOffset), withAttributes: lineAttributes)
-        suffix.draw(at: NSPoint(x: baseX + prefixColumnWidth, y: yOffset), withAttributes: lineAttributes)
+        prefix.draw(at: NSPoint(x: baseX, y: yOffset), withAttributes: prefixAttributes)
+        suffix.draw(
+            at: NSPoint(x: baseX + prefixColumnWidth, y: yOffset),
+            withAttributes: [
+                .font: NSFont.monospacedDigitSystemFont(ofSize: 8, weight: .semibold),
+                .foregroundColor: quotaColor(for: suffix)
+            ]
+        )
     }
 
     private func alignedTextWidth(for text: String) -> CGFloat {
         let parts = text.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: false)
         let suffix = parts.count > 1 ? String(parts[1]) : ""
-        let suffixWidth = ceil(suffix.size(withAttributes: lineAttributes).width)
+        let suffixWidth = ceil(suffix.size(withAttributes: prefixAttributes).width)
         return prefixColumnWidth + suffixWidth
+    }
+
+    private func quotaColor(for text: String) -> NSColor {
+        guard let percent = Int(text.replacingOccurrences(of: "%", with: "")) else {
+            return .white
+        }
+
+        if percent < 30 {
+            return NSColor(calibratedRed: 1.0, green: 0.34, blue: 0.32, alpha: 1.0)
+        }
+        if percent < 50 {
+            return NSColor(calibratedRed: 0.98, green: 0.83, blue: 0.28, alpha: 1.0)
+        }
+        return NSColor(calibratedRed: 0.43, green: 0.93, blue: 0.58, alpha: 1.0)
     }
 
     private func invalidateLayout() {

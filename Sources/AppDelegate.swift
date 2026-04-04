@@ -346,14 +346,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func styledQuotaRow(label: String, percent: String, reset: String) -> NSAttributedString {
         let paddedLabel = label.padding(toLength: 10, withPad: " ", startingAt: 0)
         let paddedPercent = percent.leftPadding(toLength: 4)
-        let line = "\(paddedLabel)  \(paddedPercent)  \(reset)"
-        return NSAttributedString(
-            string: line,
+        let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
+        let line = NSMutableAttributedString(
+            string: "\(paddedLabel)  ",
             attributes: [
-                .font: NSFont.monospacedSystemFont(ofSize: 12, weight: .medium),
+                .font: font,
                 .foregroundColor: NSColor.labelColor
             ]
         )
+        line.append(
+            NSAttributedString(
+                string: paddedPercent,
+                attributes: [
+                    .font: font,
+                    .foregroundColor: quotaColor(for: percent)
+                ]
+            )
+        )
+        line.append(
+            NSAttributedString(
+                string: "  \(reset)",
+                attributes: [
+                    .font: font,
+                    .foregroundColor: NSColor.secondaryLabelColor
+                ]
+            )
+        )
+        return line
+    }
+
+    private func quotaColor(for percentText: String) -> NSColor {
+        guard let percent = Int(percentText.replacingOccurrences(of: "%", with: "")) else {
+            return NSColor.labelColor
+        }
+
+        if percent < 30 {
+            return NSColor.systemRed
+        }
+        if percent < 50 {
+            return NSColor.systemYellow
+        }
+        return NSColor.systemGreen
     }
 }
 
