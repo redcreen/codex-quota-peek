@@ -251,14 +251,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             accessibilityDescription: nil
         )
 
-        let accountItem = NSMenuItem(title: "--", action: nil, keyEquivalent: "")
-        accountItem.tag = MenuTag.account
-        accountItem.isEnabled = false
-
-        let planItem = NSMenuItem(title: "--", action: nil, keyEquivalent: "")
-        planItem.tag = MenuTag.plan
-        planItem.isEnabled = false
-
         let saveAccountSnapshotItem = NSMenuItem(
             title: language.saveCurrentAccountSnapshotTitle,
             action: #selector(saveCurrentAccountSnapshot(_:)),
@@ -364,8 +356,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         menu.items = [
             titleItem,
-            accountItem,
-            planItem,
             .separator(),
             primaryItem,
             secondaryItem,

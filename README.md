@@ -22,8 +22,11 @@ A lightweight macOS menu bar app for checking the latest Codex quota usage at a 
 - 当前剩余百分比
 - 对应重置时间
 - 最近更新时间
-- 当前账号与套餐
 - 节奏提醒、快捷入口和偏好设置
+
+效果预览：
+
+![Codex Quota Peek menu demo](docs/screenshots/menu-demo.png)
 
 ### 语言说明
 
@@ -68,7 +71,7 @@ A lightweight macOS menu bar app for checking the latest Codex quota usage at a 
 - 绿色 / 黄色 / 红色额度提示
 - 超平均使用时显示 `! / !!`
 - 低额度和新出现的节奏告警支持 macOS 通知
-- 下拉菜单显示账号、套餐、重置时间、`Last updated`
+- 下拉菜单显示重置时间、趋势、来源和 `Last updated`
 - `Refresh Now` 刷新后自动保持菜单交互连续
 - 已保存登录快照的账号可在菜单里直接切换
 - 独立 `Preferences...` 窗口，可配置显示项、weekly `!` 规则和启动行为
@@ -326,8 +329,11 @@ When you open the dropdown menu, it also shows:
 - remaining percentage
 - reset time
 - last updated time
-- account and plan
 - pace alerts, shortcuts, and preferences
+
+Preview:
+
+![Codex Quota Peek menu demo](docs/screenshots/menu-demo.png)
 
 ### Language Notes
 
@@ -372,7 +378,7 @@ If macOS blocks the app the first time, allow it from `System Settings -> Privac
 - green / yellow / red quota coloring
 - `! / !!` pace markers when usage is ahead of average
 - macOS notifications for new low-quota and pace-warning states
-- dropdown details for account, plan, reset time, and `Last updated`
+- dropdown details for reset time, trend, source, and `Last updated`
 - `Refresh Now` keeps the interaction flow smooth
 - standalone `Preferences...` window for display settings, weekly `!` behavior, and launch options
 - `Launch at Login`
