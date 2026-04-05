@@ -362,11 +362,11 @@ struct StatusPresentation {
         isWeekly: Bool = false
     ) -> Double? {
         guard let window,
-              let elapsedFraction = pacingElapsedFraction(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly),
+              let thresholdPercent = pacingThresholdPercent(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly),
               isUsingFasterThanAverage(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly) else {
             return nil
         }
-        return window.usedPercent - (elapsedFraction * 100.0)
+        return window.usedPercent - thresholdPercent
     }
 
     static func paceMarker(
@@ -389,35 +389,23 @@ struct StatusPresentation {
         weeklyPacingMode: WeeklyPacingMode = .balanced56,
         isWeekly: Bool = false
     ) -> Bool {
-        guard let elapsedFraction = pacingElapsedFraction(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly) else {
+        guard let thresholdPercent = pacingThresholdPercent(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly) else {
             return false
         }
-        return window.usedPercent > elapsedFraction * 100.0
+        return window.usedPercent > thresholdPercent
     }
 
-    private static func pacingElapsedFraction(
+    private static func pacingThresholdPercent(
         for window: LimitWindow,
         weeklyPacingMode: WeeklyPacingMode,
         isWeekly: Bool
     ) -> Double? {
-        guard isWeekly else { return window.elapsedFraction }
-        guard weeklyPacingMode != .heavy70 else {
-            return workWeekElapsedFraction(for: window, workHours: 70)
+        guard isWeekly else {
+            return window.elapsedFraction.map { $0 * 100.0 }
         }
-        guard weeklyPacingMode != .balanced56 else {
-            return workWeekElapsedFraction(for: window, workHours: 56)
-        }
-        return workWeekElapsedFraction(for: window, workHours: 40)
-    }
 
-    private static func workWeekElapsedFraction(for window: LimitWindow, workHours: Int) -> Double? {
-        guard let resetAfterSeconds = window.resetAfterSeconds else { return window.elapsedFraction }
-
-        let totalWeekSeconds = 7.0 * 24.0 * 60.0 * 60.0
-        let activeWeekSeconds = Double(workHours) * 60.0 * 60.0
-        let remainingSeconds = min(max(Double(resetAfterSeconds), 0), totalWeekSeconds)
-        let elapsedSeconds = totalWeekSeconds - remainingSeconds
-        return min(max(elapsedSeconds / activeWeekSeconds, 0), 1)
+        guard let wallClockFraction = window.elapsedFraction else { return nil }
+        return min(100.0, wallClockFraction * 100.0 + weeklyPacingMode.paceGracePercent)
     }
 
     static func relativeUpdatedAtLabel(for date: Date, now: Date = Date(), language: AppLanguage = .english) -> String {

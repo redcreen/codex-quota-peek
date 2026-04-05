@@ -33,6 +33,17 @@ enum WeeklyPacingMode: String, CaseIterable {
         }
     }
 
+    var paceGracePercent: Double {
+        switch self {
+        case .workWeek40:
+            return 15
+        case .balanced56:
+            return 25
+        case .heavy70:
+            return 35
+        }
+    }
+
     var label: String {
         label(language: .english)
     }
@@ -72,7 +83,7 @@ enum WeeklyPacingMode: String, CaseIterable {
     }
 
     func tooltipText(language: AppLanguage = .english) -> String {
-        language == .english ? "Compares weekly used % against a \(weeklyHours)-hour work week." : "把每周已用百分比与 \(weeklyHours) 小时工作周进行比较。"
+        language == .english ? "Uses this week's elapsed time, then adds a \(Int(paceGracePercent))% warning buffer for the \(weeklyHours)-hour preset." : "先按本周已经过去的物理时间计算，再为 \(weeklyHours) 小时档位增加 \(Int(paceGracePercent))% 的提醒缓冲。"
     }
 
     func detailedTooltipText(language: AppLanguage = .english) -> String {
@@ -98,7 +109,7 @@ enum QuotaDisplayPolicy {
     }
 
     static func weeklyPaceExplanation(for mode: WeeklyPacingMode, language: AppLanguage = .english) -> String {
-        language == .english ? "! means weekly usage is ahead of your selected pace. We compare used % against how much of a \(mode.weeklyHours)-hour work week has elapsed. This only changes the weekly ! warning, not % left." : "! 表示每周使用速度超过了你选择的节奏。我们会把已用百分比，与一个 \(mode.weeklyHours) 小时工作周中已过去的比例进行比较。这只会影响每周 ! 提醒，不会改变剩余百分比。"
+        language == .english ? "! means weekly usage is ahead of this week's elapsed time. The \(mode.weeklyHours)-hour preset adds a \(Int(mode.paceGracePercent))% grace buffer. This only changes the weekly ! warning, not % left." : "! 表示每周使用速度超过了本周已经过去的时间进度。\(mode.weeklyHours) 小时档位会额外增加 \(Int(mode.paceGracePercent))% 的提醒缓冲。这只会影响每周 ! 提醒，不会改变剩余百分比。"
     }
 
     static func colorLevel(forPercentText percentText: String) -> QuotaDisplayColorLevel? {

@@ -461,18 +461,26 @@ func testStartupAPIRefreshFallsBackWithoutOverridingCurrentRules() {
 
 func testWeeklyPacingModeCanBeLooserThanFullWeek() {
     let weekly = LimitWindow(
-        usedPercent: 7,
+        usedPercent: 46,
         windowMinutes: 10080,
-        resetAfterSeconds: 574_155,
-        resetAt: 1_775_896_800
+        resetAfterSeconds: 505_436,
+        resetAt: 1_775_874_219
     )
     let fortyHourText = StatusPresentation.statusPercentText(for: weekly, weeklyPacingMode: .workWeek40, isWeekly: true)
     let fiftySixHourText = StatusPresentation.statusPercentText(for: weekly, weeklyPacingMode: .balanced56, isWeekly: true)
     let seventyHourText = StatusPresentation.statusPercentText(for: weekly, weeklyPacingMode: .heavy70, isWeekly: true)
 
     expect(
-        !seventyHourText.contains("!!"),
-        "70-hour pacing is never stricter than the lighter presets for the same weekly sample"
+        fortyHourText == "54%!",
+        "40-hour pacing warns once usage is ahead of wall-clock weekly progress"
+    )
+    expect(
+        fiftySixHourText == "54%!",
+        "56-hour pacing still warns when usage is clearly ahead of progress"
+    )
+    expect(
+        seventyHourText == "54%",
+        "70-hour pacing stays the loosest preset for the same weekly sample"
     )
     expect(
         WeeklyPacingMode.workWeek40.menuTitle == "Standard · 40h/week",
@@ -487,11 +495,11 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
         "heavy weekly workload title is explicit"
     )
     expect(
-        [fortyHourText, fiftySixHourText, seventyHourText].allSatisfy { $0.hasPrefix("93%") },
+        [fortyHourText, fiftySixHourText, seventyHourText].allSatisfy { $0.hasPrefix("54%") },
         "weekly workload modes preserve the same remaining quota percentage"
     )
     expect(
-        WeeklyPacingMode.heavy70.tooltipText().contains("70-hour work week"),
+        WeeklyPacingMode.heavy70.tooltipText().contains("35%"),
         "weekly pacing tooltip reflects selected weekly workload"
     )
     expect(
@@ -503,7 +511,7 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
         "weekly pacing hint explains that presets do not change quota remaining"
     )
     expect(
-        QuotaDisplayPolicy.weeklyPaceExplanation(for: .balanced56).contains("56-hour work week"),
+        QuotaDisplayPolicy.weeklyPaceExplanation(for: .balanced56).contains("5%"),
         "weekly row explanation includes the selected weekly workload"
     )
 }

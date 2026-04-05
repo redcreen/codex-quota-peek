@@ -16,6 +16,7 @@ struct CodexQuotaPeekCLI {
 
 private struct CLI {
     private let provider = CodexQuotaProvider()
+    private let defaults = UserDefaults.standard
 
     func run() -> Int32 {
         let args = Array(CommandLine.arguments.dropFirst())
@@ -64,7 +65,8 @@ private struct CLI {
                 snapshot: result.snapshot,
                 accountInfo: accountInfo,
                 generatedAt: generatedAt,
-                source: result.source
+                source: result.source,
+                weeklyPacingMode: selectedWeeklyPacingMode
             )
 
             if json {
@@ -215,5 +217,9 @@ private struct CLI {
               codexQuotaPeek accounts switch <snapshot-id|email|display-name>
             """
         )
+    }
+
+    private var selectedWeeklyPacingMode: WeeklyPacingMode {
+        WeeklyPacingMode(rawValue: defaults.string(forKey: "weeklyPacingMode") ?? "") ?? .balanced56
     }
 }
