@@ -83,6 +83,7 @@ struct StatusPresentation {
     enum PaceSeverity {
         case warning
         case critical
+        case severe
     }
 
     struct AccountRow {
@@ -344,7 +345,7 @@ struct StatusPresentation {
             overAverageOffset(for: secondary, weeklyPacingMode: weeklyPacingMode, isWeekly: true)
         ].compactMap { $0 }
         guard let maxOffset = offsets.max() else { return nil }
-        return maxOffset >= 15 ? .critical : .warning
+        return paceSeverity(forOffset: maxOffset)
     }
 
     static func paceSeverity(
@@ -353,7 +354,7 @@ struct StatusPresentation {
         isWeekly: Bool = false
     ) -> PaceSeverity? {
         guard let offset = overAverageOffset(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly) else { return nil }
-        return offset >= 15 ? .critical : .warning
+        return paceSeverity(forOffset: offset)
     }
 
     private static func overAverageOffset(
@@ -366,7 +367,11 @@ struct StatusPresentation {
               isUsingFasterThanAverage(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly) else {
             return nil
         }
-        return window.usedPercent - thresholdPercent
+        let baseOffset = window.usedPercent - thresholdPercent
+        if isWeekly {
+            return baseOffset + weeklyPacingMode.paceSeverityBoost
+        }
+        return baseOffset
     }
 
     static func paceMarker(
@@ -379,6 +384,8 @@ struct StatusPresentation {
             return "!"
         case .critical:
             return "!!"
+        case .severe:
+            return "!!!"
         case nil:
             return ""
         }
@@ -405,7 +412,17 @@ struct StatusPresentation {
         }
 
         guard let wallClockFraction = window.elapsedFraction else { return nil }
-        return min(100.0, wallClockFraction * 100.0 + weeklyPacingMode.paceGracePercent)
+        return wallClockFraction * 100.0
+    }
+
+    private static func paceSeverity(forOffset offset: Double) -> PaceSeverity {
+        if offset >= 35 {
+            return .severe
+        }
+        if offset >= 15 {
+            return .critical
+        }
+        return .warning
     }
 
     static func relativeUpdatedAtLabel(for date: Date, now: Date = Date(), language: AppLanguage = .english) -> String {

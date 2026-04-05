@@ -120,6 +120,8 @@ enum QuotaNotificationPolicy {
 
     private static func paceLevel(for presentation: StatusPresentation) -> QuotaNotificationLevel {
         switch presentation.paceSeverity {
+        case .severe:
+            return .critical
         case .critical:
             return .critical
         case .warning:

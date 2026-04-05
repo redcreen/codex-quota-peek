@@ -944,7 +944,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     string: paceText,
                     attributes: [
                         .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
-                        .foregroundColor: paceSeverity == .critical ? NSColor.systemRed : NSColor.systemYellow
+                        .foregroundColor: paceSeverity == .warning ? NSColor.systemYellow : NSColor.systemRed
                     ]
                 )
             )
@@ -1069,7 +1069,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func paceColor(for marker: String) -> NSColor {
-        marker == "!!" ? NSColor.systemRed : NSColor.systemYellow
+        marker.count >= 2 ? NSColor.systemRed : NSColor.systemYellow
     }
 
     private func styledUpdatedAt(_ text: String, source: String) -> NSAttributedString {

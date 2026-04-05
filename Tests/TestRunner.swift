@@ -241,7 +241,7 @@ func testDisplayPresentationUsesPaceMarkersAndSourceText() {
         source: .api
     )
 
-    expect(presentation.line1 == "H 35%!!", "status line shows critical pace marker")
+    expect(presentation.line1 == "H 35%!!!", "status line shows severe pace marker")
     expect(presentation.line2 == "W 90%", "status line omits markers when pace is normal")
     expect(presentation.sourceText == "Source: API", "presentation keeps source text")
     expect(presentation.creditsText == "233.93 left", "presentation formats credits")
@@ -471,16 +471,16 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
     let seventyHourText = StatusPresentation.statusPercentText(for: weekly, weeklyPacingMode: .heavy70, isWeekly: true)
 
     expect(
-        fortyHourText == "54%!",
-        "40-hour pacing warns once usage is ahead of wall-clock weekly progress"
+        fortyHourText == "54%!!",
+        "40-hour pacing still warns strongly once weekly usage is far ahead of progress"
     )
     expect(
-        fiftySixHourText == "54%!",
-        "56-hour pacing still warns when usage is clearly ahead of progress"
+        fiftySixHourText == "54%!!",
+        "56-hour pacing stays in the middle severity band"
     )
     expect(
-        seventyHourText == "54%",
-        "70-hour pacing stays the loosest preset for the same weekly sample"
+        seventyHourText == "54%!!!",
+        "70-hour pacing is the strictest preset for the same weekly sample"
     )
     expect(
         WeeklyPacingMode.workWeek40.menuTitle == "Standard · 40h/week",
@@ -499,7 +499,7 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
         "weekly workload modes preserve the same remaining quota percentage"
     )
     expect(
-        WeeklyPacingMode.heavy70.tooltipText().contains("35%"),
+        WeeklyPacingMode.heavy70.tooltipText().contains("10"),
         "weekly pacing tooltip reflects selected weekly workload"
     )
     expect(
@@ -511,7 +511,7 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
         "weekly pacing hint explains that presets do not change quota remaining"
     )
     expect(
-        QuotaDisplayPolicy.weeklyPaceExplanation(for: .balanced56).contains("5%"),
+        QuotaDisplayPolicy.weeklyPaceExplanation(for: .balanced56).contains("70h is stricter"),
         "weekly row explanation includes the selected weekly workload"
     )
 }

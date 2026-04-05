@@ -122,7 +122,7 @@ final class StatusBadgeView: NSView {
 
     private func paceColor(for marker: String) -> NSColor {
         guard showsColors else { return .white }
-        return marker == "!!"
+        return marker.count >= 2
             ? NSColor(calibratedRed: 1.0, green: 0.34, blue: 0.32, alpha: 1.0)
             : NSColor(calibratedRed: 0.98, green: 0.83, blue: 0.28, alpha: 1.0)
     }
