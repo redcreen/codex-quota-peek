@@ -99,6 +99,7 @@ struct StatusPresentation {
         let isUsingFasterThanAverage: Bool
         let paceText: String?
         let paceSeverity: PaceSeverity?
+        let paceOverrunPercent: Double?
     }
 
     let line1: String
@@ -200,7 +201,8 @@ struct StatusPresentation {
                 resetDate: $0.resetDate,
                 isUsingFasterThanAverage: $0.isUsingFasterThanAverage,
                 paceText: StatusPresentation.inlinePaceText(for: $0, language: language),
-                paceSeverity: StatusPresentation.paceSeverity(for: $0)
+                paceSeverity: StatusPresentation.paceSeverity(for: $0),
+                paceOverrunPercent: StatusPresentation.overAverageOffset(for: $0)
             )
         }
         secondaryRow = secondary.map {
@@ -211,7 +213,8 @@ struct StatusPresentation {
                 resetDate: $0.resetDate,
                 isUsingFasterThanAverage: StatusPresentation.isUsingFasterThanAverage(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
                 paceText: StatusPresentation.inlinePaceText(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true, language: language),
-                paceSeverity: StatusPresentation.paceSeverity(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true)
+                paceSeverity: StatusPresentation.paceSeverity(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
+                paceOverrunPercent: StatusPresentation.overAverageOffset(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true)
             )
         }
         paceMessage = StatusPresentation.paceMessage(primary: primary, secondary: secondary, weeklyPacingMode: weeklyPacingMode, language: language)

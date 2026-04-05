@@ -334,8 +334,8 @@ func testQuotaDisplayColorThresholds() {
     expect(QuotaDisplayPolicy.menuWindowTitle(for: "5 hours") == "5 hours", "five-hour menu title stays explicit")
     expect(QuotaDisplayPolicy.menuWindowTitle(for: "7 days") == "7 days", "seven-day menu title stays explicit")
     expect(QuotaDisplayPolicy.progressBar(forPercentText: "50%", slots: 10) == "█████░░░░░", "progress bar reflects remaining percent")
-    let segments = QuotaDisplayPolicy.progressSegments(forPercentText: "49%!!", slots: 10)
-    expect(segments.filled == 5 && segments.exceeded == 2 && segments.empty == 3, "progress segments reserve colored overflow markers")
+    let segments = QuotaDisplayPolicy.progressSegments(forPercentText: "49%!!", overrunPercent: 18, slots: 10)
+    expect(segments.filled == 5 && segments.exceeded == 2 && segments.empty == 3, "progress segments scale colored overflow markers from real overuse")
 }
 
 func testAuthSnapshotStoreReadsSavedAccountMetadata() {
@@ -617,7 +617,8 @@ func testNotificationPolicyEmitsResetReminderOnce() {
             resetDate: now.addingTimeInterval(10 * 60),
             isUsingFasterThanAverage: false,
             paceText: nil,
-            paceSeverity: nil
+            paceSeverity: nil,
+            paceOverrunPercent: nil
         ),
         secondaryRow: StatusPresentation.MenuRow(
             label: "7 days",
@@ -626,7 +627,8 @@ func testNotificationPolicyEmitsResetReminderOnce() {
             resetDate: now.addingTimeInterval(24 * 60 * 60),
             isUsingFasterThanAverage: false,
             paceText: nil,
-            paceSeverity: nil
+            paceSeverity: nil,
+            paceOverrunPercent: nil
         ),
         language: .english
     )
@@ -651,7 +653,8 @@ func testNotificationPolicyRespectsCategoryPreferences() {
             resetDate: Date().addingTimeInterval(3600),
             isUsingFasterThanAverage: false,
             paceText: nil,
-            paceSeverity: nil
+            paceSeverity: nil,
+            paceOverrunPercent: nil
         ),
         secondaryRow: StatusPresentation.MenuRow(
             label: "7 days",
@@ -660,7 +663,8 @@ func testNotificationPolicyRespectsCategoryPreferences() {
             resetDate: Date().addingTimeInterval(2 * 24 * 3600),
             isUsingFasterThanAverage: true,
             paceText: " Pace above avg ",
-            paceSeverity: .warning
+            paceSeverity: .warning,
+            paceOverrunPercent: 12
         ),
         paceMessage: "7 days above average",
         paceSeverity: .warning,

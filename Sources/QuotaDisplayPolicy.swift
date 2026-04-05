@@ -149,7 +149,7 @@ enum QuotaDisplayPolicy {
         return String(repeating: "█", count: filled) + String(repeating: "░", count: max(0, slots - filled))
     }
 
-    static func progressSegments(forPercentText percentText: String, slots: Int = 18) -> (filled: Int, exceeded: Int, empty: Int) {
+    static func progressSegments(forPercentText percentText: String, overrunPercent: Double? = nil, slots: Int = 18) -> (filled: Int, exceeded: Int, empty: Int) {
         guard let percent = Int(
             percentText
                 .replacingOccurrences(of: "%", with: "")
@@ -159,9 +159,9 @@ enum QuotaDisplayPolicy {
         }
 
         let filled = max(0, min(slots, Int((Double(percent) / 100.0 * Double(slots)).rounded())))
-        let markerCount = percentText.filter { $0 == "!" }.count
         let empty = max(0, slots - filled)
-        let exceeded = min(empty, markerCount)
+        let exceededSlots = Int((((overrunPercent ?? 0) / 100.0) * Double(slots)).rounded())
+        let exceeded = min(empty, max(0, exceededSlots))
         return (filled, exceeded, max(0, empty - exceeded))
     }
 }

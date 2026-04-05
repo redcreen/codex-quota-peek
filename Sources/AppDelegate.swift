@@ -664,7 +664,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 percent: primary.percentText,
                 reset: primary.resetText,
                 paceText: showsPaceAlert ? primary.paceText : nil,
-                paceSeverity: primary.paceSeverity
+                paceSeverity: primary.paceSeverity,
+                paceOverrunPercent: primary.paceOverrunPercent
             )
         } else {
             item(MenuTag.primary)?.attributedTitle = styledQuotaRow(
@@ -673,7 +674,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 percent: "--",
                 reset: "--",
                 paceText: nil,
-                paceSeverity: nil
+                paceSeverity: nil,
+                paceOverrunPercent: nil
             )
         }
 
@@ -684,7 +686,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 percent: secondary.percentText,
                 reset: secondary.resetText,
                 paceText: showsPaceAlert ? secondary.paceText : nil,
-                paceSeverity: secondary.paceSeverity
+                paceSeverity: secondary.paceSeverity,
+                paceOverrunPercent: secondary.paceOverrunPercent
             )
             item(MenuTag.secondary)?.toolTip = weeklyPaceExplanation
         } else {
@@ -694,7 +697,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 percent: "--",
                 reset: "--",
                 paceText: nil,
-                paceSeverity: nil
+                paceSeverity: nil,
+                paceOverrunPercent: nil
             )
             item(MenuTag.secondary)?.toolTip = weeklyPaceExplanation
         }
@@ -923,14 +927,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         percent: String,
         reset: String,
         paceText: String?,
-        paceSeverity: StatusPresentation.PaceSeverity?
+        paceSeverity: StatusPresentation.PaceSeverity?,
+        paceOverrunPercent: Double?
     ) -> NSAttributedString {
         let title = QuotaDisplayPolicy.menuWindowTitle(for: label)
         let barFont = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
         let detailFont = NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
         let progressSlots = 28
         let (percentValue, percentMarker) = splitPercentComponents(percent)
-        let progressBar = styledProgressBar(forPercentText: percent, font: barFont, slots: progressSlots)
+        let progressBar = styledProgressBar(forPercentText: percent, overrunPercent: paceOverrunPercent, font: barFont, slots: progressSlots)
         let header = NSMutableAttributedString(
             string: title,
             attributes: [
@@ -1000,8 +1005,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return header
     }
 
-    private func styledProgressBar(forPercentText percentText: String, font: NSFont, slots: Int) -> NSAttributedString {
-        let segments = QuotaDisplayPolicy.progressSegments(forPercentText: percentText, slots: slots)
+    private func styledProgressBar(forPercentText percentText: String, overrunPercent: Double?, font: NSFont, slots: Int) -> NSAttributedString {
+        let segments = QuotaDisplayPolicy.progressSegments(forPercentText: percentText, overrunPercent: overrunPercent, slots: slots)
         let bar = NSMutableAttributedString()
 
         if segments.filled > 0 {
