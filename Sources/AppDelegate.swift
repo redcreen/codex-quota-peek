@@ -767,6 +767,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         syncPreferencesWindow()
     }
 
+    private func syncNotificationBaseline() {
+        lastNotificationSnapshot = QuotaNotificationPolicy.snapshot(from: lastPresentation)
+    }
+
+    private func clearDeliveredQuotaNotifications() {
+        let center = UNUserNotificationCenter.current()
+        center.getDeliveredNotifications { notifications in
+            let ids = notifications
+                .map(\.request.identifier)
+                .filter { $0.hasPrefix("codex-quota-peek-") }
+            guard !ids.isEmpty else { return }
+            center.removeDeliveredNotifications(withIdentifiers: ids)
+        }
+        center.getPendingNotificationRequests { requests in
+            let ids = requests
+                .map(\.identifier)
+                .filter { $0.hasPrefix("codex-quota-peek-") }
+            guard !ids.isEmpty else { return }
+            center.removePendingNotificationRequests(withIdentifiers: ids)
+        }
+    }
+
+    private func refreshNotificationPreferences() {
+        syncNotificationBaseline()
+        clearDeliveredQuotaNotifications()
+    }
+
+    private func ensureNotificationAuthorizationIfNeeded() {
+        guard notificationsEnabled else { return }
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+    }
+
     private func showFeedback(_ message: String) {
         feedbackHideWorkItem?.cancel()
         item(MenuTag.feedback)?.isHidden = false
@@ -1341,24 +1373,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func setNotificationsEnabled(_ enabled: Bool) {
         defaults.set(enabled, forKey: PreferenceKey.notificationsEnabled)
+        refreshNotificationPreferences()
+        if enabled {
+            ensureNotificationAuthorizationIfNeeded()
+        }
         syncPreferencesWindow()
         showFeedback(selectedAppLanguage == .english ? "Notifications \(enabled ? "enabled" : "disabled")" : "通知\(enabled ? "已开启" : "已关闭")")
     }
 
     private func setLowQuotaNotificationsEnabled(_ enabled: Bool) {
         defaults.set(enabled, forKey: PreferenceKey.lowQuotaNotificationsEnabled)
+        refreshNotificationPreferences()
         syncPreferencesWindow()
         showFeedback(selectedAppLanguage == .english ? "Low quota alerts \(enabled ? "enabled" : "disabled")" : "低额度提醒\(enabled ? "已开启" : "已关闭")")
     }
 
     private func setPaceNotificationsEnabled(_ enabled: Bool) {
         defaults.set(enabled, forKey: PreferenceKey.paceNotificationsEnabled)
+        refreshNotificationPreferences()
         syncPreferencesWindow()
         showFeedback(selectedAppLanguage == .english ? "Pace alerts \(enabled ? "enabled" : "disabled")" : "节奏提醒\(enabled ? "已开启" : "已关闭")")
     }
 
     private func setResetNotificationsEnabled(_ enabled: Bool) {
         defaults.set(enabled, forKey: PreferenceKey.resetNotificationsEnabled)
+        refreshNotificationPreferences()
         syncPreferencesWindow()
         showFeedback(selectedAppLanguage == .english ? "Reset reminders \(enabled ? "enabled" : "disabled")" : "重置提醒\(enabled ? "已开启" : "已关闭")")
     }
