@@ -667,6 +667,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 paceSeverity: primary.paceSeverity,
                 paceOverrunPercent: primary.paceOverrunPercent
             )
+            item(MenuTag.primary)?.toolTip = primary.tooltipText
         } else {
             item(MenuTag.primary)?.attributedTitle = styledQuotaRow(
                 label: "5 hours",
@@ -677,6 +678,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 paceSeverity: nil,
                 paceOverrunPercent: nil
             )
+            item(MenuTag.primary)?.toolTip = nil
         }
 
         if let secondary = presentation.secondaryRow {
@@ -689,7 +691,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 paceSeverity: secondary.paceSeverity,
                 paceOverrunPercent: secondary.paceOverrunPercent
             )
-            item(MenuTag.secondary)?.toolTip = weeklyPaceExplanation
+            item(MenuTag.secondary)?.toolTip = [secondary.tooltipText, weeklyPaceExplanation]
+                .compactMap { $0 }
+                .joined(separator: "\n\n")
         } else {
             item(MenuTag.secondary)?.attributedTitle = styledQuotaRow(
                 label: "7 days",

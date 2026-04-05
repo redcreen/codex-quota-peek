@@ -100,6 +100,7 @@ struct StatusPresentation {
         let paceText: String?
         let paceSeverity: PaceSeverity?
         let paceOverrunPercent: Double?
+        let tooltipText: String?
     }
 
     let line1: String
@@ -202,7 +203,8 @@ struct StatusPresentation {
                 isUsingFasterThanAverage: $0.isUsingFasterThanAverage,
                 paceText: StatusPresentation.inlinePaceText(for: $0, language: language),
                 paceSeverity: StatusPresentation.paceSeverity(for: $0),
-                paceOverrunPercent: StatusPresentation.overAverageOffset(for: $0)
+                paceOverrunPercent: StatusPresentation.overAverageOffset(for: $0),
+                tooltipText: StatusPresentation.rowTooltip(for: $0, language: language)
             )
         }
         secondaryRow = secondary.map {
@@ -214,7 +216,8 @@ struct StatusPresentation {
                 isUsingFasterThanAverage: StatusPresentation.isUsingFasterThanAverage(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
                 paceText: StatusPresentation.inlinePaceText(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true, language: language),
                 paceSeverity: StatusPresentation.paceSeverity(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
-                paceOverrunPercent: StatusPresentation.overAverageOffset(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true)
+                paceOverrunPercent: StatusPresentation.overAverageOffset(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
+                tooltipText: StatusPresentation.rowTooltip(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true, language: language)
             )
         }
         paceMessage = StatusPresentation.paceMessage(primary: primary, secondary: secondary, weeklyPacingMode: weeklyPacingMode, language: language)
@@ -436,5 +439,65 @@ struct StatusPresentation {
     static func creditsText(for credits: CreditsInfo?, language: AppLanguage = .english) -> String? {
         guard let credits else { return nil }
         return language.creditsText(balance: credits.balance, hasCredits: credits.hasCredits, unlimited: credits.unlimited)
+    }
+
+    private static func rowTooltip(
+        for window: LimitWindow,
+        weeklyPacingMode: WeeklyPacingMode = .balanced56,
+        isWeekly: Bool = false,
+        language: AppLanguage = .english
+    ) -> String? {
+        let totalHours = totalReferenceHours(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly)
+        guard totalHours > 0 else { return nil }
+
+        let usedHours = totalHours * (window.usedPercent / 100.0)
+        let thresholdPercent = pacingThresholdPercent(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly) ?? 0
+        let withinPaceHours = totalHours * (min(window.usedPercent, thresholdPercent) / 100.0)
+        let aheadHours = max(0, usedHours - withinPaceHours)
+
+        var parts: [String] = []
+        if isWeekly {
+            parts.append(language == .english ? "Based on \(weeklyPacingMode.title)" : "按 \(weeklyPacingMode.title) 计算")
+        }
+        parts.append(
+            language == .english
+                ? "Used: \(formattedDuration(hours: usedHours, language: language)) of \(formattedDuration(hours: totalHours, language: language))"
+                : "已用：\(formattedDuration(hours: usedHours, language: language)) / \(formattedDuration(hours: totalHours, language: language))"
+        )
+        parts.append(
+            language == .english
+                ? "Green: \(formattedDuration(hours: withinPaceHours, language: language)) within pace"
+                : "绿色：\(formattedDuration(hours: withinPaceHours, language: language))，在当前节奏内"
+        )
+        if aheadHours > 0 {
+            parts.append(
+                language == .english
+                    ? "Alert: \(formattedDuration(hours: aheadHours, language: language)) ahead of pace"
+                    : "警示：\(formattedDuration(hours: aheadHours, language: language))，超出当前节奏"
+            )
+        }
+        return parts.joined(separator: "\n")
+    }
+
+    private static func totalReferenceHours(
+        for window: LimitWindow,
+        weeklyPacingMode: WeeklyPacingMode,
+        isWeekly: Bool
+    ) -> Double {
+        if isWeekly {
+            return Double(weeklyPacingMode.weeklyHours)
+        }
+        guard let minutes = window.windowMinutes else { return 0 }
+        return Double(minutes) / 60.0
+    }
+
+    private static func formattedDuration(hours: Double, language: AppLanguage) -> String {
+        let roundedHours = max(0, Int(hours.rounded()))
+        let days = roundedHours / 24
+        let remainingHours = roundedHours % 24
+        if days > 0 {
+            return language == .english ? "\(days)d \(remainingHours)h" : "\(days)天 \(remainingHours)小时"
+        }
+        return language == .english ? "\(remainingHours)h" : "\(remainingHours)小时"
     }
 }

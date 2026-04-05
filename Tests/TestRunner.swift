@@ -338,6 +338,31 @@ func testQuotaDisplayColorThresholds() {
     expect(segments.filled == 5 && segments.exceeded == 2 && segments.empty == 3, "progress segments scale colored overflow markers from real overuse")
 }
 
+func testQuotaRowTooltipsIncludeDurationBreakdown() {
+    let snapshot = CodexQuotaSnapshot(
+        planType: "pro",
+        rateLimits: RateLimits(
+            allowed: true,
+            limitReached: false,
+            primary: LimitWindow(usedPercent: 70, windowMinutes: 300, resetAfterSeconds: 3600, resetAt: Date().addingTimeInterval(3600).timeIntervalSince1970),
+            secondary: LimitWindow(usedPercent: 60, windowMinutes: 10080, resetAfterSeconds: 5 * 24 * 3600, resetAt: Date().addingTimeInterval(5 * 24 * 3600).timeIntervalSince1970)
+        ),
+        credits: nil
+    )
+    let presentation = StatusPresentation(
+        snapshot: snapshot,
+        accountInfo: nil,
+        generatedAt: Date(),
+        source: .api,
+        weeklyPacingMode: .balanced56,
+        language: .english
+    )
+
+    expect(presentation.primaryRow?.tooltipText?.contains("Used:") == true, "quota row tooltip includes used duration")
+    expect(presentation.primaryRow?.tooltipText?.contains("Green:") == true, "quota row tooltip includes in-pace duration")
+    expect(presentation.secondaryRow?.tooltipText?.contains("Based on 56h/week") == true, "weekly tooltip references the selected weekly workload")
+}
+
 func testAuthSnapshotStoreReadsSavedAccountMetadata() {
     let tempRoot = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("codex-quota-peek-tests-\(UUID().uuidString)")
     try! FileManager.default.createDirectory(at: tempRoot, withIntermediateDirectories: true)
@@ -618,7 +643,8 @@ func testNotificationPolicyEmitsResetReminderOnce() {
             isUsingFasterThanAverage: false,
             paceText: nil,
             paceSeverity: nil,
-            paceOverrunPercent: nil
+            paceOverrunPercent: nil,
+            tooltipText: nil
         ),
         secondaryRow: StatusPresentation.MenuRow(
             label: "7 days",
@@ -628,7 +654,8 @@ func testNotificationPolicyEmitsResetReminderOnce() {
             isUsingFasterThanAverage: false,
             paceText: nil,
             paceSeverity: nil,
-            paceOverrunPercent: nil
+            paceOverrunPercent: nil,
+            tooltipText: nil
         ),
         language: .english
     )
@@ -654,7 +681,8 @@ func testNotificationPolicyRespectsCategoryPreferences() {
             isUsingFasterThanAverage: false,
             paceText: nil,
             paceSeverity: nil,
-            paceOverrunPercent: nil
+            paceOverrunPercent: nil,
+            tooltipText: nil
         ),
         secondaryRow: StatusPresentation.MenuRow(
             label: "7 days",
@@ -664,7 +692,8 @@ func testNotificationPolicyRespectsCategoryPreferences() {
             isUsingFasterThanAverage: true,
             paceText: " Pace above avg ",
             paceSeverity: .warning,
-            paceOverrunPercent: 12
+            paceOverrunPercent: 12,
+            tooltipText: nil
         ),
         paceMessage: "7 days above average",
         paceSeverity: .warning,
@@ -714,6 +743,7 @@ testDisplayPresentationUsesPaceMarkersAndSourceText()
     testTrendRowsStayInsideCurrentResetWindow()
     testRelativeUpdatedAtLabels()
         testQuotaDisplayColorThresholds()
+        testQuotaRowTooltipsIncludeDurationBreakdown()
         testAuthSnapshotStoreReadsSavedAccountMetadata()
         testCliHelpPrefersRefreshOverUpdate()
         testRefreshRequestGateOnlyAppliesLatestRequest()
