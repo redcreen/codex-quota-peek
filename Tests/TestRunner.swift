@@ -577,6 +577,60 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
         fortyHourMarker == fiftySixHourMarker && fiftySixHourMarker == seventyHourMarker,
         "weekly normal-progress marker stays aligned with the same elapsed-time percentage across workload presets"
     )
+    expect(
+        Int((fortyHourMarker ?? -1).rounded()) == 16,
+        "weekly normal-progress marker matches the actual elapsed weekly percentage for this sample"
+    )
+}
+
+func testWeeklyTooltipHoursChangeWhileMarkerPercentStaysFixed() {
+    let weekly = LimitWindow(
+        usedPercent: 58,
+        windowMinutes: 10080,
+        resetAfterSeconds: 505_436,
+        resetAt: 1_775_874_219
+    )
+
+    let forty = StatusPresentation(
+        snapshot: CodexQuotaSnapshot(
+            planType: "pro",
+            rateLimits: RateLimits(allowed: true, limitReached: false, primary: nil, secondary: weekly),
+            credits: nil
+        ),
+        accountInfo: nil,
+        generatedAt: Date(),
+        source: .api,
+        weeklyPacingMode: .workWeek40,
+        language: .english
+    )
+    let fiftySix = StatusPresentation(
+        snapshot: CodexQuotaSnapshot(
+            planType: "pro",
+            rateLimits: RateLimits(allowed: true, limitReached: false, primary: nil, secondary: weekly),
+            credits: nil
+        ),
+        accountInfo: nil,
+        generatedAt: Date(),
+        source: .api,
+        weeklyPacingMode: .balanced56,
+        language: .english
+    )
+    let seventy = StatusPresentation(
+        snapshot: CodexQuotaSnapshot(
+            planType: "pro",
+            rateLimits: RateLimits(allowed: true, limitReached: false, primary: nil, secondary: weekly),
+            credits: nil
+        ),
+        accountInfo: nil,
+        generatedAt: Date(),
+        source: .api,
+        weeklyPacingMode: .heavy70,
+        language: .english
+    )
+
+    expect(forty.secondaryRow?.tooltipText?.contains("Normal elapsed: 6.6h (16%)") == true, "40h tooltip converts the shared elapsed percentage into 40-hour units")
+    expect(fiftySix.secondaryRow?.tooltipText?.contains("Normal elapsed: 9.2h (16%)") == true, "56h tooltip converts the shared elapsed percentage into 56-hour units")
+    expect(seventy.secondaryRow?.tooltipText?.contains("Normal elapsed: 12h (16%)") == true, "70h tooltip converts the shared elapsed percentage into 70-hour units")
 }
 
 func testChineseLanguagePresentationLocalizesCoreLabels() {
@@ -800,6 +854,7 @@ testDisplayPresentationUsesPaceMarkersAndSourceText()
         testAutomaticRefreshDoesNotRegressWithinSameResetWindow()
         testStartupAPIRefreshFallsBackWithoutOverridingCurrentRules()
         testWeeklyPacingModeCanBeLooserThanFullWeek()
+        testWeeklyTooltipHoursChangeWhileMarkerPercentStaysFixed()
         testChineseLanguagePresentationLocalizesCoreLabels()
         testSystemLanguagePreferenceFallsBackToMacOSLocale()
         testNotificationPolicyTriggersOnlyOnEscalation()
