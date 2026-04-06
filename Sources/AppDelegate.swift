@@ -79,6 +79,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var lastTrendSummaryForDisplay: CodexQuotaTrendSummary?
     private var lastSourceForDisplay: CodexQuotaFetchSource?
     private var lastGeneratedAtForDisplay: Date?
+    private var lastPrimaryExplanationText: String?
+    private var lastSecondaryExplanationText: String?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -130,6 +132,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc
     private func quit(_ sender: Any?) {
         NSApp.terminate(nil)
+    }
+
+    @objc
+    private func showQuotaExplanation(_ sender: NSMenuItem) {
+        let language = selectedAppLanguage
+        let explanation: String?
+        switch sender.tag {
+        case MenuTag.primary:
+            explanation = lastPrimaryExplanationText
+        case MenuTag.secondary:
+            explanation = lastSecondaryExplanationText
+        default:
+            explanation = nil
+        }
+
+        guard let explanation, !explanation.isEmpty else { return }
+        let alert = NSAlert()
+        alert.messageText = language == .english ? "Quota Details" : "额度说明"
+        alert.informativeText = explanation
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: language.okButton)
+        alert.runModal()
     }
 
     @objc
@@ -295,13 +319,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         planItem.tag = MenuTag.plan
         planItem.isEnabled = false
 
-        let primaryItem = NSMenuItem(title: "5 hours: -- | --", action: nil, keyEquivalent: "")
+        let primaryItem = NSMenuItem(title: "5 hours: -- | --", action: #selector(showQuotaExplanation(_:)), keyEquivalent: "")
         primaryItem.tag = MenuTag.primary
-        primaryItem.isEnabled = false
+        primaryItem.isEnabled = true
+        primaryItem.target = self
 
-        let secondaryItem = NSMenuItem(title: "7 days: -- | --", action: nil, keyEquivalent: "")
+        let secondaryItem = NSMenuItem(title: "7 days: -- | --", action: #selector(showQuotaExplanation(_:)), keyEquivalent: "")
         secondaryItem.tag = MenuTag.secondary
-        secondaryItem.isEnabled = false
+        secondaryItem.isEnabled = true
+        secondaryItem.target = self
 
         let weeklyPaceSelectorItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         weeklyPaceSelectorItem.tag = MenuTag.weeklyPaceSelector
@@ -710,7 +736,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 displayScale: 1.0,
                 usedOnLeft: true
             )
-            item(MenuTag.primary)?.toolTip = showsPaceAlert ? primary.tooltipText : stripPaceDetails(from: primary.tooltipText)
+            lastPrimaryExplanationText = showsPaceAlert ? primary.tooltipText : stripPaceDetails(from: primary.tooltipText)
+            item(MenuTag.primary)?.toolTip = nil
         } else {
             item(MenuTag.primary)?.attributedTitle = styledQuotaRow(
                 label: "5 hours",
@@ -726,6 +753,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 displayScale: 1.0,
                 usedOnLeft: true
             )
+            lastPrimaryExplanationText = nil
             item(MenuTag.primary)?.toolTip = nil
         }
 
@@ -744,7 +772,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 displayScale: 1.0,
                 usedOnLeft: true
             )
-            item(MenuTag.secondary)?.toolTip = showsPaceAlert ? secondary.tooltipText : stripPaceDetails(from: secondary.tooltipText)
+            let baseExplanation = showsPaceAlert ? secondary.tooltipText : stripPaceDetails(from: secondary.tooltipText)
+            lastSecondaryExplanationText = [baseExplanation, weeklyPaceExplanation].compactMap { $0 }.joined(separator: "\n\n")
+            item(MenuTag.secondary)?.toolTip = nil
         } else {
             item(MenuTag.secondary)?.attributedTitle = styledQuotaRow(
                 label: "7 days",
@@ -760,6 +790,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 displayScale: 1.0,
                 usedOnLeft: true
             )
+            lastSecondaryExplanationText = weeklyPaceExplanation
             item(MenuTag.secondary)?.toolTip = nil
         }
 
@@ -1069,6 +1100,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             .foregroundColor: NSColor.labelColor
         ]))
         header.append(progressBar.bar)
+        header.append(NSAttributedString(
+            string: " ?",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11, weight: .semibold),
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        ))
 
         let statusText = percentMarker.isEmpty ? "\(language.leftLabel) \(percentValue)" : "\(language.leftLabel) \(percentValue) \(percentMarker)"
         let rightText = "\(language.resetsLabel) \(reset)"

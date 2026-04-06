@@ -472,7 +472,7 @@ struct StatusPresentation {
         let resetDate = Date(timeIntervalSince1970: resetAt)
         let currentDate = resetDate.addingTimeInterval(-Double(resetAfterSeconds))
         let windowStart = resetDate.addingTimeInterval(-windowSeconds)
-        let dailyActiveSeconds = Double(weeklyPacingMode.weeklyHours) / 7.0 * 60.0 * 60.0
+        let dailyActiveSeconds = weeklyPacingMode.dailyActiveHours * 60.0 * 60.0
         let daySeconds = 24.0 * 60.0 * 60.0
         let totalActiveSeconds = Double(weeklyPacingMode.weeklyHours) * 60.0 * 60.0
         guard totalActiveSeconds > 0 else { return nil }
@@ -480,6 +480,9 @@ struct StatusPresentation {
         var activeElapsedSeconds = 0.0
         for day in 0..<7 {
             let dayStart = windowStart.addingTimeInterval(Double(day) * daySeconds)
+            if day >= weeklyPacingMode.activeDaysPerWeek {
+                continue
+            }
             let activeStart = dayStart
             let activeEnd = dayStart.addingTimeInterval(dailyActiveSeconds)
             let overlapStart = max(activeStart.timeIntervalSince1970, windowStart.timeIntervalSince1970)

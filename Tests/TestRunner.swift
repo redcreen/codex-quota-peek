@@ -555,7 +555,7 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
         "weekly workload modes preserve the same remaining quota percentage"
     )
     expect(
-        WeeklyPacingMode.heavy70.tooltipText().contains("70 work hours"),
+        WeeklyPacingMode.heavy70.tooltipText().contains("7-day schedule"),
         "weekly pacing tooltip reflects selected weekly workload"
     )
     expect(
@@ -563,7 +563,7 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
         "weekly pacing hint explains what triggers the marker"
     )
     expect(
-        QuotaDisplayPolicy.weeklyPacingHintDetail().contains("marker"),
+        QuotaDisplayPolicy.weeklyPacingHintDetail().contains("5 days"),
         "weekly pacing hint explains that presets do not change quota remaining"
     )
     expect(
@@ -571,7 +571,7 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
         "weekly row explanation includes the selected weekly workload"
     )
     expect(
-        QuotaDisplayPolicy.weeklyPaceInlineExplanation(for: .balanced56).contains("56h/week"),
+        QuotaDisplayPolicy.weeklyPaceInlineExplanation(for: .balanced56).contains("7d × 8h"),
         "weekly inline explanation reflects the selected weekly workload"
     )
     let fortyHourMarker = StatusPresentation.markerThresholdPercent(for: weekly, weeklyPacingMode: .workWeek40, isWeekly: true)
@@ -582,7 +582,7 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
         "weekly normal-progress marker shifts with 40h, 56h, and 70h presets"
     )
     expect(
-        Int((fortyHourMarker ?? -1).rounded()) == 23,
+        Int((fortyHourMarker ?? -1).rounded()) == 29,
         "40h marker matches the expected average-work pace for this sample"
     )
 }
@@ -632,9 +632,9 @@ func testWeeklyTooltipHoursChangeWhileMarkerPercentStaysFixed() {
         language: .english
     )
 
-    expect(forty.secondaryRow?.tooltipText?.contains("Normal elapsed: 9.3h (23%)") == true, "40h tooltip converts the daily average pace into 40-hour units")
-    expect(fiftySix.secondaryRow?.tooltipText?.contains("Normal elapsed: 12h (21%)") == true, "56h tooltip converts the daily average pace into 56-hour units")
-    expect(seventy.secondaryRow?.tooltipText?.contains("Normal elapsed: 14h (19%)") == true, "70h tooltip converts the daily average pace into 70-hour units")
+    expect(forty.secondaryRow?.tooltipText?.contains("Normal elapsed: 12h (29%)") == true, "40h tooltip converts the 5x8 schedule into weekly progress")
+    expect(fiftySix.secondaryRow?.tooltipText?.contains("Normal elapsed: 12h (21%)") == true, "56h tooltip converts the 7x8 schedule into weekly progress")
+    expect(seventy.secondaryRow?.tooltipText?.contains("Normal elapsed: 14h (19%)") == true, "70h tooltip converts the 7x10 schedule into weekly progress")
 }
 
 func testChineseLanguagePresentationLocalizesCoreLabels() {

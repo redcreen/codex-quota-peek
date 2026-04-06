@@ -33,6 +33,26 @@ enum WeeklyPacingMode: String, CaseIterable {
         }
     }
 
+    var activeDaysPerWeek: Int {
+        switch self {
+        case .workWeek40:
+            return 5
+        case .balanced56, .heavy70:
+            return 7
+        }
+    }
+
+    var dailyActiveHours: Double {
+        switch self {
+        case .workWeek40:
+            return 8
+        case .balanced56:
+            return 8
+        case .heavy70:
+            return 10
+        }
+    }
+
     var displayScale: Double {
         Double(weeklyHours) / 70.0
     }
@@ -98,7 +118,7 @@ enum WeeklyPacingMode: String, CaseIterable {
     }
 
     func tooltipText(language: AppLanguage = .english) -> String {
-        language == .english ? "Spreads \(weeklyHours) work hours evenly across the current weekly window and uses that average pace for the marker and warnings." : "把 \(weeklyHours) 小时平均铺到当前这一周窗口里，并用这个平均节奏来计算箭头和提醒。"
+        language == .english ? "Uses a \(activeDaysPerWeek)-day schedule at \(Int(dailyActiveHours))h/day to place the weekly marker and pace warnings." : "按每周 \(activeDaysPerWeek) 天、每天 \(Int(dailyActiveHours)) 小时的节奏来计算每周箭头和提醒。"
     }
 
     func detailedTooltipText(language: AppLanguage = .english) -> String {
@@ -116,7 +136,7 @@ enum QuotaDisplayPolicy {
     }
 
     static func weeklyPacingHintDetail(language: AppLanguage = .english) -> String {
-        language == .english ? "40h packs fewer work hours into each day, so the marker moves faster. 70h spreads more hours through the day, so the marker moves later. % left never changes." : "40 小时会把更少的工时压进每天，所以箭头会更快往前走；70 小时会把更多工时铺进每天，所以箭头会更晚。剩余百分比不会变化。"
+        language == .english ? "40h uses 5 days × 8h. 56h uses 7 days × 8h. 70h uses 7 days × 10h. % left never changes." : "40 小时按 5 天 × 8 小时算，56 小时按 7 天 × 8 小时算，70 小时按 7 天 × 10 小时算。剩余百分比不会变化。"
     }
 
     static func menuWindowTitle(for label: String) -> String {
@@ -129,8 +149,8 @@ enum QuotaDisplayPolicy {
 
     static func weeklyPaceInlineExplanation(for mode: WeeklyPacingMode, language: AppLanguage = .english) -> String {
         language == .english
-            ? "Weekly marker and ! use the average pace for \(mode.weeklyHours)h/week."
-            : "每周箭头和 ! 按 \(mode.weeklyHours) 小时/周的平均节奏计算。"
+            ? "Weekly marker and ! use \(mode.activeDaysPerWeek)d × \(Int(mode.dailyActiveHours))h for \(mode.weeklyHours)h/week."
+            : "每周箭头和 ! 按 \(mode.activeDaysPerWeek) 天 × \(Int(mode.dailyActiveHours)) 小时来计算 \(mode.weeklyHours) 小时/周。"
     }
 
     static func colorLevel(forPercentText percentText: String) -> QuotaDisplayColorLevel? {
