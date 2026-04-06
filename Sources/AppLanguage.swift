@@ -23,6 +23,15 @@ enum AppLanguage: String, CaseIterable {
         }
     }
 
+    var menuQuotaTitle: String {
+        switch self {
+        case .english:
+            return "Codex Quota Usage"
+        case .chinese:
+            return "Codex 用量"
+        }
+    }
+
     var preferencesWindowTitle: String {
         switch self {
         case .english:

@@ -2,6 +2,13 @@
 
 All notable changes to `Codex Quota Peek` are documented here.
 
+## 0.1.0 - 2026-04-06
+
+- First tagged public build for GitHub release distribution.
+- Added bilingual README structure organized around quick start, download, and user-facing usage.
+- Updated the dropdown header copy to `Codex Quota Usage` / `Codex 用量`.
+- Improved quota help interaction so the explanation panel stays open until the next click.
+
 ## 1.1.0 - 2026-04-04
 
 - Added an in-app `English / 中文` language switch with English as the default.

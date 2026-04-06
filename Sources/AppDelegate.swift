@@ -716,7 +716,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         item(MenuTag.title)?.attributedTitle = styledTitle(
-            title: "Codex",
+            title: language.menuQuotaTitle,
             subtitle: ""
         )
         item(MenuTag.account)?.attributedTitle = styledMetaRow(
