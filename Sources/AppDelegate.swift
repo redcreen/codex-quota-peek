@@ -680,7 +680,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 paceThresholdPercent: primary.paceThresholdPercent,
                 markerThresholdPercent: primary.markerThresholdPercent,
                 displayScale: 1.0,
-                usedOnLeft: false
+                usedOnLeft: true
             )
             item(MenuTag.primary)?.toolTip = showsPaceAlert ? primary.tooltipText : stripPaceDetails(from: primary.tooltipText)
         } else {
@@ -696,7 +696,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 paceThresholdPercent: nil,
                 markerThresholdPercent: nil,
                 displayScale: 1.0,
-                usedOnLeft: false
+                usedOnLeft: true
             )
             item(MenuTag.primary)?.toolTip = nil
         }
@@ -1017,7 +1017,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     ) -> NSAttributedString {
         let title = compactQuotaLabel(for: label, language: language)
         let barFont = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
-        let detailFont = NSFont.monospacedSystemFont(ofSize: 10.5, weight: .medium)
+        let detailFont = NSFont.monospacedSystemFont(ofSize: 10.0, weight: .medium)
         let progressSlots = 28
         let titleColumnWidth = 4
         let (percentValue, percentMarker) = splitPercentComponents(percent)
@@ -1047,23 +1047,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         let statusText = percentMarker.isEmpty ? "\(language.leftLabel) \(percentValue)" : "\(language.leftLabel) \(percentValue) \(percentMarker)"
         let rightText = "\(language.resetsLabel) \(reset)"
-        let spacerCount = max(2, activeSlots + titleColumnWidth - rightText.count - statusText.count - 2)
+        let detailText = "\(rightText)  \(statusText)"
+        let spacerCount = max(2, activeSlots + titleColumnWidth - detailText.count)
         let detail = NSMutableAttributedString(
-            string: "\n" + String(repeating: " ", count: titleColumnWidth + 1 + spacerCount) + rightText + "  ",
+            string: "\n" + String(repeating: " ", count: titleColumnWidth + 1 + spacerCount),
             attributes: [
                 .font: detailFont,
                 .foregroundColor: NSColor.secondaryLabelColor
             ]
         )
-        detail.append(
-            NSAttributedString(
-                string: statusText,
-                attributes: [
-                    .font: detailFont,
-                    .foregroundColor: quotaColor(for: percent)
-                ]
-            )
-        )
+        detail.append(NSAttributedString(
+            string: rightText + "  ",
+            attributes: [
+                .font: detailFont,
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        ))
+        detail.append(NSAttributedString(
+            string: statusText,
+            attributes: [
+                .font: detailFont,
+                .foregroundColor: quotaColor(for: percent)
+            ]
+        ))
         header.append(detail)
         return header
     }

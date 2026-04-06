@@ -371,6 +371,29 @@ func testQuotaRowTooltipsIncludeDurationBreakdown() {
     expect(presentation.secondaryRow?.tooltipText?.contains("Based on 56h/week") == true, "weekly tooltip references the selected weekly workload")
 }
 
+func testQuotaRowTooltipsUseReadableSmallDurations() {
+    let snapshot = CodexQuotaSnapshot(
+        planType: "pro",
+        rateLimits: RateLimits(
+            allowed: true,
+            limitReached: false,
+            primary: LimitWindow(usedPercent: 8, windowMinutes: 300, resetAfterSeconds: 10_440, resetAt: Date().addingTimeInterval(10_440).timeIntervalSince1970),
+            secondary: nil
+        ),
+        credits: nil
+    )
+    let presentation = StatusPresentation(
+        snapshot: snapshot,
+        accountInfo: nil,
+        generatedAt: Date(),
+        source: .api,
+        language: .chinese
+    )
+
+    expect(presentation.primaryRow?.tooltipText?.contains("已用：24分钟（8%）") == true, "small non-zero usage is shown in minutes instead of 0 hours")
+    expect(presentation.primaryRow?.tooltipText?.contains("正常经过：2.1小时（42%）") == true, "normal elapsed keeps readable fractional hours")
+}
+
 func testAuthSnapshotStoreReadsSavedAccountMetadata() {
     let tempRoot = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("codex-quota-peek-tests-\(UUID().uuidString)")
     try! FileManager.default.createDirectory(at: tempRoot, withIntermediateDirectories: true)
@@ -770,6 +793,7 @@ testDisplayPresentationUsesPaceMarkersAndSourceText()
     testRelativeUpdatedAtLabels()
         testQuotaDisplayColorThresholds()
         testQuotaRowTooltipsIncludeDurationBreakdown()
+        testQuotaRowTooltipsUseReadableSmallDurations()
         testAuthSnapshotStoreReadsSavedAccountMetadata()
         testCliHelpPrefersRefreshOverUpdate()
         testRefreshRequestGateOnlyAppliesLatestRequest()

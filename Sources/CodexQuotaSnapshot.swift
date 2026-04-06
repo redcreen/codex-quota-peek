@@ -490,9 +490,9 @@ struct StatusPresentation {
 
         let usedHours = totalHours * (window.usedPercent / 100.0)
         let thresholdPercent = pacingThresholdPercent(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly) ?? 0
-        let withinPaceHours = totalHours * (min(window.usedPercent, thresholdPercent) / 100.0)
+        let normalElapsedHours = totalHours * (thresholdPercent / 100.0)
         let remainingHours = max(0, totalHours - usedHours)
-        let aheadHours = max(0, usedHours - withinPaceHours)
+        let aheadHours = max(0, usedHours - normalElapsedHours)
 
         var parts: [String] = []
         if isWeekly {
@@ -506,8 +506,8 @@ struct StatusPresentation {
         )
         parts.append(
             language == .english
-                ? "Normal elapsed: \(formattedDuration(hours: withinPaceHours, language: language)) (\(percentString(thresholdPercent)))"
-                : "正常经过：\(formattedDuration(hours: withinPaceHours, language: language))（\(percentString(thresholdPercent))）"
+                ? "Normal elapsed: \(formattedDuration(hours: normalElapsedHours, language: language)) (\(percentString(thresholdPercent)))"
+                : "正常经过：\(formattedDuration(hours: normalElapsedHours, language: language))（\(percentString(thresholdPercent))）"
         )
         parts.append(
             language == .english
@@ -542,7 +542,22 @@ struct StatusPresentation {
     }
 
     private static func formattedDuration(hours: Double, language: AppLanguage) -> String {
-        let roundedHours = max(0, Int(hours.rounded()))
+        let clampedHours = max(0, hours)
+        if clampedHours == 0 {
+            return language == .english ? "0m" : "0分钟"
+        }
+        if clampedHours < 1 {
+            let minutes = max(1, Int((clampedHours * 60.0).rounded()))
+            return language == .english ? "\(minutes)m" : "\(minutes)分钟"
+        }
+        if clampedHours < 10 {
+            let decimalHours = (clampedHours * 10.0).rounded() / 10.0
+            let formatted = decimalHours == floor(decimalHours)
+                ? String(format: "%.0f", decimalHours)
+                : String(format: "%.1f", decimalHours)
+            return language == .english ? "\(formatted)h" : "\(formatted)小时"
+        }
+        let roundedHours = max(1, Int(clampedHours.rounded()))
         return language == .english ? "\(roundedHours)h" : "\(roundedHours)小时"
     }
 
