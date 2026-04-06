@@ -228,7 +228,7 @@ struct StatusPresentation {
         }
         paceMessage = StatusPresentation.paceMessage(primary: primary, secondary: secondary, weeklyPacingMode: weeklyPacingMode, language: language)
         paceSeverity = StatusPresentation.paceSeverity(primary: primary, secondary: secondary, weeklyPacingMode: weeklyPacingMode)
-        trendText = trendSummary?.menuText(language: language)
+        trendText = trendSummary?.menuText(language: language, weeklyPacingMode: weeklyPacingMode)
         sparklineText = trendSummary?.sparklineText(language: language)
         updatedAtText = StatusPresentation.relativeUpdatedAtLabel(for: generatedAt, language: language)
         creditsText = StatusPresentation.creditsText(for: snapshot.credits, language: language)

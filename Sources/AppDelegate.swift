@@ -30,6 +30,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let openUsageDashboard = 125
         static let trend = 126
         static let sparkline = 127
+        static let weeklyPace40 = 128
+        static let weeklyPace56 = 129
+        static let weeklyPace70 = 130
         static let accountsStart = 2000
     }
 
@@ -161,6 +164,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc
+    private func selectWeeklyPacingMenu(_ sender: NSMenuItem) {
+        switch sender.tag {
+        case MenuTag.weeklyPace40:
+            setWeeklyPacingMode(.workWeek40)
+        case MenuTag.weeklyPace70:
+            setWeeklyPacingMode(.heavy70)
+        default:
+            setWeeklyPacingMode(.balanced56)
+        }
+    }
+
+    @objc
     private func switchAccount(_ sender: NSMenuItem) {
         let language = selectedAppLanguage
         guard let account = accountItemLookup[sender.tag] else { return }
@@ -285,6 +300,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         secondaryItem.tag = MenuTag.secondary
         secondaryItem.isEnabled = false
 
+        let weeklyPace40Item = NSMenuItem(title: WeeklyPacingMode.workWeek40.title, action: #selector(selectWeeklyPacingMenu(_:)), keyEquivalent: "")
+        weeklyPace40Item.tag = MenuTag.weeklyPace40
+        weeklyPace40Item.target = self
+
+        let weeklyPace56Item = NSMenuItem(title: WeeklyPacingMode.balanced56.title, action: #selector(selectWeeklyPacingMenu(_:)), keyEquivalent: "")
+        weeklyPace56Item.tag = MenuTag.weeklyPace56
+        weeklyPace56Item.target = self
+
+        let weeklyPace70Item = NSMenuItem(title: WeeklyPacingMode.heavy70.title, action: #selector(selectWeeklyPacingMenu(_:)), keyEquivalent: "")
+        weeklyPace70Item.tag = MenuTag.weeklyPace70
+        weeklyPace70Item.target = self
+
         let paceNoticeItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         paceNoticeItem.tag = MenuTag.paceNotice
         paceNoticeItem.isEnabled = false
@@ -359,6 +386,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             .separator(),
             primaryItem,
             secondaryItem,
+            weeklyPace40Item,
+            weeklyPace56Item,
+            weeklyPace70Item,
             creditsItem,
             trendItem,
             sparklineItem,
@@ -708,6 +738,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item(MenuTag.secondary)?.toolTip = weeklyPaceExplanation
         }
 
+        item(MenuTag.weeklyPace40)?.title = WeeklyPacingMode.workWeek40.menuTitle(language: language)
+        item(MenuTag.weeklyPace56)?.title = WeeklyPacingMode.balanced56.menuTitle(language: language)
+        item(MenuTag.weeklyPace70)?.title = WeeklyPacingMode.heavy70.menuTitle(language: language)
+        item(MenuTag.weeklyPace40)?.state = selectedWeeklyPacingMode == .workWeek40 ? .on : .off
+        item(MenuTag.weeklyPace56)?.state = selectedWeeklyPacingMode == .balanced56 ? .on : .off
+        item(MenuTag.weeklyPace70)?.state = selectedWeeklyPacingMode == .heavy70 ? .on : .off
+
         item(MenuTag.paceNotice)?.isHidden = true
 
         item(MenuTag.updatedAt)?.isHidden = !showsLastUpdated
@@ -724,13 +761,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         item(MenuTag.trend)?.isHidden = presentation.trendText == nil
         if let trendText = presentation.trendText {
-            item(MenuTag.trend)?.attributedTitle = styledTrend(trendText)
+            item(MenuTag.trend)?.attributedTitle = styledDailyUsageChart(trendText)
         }
 
-        item(MenuTag.sparkline)?.isHidden = presentation.sparklineText == nil
-        if let sparklineText = presentation.sparklineText {
-            item(MenuTag.sparkline)?.attributedTitle = styledSparkline(sparklineText)
-        }
+        item(MenuTag.sparkline)?.isHidden = true
     }
 
     private func maybeSendNotification(for presentation: StatusPresentation) {
@@ -1175,6 +1209,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 .foregroundColor: NSColor.secondaryLabelColor
             ]
         )
+    }
+
+    private func styledDailyUsageChart(_ text: String) -> NSAttributedString {
+        let lines = text.components(separatedBy: .newlines)
+        let result = NSMutableAttributedString()
+        for (index, line) in lines.enumerated() {
+            let attributes: [NSAttributedString.Key: Any] = index == 0
+                ? [
+                    .font: NSFont.systemFont(ofSize: 11.5, weight: .semibold),
+                    .foregroundColor: NSColor.secondaryLabelColor
+                ]
+                : [
+                    .font: NSFont.monospacedSystemFont(ofSize: 11.5, weight: .medium),
+                    .foregroundColor: NSColor.secondaryLabelColor
+                ]
+            result.append(NSAttributedString(string: line, attributes: attributes))
+            if index < lines.count - 1 {
+                result.append(NSAttributedString(string: "\n"))
+            }
+        }
+        return result
     }
 
     private func styledSparkline(_ text: String) -> NSAttributedString {

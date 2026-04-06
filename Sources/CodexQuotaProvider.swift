@@ -17,37 +17,66 @@ struct CodexQuotaFetchResult {
 }
 
 struct CodexQuotaTrendSummary {
-    let sessionCurrentPercent: Int?
-    let sessionLowPercent: Int?
-    let sessionLowDate: Date?
-    let weeklyCurrentPercent: Int?
-    let weeklyLowPercent: Int?
-    let weeklyLowDate: Date?
-    let sessionTrend: String?
-    let weeklyTrend: String?
-    let sessionDeltaPoints: Int?
-    let weeklyDeltaPoints: Int?
+    struct DailyUsageBar {
+        let date: Date
+        let usedPercent: Double
+    }
 
-    func menuText(language: AppLanguage = .english) -> String? {
-        language.trendSummaryText(
-            windowLabel: language.windowLabel(for: 300),
-            deltaPoints: sessionDeltaPoints,
-            currentPercent: sessionCurrentPercent,
-            lowPercent: sessionLowPercent,
-            lowDate: sessionLowDate,
-            recentWindow: .day
-        )
+    let dailyUsageBars: [DailyUsageBar]
+
+    func menuText(language: AppLanguage = .english, weeklyPacingMode: WeeklyPacingMode = .balanced56) -> String? {
+        guard !dailyUsageBars.isEmpty else { return nil }
+        let maxPercent = max(dailyUsageBars.map(\.usedPercent).max() ?? 0, 1)
+        let title = language == .english ? "Daily usage (\(weeklyPacingMode.title))" : "每日用量（\(weeklyPacingMode.title)）"
+        let lines = dailyUsageBars.map { bar -> String in
+            let formatter = DateFormatter()
+            formatter.setLocalizedDateFormatFromTemplate(language == .english ? "MMM d" : "M月d日")
+            let label = formatter.string(from: bar.date)
+            let hours = Int((Double(weeklyPacingMode.weeklyHours) * (bar.usedPercent / 100.0)).rounded())
+            let slots = 12
+            let filled = max(1, Int((bar.usedPercent / maxPercent * Double(slots)).rounded()))
+            let glyphs = String(repeating: "█", count: min(slots, filled))
+            return language == .english
+                ? "\(label) \(glyphs) \(hours)h"
+                : "\(label) \(glyphs) \(hours)小时"
+        }
+        return ([title] + lines).joined(separator: "\n")
     }
 
     func sparklineText(language: AppLanguage = .english) -> String? {
-        language.trendSummaryText(
-            windowLabel: language.windowLabel(for: 10080),
-            deltaPoints: weeklyDeltaPoints,
-            currentPercent: weeklyCurrentPercent,
-            lowPercent: weeklyLowPercent,
-            lowDate: weeklyLowDate,
-            recentWindow: .week
-        )
+        nil
+    }
+}
+
+private struct DailyUsageAccumulator {
+    let date: Date
+    let maxUsedPercent: Double
+}
+
+extension CodexQuotaProvider {
+    private static func dailyUsageBars(
+        from rows: [CodexQuotaFetchResult]
+    ) -> [CodexQuotaTrendSummary.DailyUsageBar] {
+        let calendar = Calendar.current
+        let dayMaxima = Dictionary(grouping: rows.compactMap { row -> DailyUsageAccumulator? in
+            guard let window = row.snapshot.rateLimits.secondary,
+                  let date = row.sourceDate else { return nil }
+            return DailyUsageAccumulator(date: calendar.startOfDay(for: date), maxUsedPercent: window.usedPercent)
+        }, by: \.date)
+            .map { date, accumulators in
+                DailyUsageAccumulator(date: date, maxUsedPercent: accumulators.map(\.maxUsedPercent).max() ?? 0)
+            }
+            .sorted { $0.date < $1.date }
+
+        guard !dayMaxima.isEmpty else { return [] }
+
+        var previousMax: Double = 0
+        return dayMaxima.map { day in
+            let dailyPercent = max(0, day.maxUsedPercent - previousMax)
+            previousMax = max(previousMax, day.maxUsedPercent)
+            return CodexQuotaTrendSummary.DailyUsageBar(date: day.date, usedPercent: dailyPercent)
+        }
+        .filter { $0.usedPercent > 0 }
     }
 }
 
@@ -148,62 +177,15 @@ final class CodexQuotaProvider {
             .compactMap { Self.parseRealtimeLogRow(String($0)) }
             .sorted { ($0.sourceDate ?? .distantPast) < ($1.sourceDate ?? .distantPast) }
 
-        let sessionRows = Self.rowsInCurrentWindow(parsedRows) { $0.snapshot.rateLimits.primary }
-        let sessionLowRow = sessionRows
-            .compactMap { row -> (Int, Date)? in
-                guard let percent = row.snapshot.rateLimits.primary?.remainingPercent,
-                      let date = row.sourceDate else { return nil }
-                return (percent, date)
-            }
-            .min { lhs, rhs in
-                lhs.0 == rhs.0 ? lhs.1 < rhs.1 : lhs.0 < rhs.0
-            }
-        let sessionTrend = Self.sparkline(
-            values: sessionRows.compactMap { $0.snapshot.rateLimits.primary?.remainingPercent },
-            points: 8
-        )
-        let sessionDeltaPoints = Self.deltaPoints(
-            values: sessionRows.compactMap { $0.snapshot.rateLimits.primary?.remainingPercent }
-        )
-
         let weeklyRows = Self.rowsInCurrentWindow(parsedRows) { $0.snapshot.rateLimits.secondary }
-        let weeklyLowRow = weeklyRows
-            .compactMap { row -> (Int, Date)? in
-                guard let percent = row.snapshot.rateLimits.secondary?.remainingPercent,
-                      let date = row.sourceDate else { return nil }
-                return (percent, date)
-            }
-            .min { lhs, rhs in
-                lhs.0 == rhs.0 ? lhs.1 < rhs.1 : lhs.0 < rhs.0
-            }
-        let weeklyTrend = Self.sparkline(
-            values: weeklyRows.compactMap { $0.snapshot.rateLimits.secondary?.remainingPercent },
-            points: 8
-        )
-        let weeklyDeltaPoints = Self.deltaPoints(
-            values: weeklyRows.compactMap { $0.snapshot.rateLimits.secondary?.remainingPercent }
-        )
+        let dailyUsageBars = Self.dailyUsageBars(from: weeklyRows)
 
-        if sessionLowRow == nil,
-           weeklyLowRow == nil,
-           sessionTrend == nil,
-           weeklyTrend == nil,
-           sessionDeltaPoints == nil,
-           weeklyDeltaPoints == nil {
+        if dailyUsageBars.isEmpty {
             return nil
         }
 
         return CodexQuotaTrendSummary(
-            sessionCurrentPercent: sessionRows.last?.snapshot.rateLimits.primary?.remainingPercent,
-            sessionLowPercent: sessionLowRow?.0,
-            sessionLowDate: sessionLowRow?.1,
-            weeklyCurrentPercent: weeklyRows.last?.snapshot.rateLimits.secondary?.remainingPercent,
-            weeklyLowPercent: weeklyLowRow?.0,
-            weeklyLowDate: weeklyLowRow?.1,
-            sessionTrend: sessionTrend,
-            weeklyTrend: weeklyTrend,
-            sessionDeltaPoints: sessionDeltaPoints,
-            weeklyDeltaPoints: weeklyDeltaPoints
+            dailyUsageBars: dailyUsageBars
         )
     }
 

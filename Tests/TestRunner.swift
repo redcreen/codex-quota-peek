@@ -251,23 +251,16 @@ func testDisplayPresentationUsesPaceMarkersAndSourceText() {
 
 func testTrendSummaryMenuText() {
     let summary = CodexQuotaTrendSummary(
-        sessionCurrentPercent: 83,
-        sessionLowPercent: 73,
-        sessionLowDate: Date(timeIntervalSince1970: 1_775_291_731),
-        weeklyCurrentPercent: 84,
-        weeklyLowPercent: 82,
-        weeklyLowDate: Date(timeIntervalSince1970: 1_775_896_800),
-        sessionTrend: "._=+##",
-        weeklyTrend: "--==++",
-        sessionDeltaPoints: -7,
-        weeklyDeltaPoints: 0
+        dailyUsageBars: [
+            .init(date: Date(timeIntervalSince1970: 1_775_291_731), usedPercent: 8),
+            .init(date: Date(timeIntervalSince1970: 1_775_378_131), usedPercent: 12),
+            .init(date: Date(timeIntervalSince1970: 1_775_464_531), usedPercent: 4)
+        ]
     )
-    let menuText = summary.menuText(language: .english) ?? ""
-    expect(menuText.contains("5 hours trend: down 7pt"), "trend summary explains recent session direction")
-    expect(menuText.contains("low 73% at"), "trend summary includes session low timestamp")
-    let weeklyText = summary.sparklineText(language: .english) ?? ""
-    expect(!weeklyText.contains("steady"), "weekly trend summary hides weak steady labels")
-    expect(weeklyText.isEmpty, "weekly trend summary hides low points that are too close to the current value")
+    let menuText = summary.menuText(language: .english, weeklyPacingMode: .balanced56) ?? ""
+    expect(menuText.contains("Daily usage (56h/week)"), "daily usage chart includes the selected weekly workload")
+    expect(menuText.contains("h"), "daily usage chart includes hourly labels")
+    expect(menuText.contains("█"), "daily usage chart renders bar glyphs")
 }
 
 func testSparklineSampling() {
@@ -556,16 +549,10 @@ func testChineseLanguagePresentationLocalizesCoreLabels() {
         generatedAt: Date(),
         source: .realtimeLogs,
         trendSummary: CodexQuotaTrendSummary(
-            sessionCurrentPercent: 80,
-            sessionLowPercent: 73,
-            sessionLowDate: Date(),
-            weeklyCurrentPercent: 82,
-            weeklyLowPercent: 82,
-            weeklyLowDate: Date(),
-            sessionTrend: "._=+##",
-            weeklyTrend: "--==++",
-            sessionDeltaPoints: -5,
-            weeklyDeltaPoints: 2
+            dailyUsageBars: [
+                .init(date: Date(), usedPercent: 8),
+                .init(date: Date().addingTimeInterval(24 * 3600), usedPercent: 12)
+            ]
         ),
         weeklyPacingMode: .balanced56,
         language: .chinese
@@ -574,7 +561,7 @@ func testChineseLanguagePresentationLocalizesCoreLabels() {
     expect(presentation.accountRow?.label == "账号", "presentation localizes account label")
     expect(presentation.sourceText == "来源：本地日志", "presentation localizes source label")
     expect(presentation.updatedAtText == "刚刚更新", "presentation localizes relative update label")
-    expect(presentation.trendText?.contains("5 小时趋势：") == true, "presentation localizes trend summary")
+    expect(presentation.trendText?.contains("每日用量") == true, "presentation localizes daily usage chart")
 }
 
 func testSystemLanguagePreferenceFallsBackToMacOSLocale() {
