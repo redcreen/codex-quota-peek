@@ -994,6 +994,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             overrunPercent: paceOverrunPercent,
             usedPercent: usedPercent,
             thresholdPercent: paceThresholdPercent,
+            paceSeverity: paceSeverity,
             font: barFont,
             slots: progressSlots
         )
@@ -1071,6 +1072,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         overrunPercent: Double?,
         usedPercent: Double,
         thresholdPercent: Double?,
+        paceSeverity: StatusPresentation.PaceSeverity?,
         font: NSFont,
         slots: Int
     ) -> NSAttributedString {
@@ -1081,46 +1083,52 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             thresholdPercent: thresholdPercent,
             slots: slots
         )
+        let remainingColor = remainingColor(for: percentText, paceSeverity: paceSeverity)
+        let usedColor = NSColor.tertiaryLabelColor
+        let markerColor = NSColor.secondaryLabelColor
+
+        let container = NSMutableAttributedString()
+        if let markerIndex = segments.markerIndex {
+            let clamped = max(0, min(slots, markerIndex))
+            let arrowLine = String(repeating: " ", count: max(0, clamped)) + "↓"
+            container.append(
+                NSAttributedString(
+                    string: arrowLine + "\n",
+                    attributes: [
+                        .font: font,
+                        .foregroundColor: markerColor
+                    ]
+                )
+            )
+        }
+
         let bar = NSMutableAttributedString()
-
-        if segments.filled > 0 {
+        if segments.remaining > 0 {
             bar.append(
                 NSAttributedString(
-                    string: String(repeating: "█", count: segments.filled),
+                    string: String(repeating: "█", count: segments.remaining),
                     attributes: [
                         .font: font,
-                        .foregroundColor: quotaColor(for: percentText)
+                        .foregroundColor: remainingColor
                     ]
                 )
             )
         }
 
-        if segments.exceeded > 0 {
-            let marker = percentText.filter { $0 == "!" }
+        if segments.used > 0 {
             bar.append(
                 NSAttributedString(
-                    string: String(repeating: "▓", count: segments.exceeded),
+                    string: String(repeating: "░", count: segments.used),
                     attributes: [
                         .font: font,
-                        .foregroundColor: paceColor(for: marker)
+                        .foregroundColor: usedColor
                     ]
                 )
             )
         }
 
-        if segments.empty > 0 {
-            bar.append(
-                NSAttributedString(
-                    string: String(repeating: "░", count: segments.empty),
-                    attributes: [
-                        .font: font,
-                        .foregroundColor: NSColor.tertiaryLabelColor
-                    ]
-                )
-            )
-        }
-
-        return bar
+        container.append(bar)
+        return container
     }
 
     private func splitPercentComponents(_ percentText: String) -> (String, String) {
@@ -1170,6 +1178,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func paceColor(for marker: String) -> NSColor {
         marker.count >= 2 ? NSColor.systemRed : NSColor.systemYellow
+    }
+
+    private func remainingColor(for percentText: String, paceSeverity: StatusPresentation.PaceSeverity?) -> NSColor {
+        guard paceSeverity != nil else {
+            return NSColor.systemGreen
+        }
+        switch paceSeverity {
+        case .warning:
+            return NSColor.systemYellow
+        case .critical, .severe:
+            return NSColor.systemRed
+        case nil:
+            return NSColor.systemGreen
+        }
     }
 
     private func styledUpdatedAt(_ text: String, source: String) -> NSAttributedString {

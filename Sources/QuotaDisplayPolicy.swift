@@ -166,27 +166,24 @@ enum QuotaDisplayPolicy {
         usedPercent: Double? = nil,
         thresholdPercent: Double? = nil,
         slots: Int = 18
-    ) -> (filled: Int, exceeded: Int, empty: Int) {
+    ) -> (remaining: Int, used: Int, markerIndex: Int?) {
         guard let percent = Int(
             percentText
                 .replacingOccurrences(of: "%", with: "")
                 .replacingOccurrences(of: "!", with: "")
         ) else {
-            return (0, 0, slots)
+            return (0, slots, nil)
         }
 
-        if let usedPercent, let thresholdPercent, usedPercent > thresholdPercent {
-            let withinPaceSlots = max(0, min(slots, Int((min(usedPercent, thresholdPercent) / 100.0 * Double(slots)).rounded())))
-            let totalUsedSlots = max(withinPaceSlots, min(slots, Int((usedPercent / 100.0 * Double(slots)).rounded())))
-            let exceeded = max(0, min(slots - withinPaceSlots, totalUsedSlots - withinPaceSlots))
-            let empty = max(0, slots - withinPaceSlots - exceeded)
-            return (withinPaceSlots, exceeded, empty)
+        let remaining = max(0, min(slots, Int((Double(percent) / 100.0 * Double(slots)).rounded())))
+        let used = max(0, slots - remaining)
+        let markerIndex: Int?
+        if let thresholdPercent {
+            let expectedRemaining = max(0, min(100, 100.0 - thresholdPercent))
+            markerIndex = max(0, min(slots, Int((expectedRemaining / 100.0 * Double(slots)).rounded())))
+        } else {
+            markerIndex = nil
         }
-
-        let filled = max(0, min(slots, Int((Double(percent) / 100.0 * Double(slots)).rounded())))
-        let empty = max(0, slots - filled)
-        let exceededSlots = Int((((overrunPercent ?? 0) / 100.0) * Double(slots)).rounded())
-        let exceeded = min(empty, max(0, exceededSlots))
-        return (filled, exceeded, max(0, empty - exceeded))
+        return (remaining, used, markerIndex)
     }
 }

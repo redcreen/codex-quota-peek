@@ -340,7 +340,7 @@ func testQuotaDisplayColorThresholds() {
         thresholdPercent: 14,
         slots: 10
     )
-    expect(segments.filled == 1 && segments.exceeded == 5 && segments.empty == 4, "alerting progress segments reflect elapsed pace plus actual overuse")
+    expect(segments.remaining == 4 && segments.used == 6 && segments.markerIndex == 9, "progress segments render remaining on the left, used on the right, and include a normal-progress marker")
 }
 
 func testQuotaRowTooltipsIncludeDurationBreakdown() {
