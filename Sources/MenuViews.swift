@@ -209,6 +209,7 @@ final class MenuActionRowView: NSView {
 final class WeeklyPaceSelectorView: NSView {
     private let titleLabel = NSTextField(labelWithString: "")
     private let segmentedControl = NSSegmentedControl(labels: ["40h", "56h", "70h"], trackingMode: .selectOne, target: nil, action: nil)
+    private let titleWidth: CGFloat = 92
     var onSelect: ((WeeklyPacingMode) -> Void)?
 
     override init(frame frameRect: NSRect) {
@@ -242,10 +243,11 @@ final class WeeklyPaceSelectorView: NSView {
         NSLayoutConstraint.activate([
             titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
             titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+            titleLabel.widthAnchor.constraint(equalToConstant: titleWidth),
 
             segmentedControl.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
             segmentedControl.centerYAnchor.constraint(equalTo: centerYAnchor),
-            segmentedControl.leadingAnchor.constraint(greaterThanOrEqualTo: titleLabel.trailingAnchor, constant: 12)
+            segmentedControl.leadingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: 10)
         ])
     }
 

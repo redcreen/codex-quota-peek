@@ -282,6 +282,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ]
         switchAccountItem.submenu = switchAccountMenu
 
+        let accountItem = NSMenuItem(title: "--", action: nil, keyEquivalent: "")
+        accountItem.tag = MenuTag.account
+        accountItem.isEnabled = false
+
+        let planItem = NSMenuItem(title: "--", action: nil, keyEquivalent: "")
+        planItem.tag = MenuTag.plan
+        planItem.isEnabled = false
+
         let primaryItem = NSMenuItem(title: "5 hours: -- | --", action: nil, keyEquivalent: "")
         primaryItem.tag = MenuTag.primary
         primaryItem.isEnabled = false
@@ -365,6 +373,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         menu.items = [
             titleItem,
+            .separator(),
+            accountItem,
+            planItem,
             .separator(),
             primaryItem,
             secondaryItem,
@@ -988,7 +999,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let barFont = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
         let detailFont = NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
         let progressSlots = 28
-        let titleColumnWidth = 3
+        let titleColumnWidth = 4
         let (percentValue, percentMarker) = splitPercentComponents(percent)
         let progressBar = styledProgressBar(
             forPercentText: percent,
@@ -1079,7 +1090,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let remainingColor = remainingColor(for: percentText, paceSeverity: paceSeverity)
         let usedColor = NSColor.tertiaryLabelColor
         let markerColor = NSColor.secondaryLabelColor
-        let titleColumnWidth = 3
+        let titleColumnWidth = 4
 
         let container = NSMutableAttributedString()
         let prefix = String(repeating: " ", count: titleColumnWidth)
@@ -1291,7 +1302,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func styledDailyUsageChartRow(for chart: CodexQuotaTrendSummary.ChartPresentation, threshold: Int) -> NSAttributedString {
         let axisFont = NSFont.monospacedSystemFont(ofSize: 11.5, weight: .medium)
         let row = NSMutableAttributedString(
-            string: String(format: "%2dh │ ", threshold),
+            string: String(format: "%2dh ┤ ", threshold),
             attributes: [
                 .font: axisFont,
                 .foregroundColor: NSColor.secondaryLabelColor
@@ -1327,7 +1338,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func styledDailyUsageChartFooter(for chart: CodexQuotaTrendSummary.ChartPresentation) -> NSAttributedString {
         let font = NSFont.monospacedSystemFont(ofSize: 11.5, weight: .medium)
         let footer = NSMutableAttributedString(
-            string: "    ",
+            string: "     ",
             attributes: [
                 .font: font,
                 .foregroundColor: NSColor.secondaryLabelColor
@@ -1357,7 +1368,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func styledDailyUsageChartAxis(for chart: CodexQuotaTrendSummary.ChartPresentation) -> NSAttributedString {
         let font = NSFont.monospacedSystemFont(ofSize: 11.5, weight: .medium)
         let axis = NSMutableAttributedString(
-            string: "    └",
+            string: "     └",
             attributes: [
                 .font: font,
                 .foregroundColor: NSColor.secondaryLabelColor
