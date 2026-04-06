@@ -670,6 +670,99 @@ func testChineseLanguagePresentationLocalizesCoreLabels() {
     expect(presentation.trendText?.contains("每日用量") == true, "presentation localizes daily usage chart")
 }
 
+func testEnglishMenuContractSnapshotKeepsCoreMenuStructure() {
+    let presentation = StatusPresentation(
+        snapshot: makeSnapshot(primaryUsed: 4, secondaryUsed: 64),
+        accountInfo: CodexAccountInfo(displayName: "67560691@qq.com", email: "67560691@qq.com", planDisplayName: "Pro"),
+        generatedAt: Date(),
+        source: .api,
+        trendSummary: CodexQuotaTrendSummary(
+            dailyUsageBars: [
+                .init(date: Date(), usedPercent: 10, cumulativeUsedPercent: 10, expectedUsedPercent: 8, isFuture: false),
+                .init(date: Date().addingTimeInterval(24 * 3600), usedPercent: 12, cumulativeUsedPercent: 22, expectedUsedPercent: 16, isFuture: false),
+                .init(date: Date().addingTimeInterval(2 * 24 * 3600), usedPercent: 5, cumulativeUsedPercent: 27, expectedUsedPercent: 24, isFuture: false),
+                .init(date: Date().addingTimeInterval(3 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 27, expectedUsedPercent: 32, isFuture: true),
+                .init(date: Date().addingTimeInterval(4 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 27, expectedUsedPercent: 32, isFuture: true),
+                .init(date: Date().addingTimeInterval(5 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 27, expectedUsedPercent: 32, isFuture: true),
+                .init(date: Date().addingTimeInterval(6 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 27, expectedUsedPercent: 32, isFuture: true)
+            ]
+        ),
+        weeklyPacingMode: .workWeek40,
+        language: .english
+    )
+    let snapshot = MenuContractBuilder.build(
+        presentation: presentation,
+        language: .english,
+        weeklyPacingMode: .workWeek40,
+        showsLastUpdated: true
+    )
+
+    expect(snapshot.title == "Codex Quota Usage", "english menu snapshot keeps the quota title")
+    expect(snapshot.accountLine == "Account 67560691@qq.com (Pro)", "english menu snapshot keeps account and plan on one line")
+    expect(snapshot.primaryLabel == "5h", "english menu snapshot includes the 5h row")
+    expect(snapshot.secondaryLabel == "7d", "english menu snapshot includes the 7d row")
+    expect(snapshot.weeklySelectorTitle == "Weekly work hours", "english menu snapshot includes the weekly selector title")
+    expect(snapshot.weeklyOptions == ["40h", "56h", "70h"], "english menu snapshot keeps all weekly selector options")
+    expect(snapshot.weeklyExplanation.contains("40h/week"), "english menu snapshot keeps weekly explanation text")
+    expect(snapshot.updatedLine?.contains("Source: API") == true, "english menu snapshot keeps updated/source line")
+    expect(snapshot.actionTitles.contains("Refresh Now (API)"), "english menu snapshot keeps refresh action")
+    expect(snapshot.actionTitles.contains("Preferences..."), "english menu snapshot keeps preferences action")
+}
+
+func testChineseMenuContractSnapshotKeepsCoreMenuStructure() {
+    let presentation = StatusPresentation(
+        snapshot: makeSnapshot(primaryUsed: 4, secondaryUsed: 64),
+        accountInfo: CodexAccountInfo(displayName: "67560691@qq.com", email: "67560691@qq.com", planDisplayName: "Pro"),
+        generatedAt: Date(),
+        source: .realtimeLogs,
+        trendSummary: nil,
+        weeklyPacingMode: .balanced56,
+        language: .chinese
+    )
+    let snapshot = MenuContractBuilder.build(
+        presentation: presentation,
+        language: .chinese,
+        weeklyPacingMode: .balanced56,
+        showsLastUpdated: true
+    )
+
+    expect(snapshot.title == "Codex 用量", "chinese menu snapshot keeps the quota title")
+    expect(snapshot.accountLine == "账号 67560691@qq.com (Pro)", "chinese menu snapshot keeps account and plan on one line")
+    expect(snapshot.primaryLabel == "5h", "chinese menu snapshot includes the 5h row")
+    expect(snapshot.secondaryLabel == "7d", "chinese menu snapshot includes the 7d row")
+    expect(snapshot.weeklySelectorTitle == "每周工作时长", "chinese menu snapshot includes weekly selector title")
+    expect(snapshot.weeklyOptions == ["40h", "56h", "70h"], "chinese menu snapshot keeps all weekly selector options")
+    expect(snapshot.updatedLine?.contains("来源：本地日志") == true, "chinese menu snapshot keeps updated/source line")
+    expect(snapshot.actionTitles.contains("立即刷新（API）"), "chinese menu snapshot keeps refresh action")
+    expect(snapshot.actionTitles.contains("偏好设置..."), "chinese menu snapshot keeps preferences action")
+}
+
+func testMenuContractSnapshotRespectsLastUpdatedVisibility() {
+    let presentation = StatusPresentation(
+        snapshot: makeSnapshot(primaryUsed: 8, secondaryUsed: 20),
+        accountInfo: CodexAccountInfo(displayName: "67560691@qq.com", email: "67560691@qq.com", planDisplayName: "Pro"),
+        generatedAt: Date(),
+        source: .api,
+        language: .english
+    )
+
+    let visible = MenuContractBuilder.build(
+        presentation: presentation,
+        language: .english,
+        weeklyPacingMode: .balanced56,
+        showsLastUpdated: true
+    )
+    let hidden = MenuContractBuilder.build(
+        presentation: presentation,
+        language: .english,
+        weeklyPacingMode: .balanced56,
+        showsLastUpdated: false
+    )
+
+    expect(visible.updatedLine?.contains("Source: API") == true, "menu contract includes updated/source line when enabled")
+    expect(hidden.updatedLine == nil, "menu contract hides updated/source line when disabled")
+}
+
 func testSystemLanguagePreferenceFallsBackToMacOSLocale() {
     expect(AppLanguage.systemPreferred(preferredLanguages: ["zh-Hans-CN"]) == .chinese, "system language detection maps Chinese locales to Chinese UI")
     expect(AppLanguage.systemPreferred(preferredLanguages: ["en-US"]) == .english, "system language detection keeps English locales on English UI")
@@ -866,6 +959,9 @@ testDisplayPresentationUsesPaceMarkersAndSourceText()
         testWeeklyPacingModeCanBeLooserThanFullWeek()
         testWeeklyTooltipHoursChangeWhileMarkerPercentStaysFixed()
         testChineseLanguagePresentationLocalizesCoreLabels()
+        testEnglishMenuContractSnapshotKeepsCoreMenuStructure()
+        testChineseMenuContractSnapshotKeepsCoreMenuStructure()
+        testMenuContractSnapshotRespectsLastUpdatedVisibility()
         testSystemLanguagePreferenceFallsBackToMacOSLocale()
         testNotificationPolicyTriggersOnlyOnEscalation()
         testNotificationPolicyStaysQuietForRepeatedState()
