@@ -21,16 +21,32 @@ macOS menu bar app + CLI for checking Codex quota quickly.
 
 ### 快速使用
 
-一键下载安装：
-[下载最新版 DMG](https://github.com/redcreen/codex-quota-peek/raw/main/release/CodexQuotaPeek-0.1.0.dmg)
+当前版本还没有做 Apple 签名和 notarization。  
+所以对普通用户来说，最稳、最省事的可用安装方式是：本地构建并安装。
 
-安装步骤：
+方式一：直接克隆并安装
 
-1. 下载 `CodexQuotaPeek-0.1.0.dmg`
-2. 打开 DMG，把 `CodexQuotaPeek.app` 拖到右侧的 `Applications`
-3. 双击打开，应用会常驻在菜单栏
+```bash
+git clone https://github.com/redcreen/codex-quota-peek.git
+cd codex-quota-peek
+./scripts/install_app.sh
+```
 
-如果 macOS 提示安全限制，到“系统设置 -> 隐私与安全性”里允许打开即可。
+方式二：下载源码 zip 后安装
+
+1. 在 GitHub 仓库页面点击 `Code -> Download ZIP`
+2. 解压源码目录
+3. 进入项目目录后执行：
+
+```bash
+./scripts/install_app.sh
+```
+
+安装完成后，应用会出现在：
+
+```bash
+/Applications/CodexQuotaPeek.app
+```
 
 ### 适合谁
 
@@ -113,9 +129,9 @@ codexQuotaPeek accounts list
 ### 发布
 
 - 当前发布版本：`0.1.0`
-- 推荐下载文件：`CodexQuotaPeek-0.1.0.dmg`
 - 版本记录：[CHANGELOG.md](/Users/redcreen/Project/codex%20limit/CHANGELOG.md)
 - 发版流程：[RELEASE.md](/Users/redcreen/Project/codex%20limit/RELEASE.md)
+- 签名与公证方案：[docs/signing-and-notarization-plan.md](/Users/redcreen/Project/codex%20limit/docs/signing-and-notarization-plan.md)
 
 ### Roadmap
 
@@ -141,16 +157,32 @@ It is for people who want to:
 
 ### Quick Start
 
-One-click download:
-[Download the latest DMG](https://github.com/redcreen/codex-quota-peek/raw/main/release/CodexQuotaPeek-0.1.0.dmg)
+The current build is not yet Apple-signed or notarized.  
+So the most reliable install flow for users right now is: build locally, then install.
 
-Install:
+Option 1: clone and install
 
-1. Download `CodexQuotaPeek-0.1.0.dmg`
-2. Open the DMG and drag `CodexQuotaPeek.app` onto the `Applications` shortcut
-3. Open it once, then it will live in the menu bar
+```bash
+git clone https://github.com/redcreen/codex-quota-peek.git
+cd codex-quota-peek
+./scripts/install_app.sh
+```
 
-If macOS blocks the app, allow it from “System Settings -> Privacy & Security”.
+Option 2: download the source ZIP and install
+
+1. Open the GitHub repo page
+2. Click `Code -> Download ZIP`
+3. Extract it and run:
+
+```bash
+./scripts/install_app.sh
+```
+
+After that, the app will be available at:
+
+```bash
+/Applications/CodexQuotaPeek.app
+```
 
 ### What You Get
 
@@ -227,9 +259,9 @@ Full implementation notes:
 ### Release
 
 - Current release tag: `0.1.0`
-- Recommended download: `CodexQuotaPeek-0.1.0.dmg`
 - Changelog: [CHANGELOG.md](/Users/redcreen/Project/codex%20limit/CHANGELOG.md)
 - Release guide: [RELEASE.md](/Users/redcreen/Project/codex%20limit/RELEASE.md)
+- Signing and notarization plan: [docs/signing-and-notarization-plan.md](/Users/redcreen/Project/codex%20limit/docs/signing-and-notarization-plan.md)
 
 ### Roadmap
 

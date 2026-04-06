@@ -23,6 +23,14 @@ This project ships a macOS app bundle, a CLI, a versioned DMG, a versioned zip p
 5. Commit and push the version/changelog changes
 6. Create or update a GitHub Release, paste `release/GITHUB_RELEASE_DRAFT.md`, and upload the zip
 
+## Signing status
+
+Current public builds are not yet Apple-signed or notarized.
+
+For the future plan, see:
+
+- [docs/signing-and-notarization-plan.md](/Users/redcreen/Project/codex%20limit/docs/signing-and-notarization-plan.md)
+
 ## GitHub Actions note
 
 The repository includes a ready-to-copy workflow template here:
