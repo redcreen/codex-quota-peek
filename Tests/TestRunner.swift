@@ -364,8 +364,10 @@ func testQuotaRowTooltipsIncludeDurationBreakdown() {
         language: .english
     )
 
+    expect(presentation.primaryRow?.tooltipText?.contains("Total:") == true, "quota row tooltip includes total duration")
+    expect(presentation.primaryRow?.tooltipText?.contains("Normal elapsed:") == true, "quota row tooltip includes normal elapsed duration")
     expect(presentation.primaryRow?.tooltipText?.contains("Used:") == true, "quota row tooltip includes used duration")
-    expect(presentation.primaryRow?.tooltipText?.contains("Green:") == true, "quota row tooltip includes in-pace duration")
+    expect(presentation.primaryRow?.tooltipText?.contains("Remaining:") == true, "quota row tooltip includes remaining duration")
     expect(presentation.secondaryRow?.tooltipText?.contains("Based on 56h/week") == true, "weekly tooltip references the selected weekly workload")
 }
 

@@ -459,6 +459,7 @@ struct StatusPresentation {
         let usedHours = totalHours * (window.usedPercent / 100.0)
         let thresholdPercent = pacingThresholdPercent(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly) ?? 0
         let withinPaceHours = totalHours * (min(window.usedPercent, thresholdPercent) / 100.0)
+        let remainingHours = max(0, totalHours - usedHours)
         let aheadHours = max(0, usedHours - withinPaceHours)
 
         var parts: [String] = []
@@ -467,19 +468,29 @@ struct StatusPresentation {
         }
         parts.append(
             language == .english
-                ? "Used: \(formattedDuration(hours: usedHours, language: language)) of \(formattedDuration(hours: totalHours, language: language))"
-                : "已用：\(formattedDuration(hours: usedHours, language: language)) / \(formattedDuration(hours: totalHours, language: language))"
+                ? "Total: \(formattedDuration(hours: totalHours, language: language)) (100%)"
+                : "总量：\(formattedDuration(hours: totalHours, language: language))（100%）"
         )
         parts.append(
             language == .english
-                ? "Green: \(formattedDuration(hours: withinPaceHours, language: language)) within pace"
-                : "绿色：\(formattedDuration(hours: withinPaceHours, language: language))，在当前节奏内"
+                ? "Normal elapsed: \(formattedDuration(hours: withinPaceHours, language: language)) (\(percentString(thresholdPercent)))"
+                : "正常经过：\(formattedDuration(hours: withinPaceHours, language: language))（\(percentString(thresholdPercent))）"
+        )
+        parts.append(
+            language == .english
+                ? "Used: \(formattedDuration(hours: usedHours, language: language)) (\(percentString(window.usedPercent)))"
+                : "已用：\(formattedDuration(hours: usedHours, language: language))（\(percentString(window.usedPercent))）"
+        )
+        parts.append(
+            language == .english
+                ? "Remaining: \(formattedDuration(hours: remainingHours, language: language)) (\(percentString(Double(window.remainingPercent))))"
+                : "剩余：\(formattedDuration(hours: remainingHours, language: language))（\(percentString(Double(window.remainingPercent)))）"
         )
         if aheadHours > 0 {
             parts.append(
                 language == .english
-                    ? "Alert: \(formattedDuration(hours: aheadHours, language: language)) ahead of pace"
-                    : "警示：\(formattedDuration(hours: aheadHours, language: language))，超出当前节奏"
+                    ? "Ahead of pace: \(formattedDuration(hours: aheadHours, language: language)) (\(percentString(max(0, window.usedPercent - thresholdPercent))))"
+                    : "超出节奏：\(formattedDuration(hours: aheadHours, language: language))（\(percentString(max(0, window.usedPercent - thresholdPercent)))）"
             )
         }
         return parts.joined(separator: "\n")
@@ -505,5 +516,9 @@ struct StatusPresentation {
             return language == .english ? "\(days)d \(remainingHours)h" : "\(days)天 \(remainingHours)小时"
         }
         return language == .english ? "\(remainingHours)h" : "\(remainingHours)小时"
+    }
+
+    private static func percentString(_ value: Double) -> String {
+        "\(Int(value.rounded()))%"
     }
 }
