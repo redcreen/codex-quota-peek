@@ -206,6 +206,68 @@ final class MenuActionRowView: NSView {
     }
 }
 
+final class QuotaMenuRowView: NSView {
+    private let textLabel = NSTextField(labelWithString: "")
+    private let helpButton = NSButton(title: "?", target: nil, action: nil)
+    var onHelp: ((NSView) -> Void)?
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        setup()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setup()
+    }
+
+    private func setup() {
+        frame = NSRect(x: 0, y: 0, width: 340, height: 54)
+
+        textLabel.translatesAutoresizingMaskIntoConstraints = false
+        textLabel.allowsEditingTextAttributes = true
+        textLabel.isSelectable = false
+        textLabel.usesSingleLineMode = false
+        textLabel.maximumNumberOfLines = 0
+        textLabel.lineBreakMode = .byClipping
+        textLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        helpButton.translatesAutoresizingMaskIntoConstraints = false
+        helpButton.isBordered = false
+        helpButton.bezelStyle = .inline
+        helpButton.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
+        helpButton.contentTintColor = .secondaryLabelColor
+        helpButton.target = self
+        helpButton.action = #selector(didClickHelp(_:))
+
+        addSubview(textLabel)
+        addSubview(helpButton)
+
+        NSLayoutConstraint.activate([
+            textLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            textLabel.topAnchor.constraint(equalTo: topAnchor, constant: 2),
+            textLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -2),
+            textLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -30),
+
+            helpButton.leadingAnchor.constraint(equalTo: textLabel.trailingAnchor, constant: 4),
+            helpButton.topAnchor.constraint(equalTo: topAnchor, constant: 18),
+            helpButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
+            helpButton.widthAnchor.constraint(equalToConstant: 18),
+            helpButton.heightAnchor.constraint(equalToConstant: 18)
+        ])
+    }
+
+    func update(content: NSAttributedString, helpEnabled: Bool) {
+        textLabel.attributedStringValue = content
+        helpButton.isHidden = !helpEnabled
+    }
+
+    @objc
+    private func didClickHelp(_ sender: NSButton) {
+        onHelp?(sender)
+    }
+}
+
 final class WeeklyPaceSelectorView: NSView {
     private let titleLabel = NSTextField(labelWithString: "")
     private let segmentedControl = NSSegmentedControl(labels: ["40h", "56h", "70h"], trackingMode: .selectOne, target: nil, action: nil)

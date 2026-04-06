@@ -51,6 +51,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let badgeView = StatusBadgeView(frame: NSRect(x: 0, y: 0, width: 56, height: 24))
     private let menu = NSMenu()
+    private let primaryQuotaRowView = QuotaMenuRowView(frame: NSRect(x: 0, y: 0, width: 340, height: 54))
+    private let secondaryQuotaRowView = QuotaMenuRowView(frame: NSRect(x: 0, y: 0, width: 340, height: 54))
     private let weeklyPaceSelectorView = WeeklyPaceSelectorView(frame: NSRect(x: 0, y: 0, width: 320, height: 26))
     private let homeDirectory = FileManager.default.homeDirectoryForCurrentUser
     private let defaults = UserDefaults.standard
@@ -81,6 +83,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var lastGeneratedAtForDisplay: Date?
     private var lastPrimaryExplanationText: String?
     private var lastSecondaryExplanationText: String?
+    private let explanationPopover = NSPopover()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -276,6 +279,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         weeklyPaceSelectorView.onSelect = { [weak self] mode in
             self?.setWeeklyPacingMode(mode)
         }
+        primaryQuotaRowView.onHelp = { [weak self] anchor in
+            self?.showExplanationPopover(self?.lastPrimaryExplanationText, from: anchor)
+        }
+        secondaryQuotaRowView.onHelp = { [weak self] anchor in
+            self?.showExplanationPopover(self?.lastSecondaryExplanationText, from: anchor)
+        }
 
         let titleItem = NSMenuItem(title: "Codex", action: nil, keyEquivalent: "")
         titleItem.tag = MenuTag.title
@@ -319,15 +328,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         planItem.tag = MenuTag.plan
         planItem.isEnabled = false
 
-        let primaryItem = NSMenuItem(title: "5 hours: -- | --", action: #selector(showQuotaExplanation(_:)), keyEquivalent: "")
+        let primaryItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         primaryItem.tag = MenuTag.primary
-        primaryItem.isEnabled = true
-        primaryItem.target = self
+        primaryItem.view = primaryQuotaRowView
 
-        let secondaryItem = NSMenuItem(title: "7 days: -- | --", action: #selector(showQuotaExplanation(_:)), keyEquivalent: "")
+        let secondaryItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         secondaryItem.tag = MenuTag.secondary
-        secondaryItem.isEnabled = true
-        secondaryItem.target = self
+        secondaryItem.view = secondaryQuotaRowView
 
         let weeklyPaceSelectorItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         weeklyPaceSelectorItem.tag = MenuTag.weeklyPaceSelector
@@ -680,6 +687,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func apply(_ presentation: StatusPresentation) {
         let language = selectedAppLanguage
         lastPresentation = presentation
+        explanationPopover.performClose(nil)
         let badgeLine1 = showsPaceAlert ? presentation.line1 : stripPaceMarkers(from: presentation.line1)
         let badgeLine2 = showsPaceAlert ? presentation.line2 : stripPaceMarkers(from: presentation.line2)
         badgeView.line1 = badgeLine1
@@ -722,7 +730,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         if let primary = presentation.primaryRow {
-            item(MenuTag.primary)?.attributedTitle = styledQuotaRow(
+            lastPrimaryExplanationText = showsPaceAlert ? primary.tooltipText : stripPaceDetails(from: primary.tooltipText)
+            primaryQuotaRowView.update(
+                content: styledQuotaRow(
                 label: primary.label,
                 language: language,
                 percent: showsPaceAlert ? primary.percentText : stripPaceMarkers(from: primary.percentText),
@@ -735,11 +745,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 markerThresholdPercent: primary.markerThresholdPercent,
                 displayScale: 1.0,
                 usedOnLeft: true
+            ),
+                helpEnabled: lastPrimaryExplanationText != nil
             )
-            lastPrimaryExplanationText = showsPaceAlert ? primary.tooltipText : stripPaceDetails(from: primary.tooltipText)
-            item(MenuTag.primary)?.toolTip = nil
         } else {
-            item(MenuTag.primary)?.attributedTitle = styledQuotaRow(
+            lastPrimaryExplanationText = nil
+            primaryQuotaRowView.update(content: styledQuotaRow(
                 label: "5 hours",
                 language: language,
                 percent: "--",
@@ -752,13 +763,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 markerThresholdPercent: nil,
                 displayScale: 1.0,
                 usedOnLeft: true
-            )
-            lastPrimaryExplanationText = nil
-            item(MenuTag.primary)?.toolTip = nil
+            ), helpEnabled: false)
         }
 
         if let secondary = presentation.secondaryRow {
-            item(MenuTag.secondary)?.attributedTitle = styledQuotaRow(
+            let baseExplanation = showsPaceAlert ? secondary.tooltipText : stripPaceDetails(from: secondary.tooltipText)
+            lastSecondaryExplanationText = [baseExplanation, weeklyPaceExplanation].compactMap { $0 }.joined(separator: "\n\n")
+            secondaryQuotaRowView.update(content: styledQuotaRow(
                 label: secondary.label,
                 language: language,
                 percent: showsPaceAlert ? secondary.percentText : stripPaceMarkers(from: secondary.percentText),
@@ -771,12 +782,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 markerThresholdPercent: secondary.markerThresholdPercent,
                 displayScale: 1.0,
                 usedOnLeft: true
-            )
-            let baseExplanation = showsPaceAlert ? secondary.tooltipText : stripPaceDetails(from: secondary.tooltipText)
-            lastSecondaryExplanationText = [baseExplanation, weeklyPaceExplanation].compactMap { $0 }.joined(separator: "\n\n")
-            item(MenuTag.secondary)?.toolTip = nil
+            ), helpEnabled: true)
         } else {
-            item(MenuTag.secondary)?.attributedTitle = styledQuotaRow(
+            lastSecondaryExplanationText = weeklyPaceExplanation
+            secondaryQuotaRowView.update(content: styledQuotaRow(
                 label: "7 days",
                 language: language,
                 percent: "--",
@@ -789,9 +798,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 markerThresholdPercent: nil,
                 displayScale: 1.0,
                 usedOnLeft: true
-            )
-            lastSecondaryExplanationText = weeklyPaceExplanation
-            item(MenuTag.secondary)?.toolTip = nil
+            ), helpEnabled: true)
         }
 
         weeklyPaceSelectorView.update(language: language, selectedMode: selectedWeeklyPacingMode)
@@ -1100,14 +1107,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             .foregroundColor: NSColor.labelColor
         ]))
         header.append(progressBar.bar)
-        header.append(NSAttributedString(
-            string: " ?",
-            attributes: [
-                .font: NSFont.systemFont(ofSize: 11, weight: .semibold),
-                .foregroundColor: NSColor.secondaryLabelColor
-            ]
-        ))
-
         let statusText = percentMarker.isEmpty ? "\(language.leftLabel) \(percentValue)" : "\(language.leftLabel) \(percentValue) \(percentMarker)"
         let rightText = "\(language.resetsLabel) \(reset)"
         let detailText = "\(rightText) \(statusText)"
@@ -1247,6 +1246,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let marker = percentText.filter { $0 == "!" }
         let value = percentText.replacingOccurrences(of: "!", with: "")
         return (value, marker)
+    }
+
+    private func showExplanationPopover(_ text: String?, from anchor: NSView) {
+        guard let text, !text.isEmpty else { return }
+        let content = NSViewController()
+        let label = NSTextField(wrappingLabelWithString: text)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = NSFont.systemFont(ofSize: 11, weight: .regular)
+        label.textColor = .labelColor
+        label.preferredMaxLayoutWidth = 280
+
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 10))
+        container.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
+            label.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
+            label.topAnchor.constraint(equalTo: container.topAnchor, constant: 12),
+            label.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -12)
+        ])
+        content.view = container
+
+        explanationPopover.contentViewController = content
+        explanationPopover.behavior = .semitransient
+        explanationPopover.animates = true
+        if explanationPopover.isShown {
+            explanationPopover.performClose(nil)
+        }
+        explanationPopover.show(relativeTo: anchor.bounds, of: anchor, preferredEdge: .maxX)
     }
 
     private func styledWeeklyPaceExplanation(_ text: String) -> NSAttributedString {
