@@ -98,11 +98,11 @@ enum WeeklyPacingMode: String, CaseIterable {
     }
 
     func tooltipText(language: AppLanguage = .english) -> String {
-        language == .english ? "Uses this week's elapsed time for the warning baseline. The \(weeklyHours)-hour preset adds a severity boost of \(Int(paceSeverityBoost)) points after the warning appears." : "先按本周已经过去的物理时间计算是否触发提醒。\(weeklyHours) 小时档位会在触发后额外增加 \(Int(paceSeverityBoost)) 点严重度。"
+        language == .english ? "Spreads \(weeklyHours) work hours evenly across the current weekly window and uses that average pace for the marker and warnings." : "把 \(weeklyHours) 小时平均铺到当前这一周窗口里，并用这个平均节奏来计算箭头和提醒。"
     }
 
     func detailedTooltipText(language: AppLanguage = .english) -> String {
-        language == .english ? "\(tooltipText(language: language)) \(summary(language: language)) This only affects ! pace alerts, not % left." : "\(tooltipText(language: language)) \(summary(language: language)) 这只会影响 ! 节奏提醒，不会改变剩余百分比。"
+        language == .english ? "\(tooltipText(language: language)) \(summary(language: language)) This changes the weekly normal-progress marker and pace alerts, but never changes % left." : "\(tooltipText(language: language)) \(summary(language: language)) 它会影响每周的正常进度箭头和节奏提醒，但不会改变剩余百分比。"
     }
 }
 
@@ -116,7 +116,7 @@ enum QuotaDisplayPolicy {
     }
 
     static func weeklyPacingHintDetail(language: AppLanguage = .english) -> String {
-        language == .english ? "40h warns sooner. 70h warns later. % left never changes." : "40 小时会更早提醒，70 小时会更晚提醒。剩余百分比不会变化。"
+        language == .english ? "40h packs fewer work hours into each day, so the marker moves faster. 70h spreads more hours through the day, so the marker moves later. % left never changes." : "40 小时会把更少的工时压进每天，所以箭头会更快往前走；70 小时会把更多工时铺进每天，所以箭头会更晚。剩余百分比不会变化。"
     }
 
     static func menuWindowTitle(for label: String) -> String {
@@ -124,7 +124,7 @@ enum QuotaDisplayPolicy {
     }
 
     static func weeklyPaceExplanation(for mode: WeeklyPacingMode, language: AppLanguage = .english) -> String {
-        language == .english ? "! means weekly usage is ahead of this week's elapsed time. The \(mode.weeklyHours)-hour preset only changes severity: 70h is stricter, 40h is looser. This never changes % left." : "! 表示每周使用速度超过了本周已经过去的时间进度。\(mode.weeklyHours) 小时档位只会影响严重程度：70 小时更严格，40 小时更宽松。它不会改变剩余百分比。"
+        language == .english ? "! means weekly usage is ahead of the average pace implied by \(mode.weeklyHours)/week. This preset changes the weekly marker position and alert severity, but never changes % left." : "! 表示每周使用速度超过了 \(mode.weeklyHours) 小时/周这条平均节奏线。这个档位会影响每周箭头位置和提醒严重程度，但不会改变剩余百分比。"
     }
 
     static func colorLevel(forPercentText percentText: String) -> QuotaDisplayColorLevel? {

@@ -555,7 +555,7 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
         "weekly workload modes preserve the same remaining quota percentage"
     )
     expect(
-        WeeklyPacingMode.heavy70.tooltipText().contains("10"),
+        WeeklyPacingMode.heavy70.tooltipText().contains("70 work hours"),
         "weekly pacing tooltip reflects selected weekly workload"
     )
     expect(
@@ -563,23 +563,23 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
         "weekly pacing hint explains what triggers the marker"
     )
     expect(
-        QuotaDisplayPolicy.weeklyPacingHintDetail().contains("% left never changes"),
+        QuotaDisplayPolicy.weeklyPacingHintDetail().contains("marker"),
         "weekly pacing hint explains that presets do not change quota remaining"
     )
     expect(
-        QuotaDisplayPolicy.weeklyPaceExplanation(for: .balanced56).contains("70h is stricter"),
+        QuotaDisplayPolicy.weeklyPaceExplanation(for: .balanced56).contains("marker position"),
         "weekly row explanation includes the selected weekly workload"
     )
     let fortyHourMarker = StatusPresentation.markerThresholdPercent(for: weekly, weeklyPacingMode: .workWeek40, isWeekly: true)
     let fiftySixHourMarker = StatusPresentation.markerThresholdPercent(for: weekly, weeklyPacingMode: .balanced56, isWeekly: true)
     let seventyHourMarker = StatusPresentation.markerThresholdPercent(for: weekly, weeklyPacingMode: .heavy70, isWeekly: true)
     expect(
-        fortyHourMarker == fiftySixHourMarker && fiftySixHourMarker == seventyHourMarker,
-        "weekly normal-progress marker stays aligned with the same elapsed-time percentage across workload presets"
+        (fortyHourMarker ?? -1) > (fiftySixHourMarker ?? -1) && (fiftySixHourMarker ?? -1) > (seventyHourMarker ?? -1),
+        "weekly normal-progress marker shifts with 40h, 56h, and 70h presets"
     )
     expect(
-        Int((fortyHourMarker ?? -1).rounded()) == 16,
-        "weekly normal-progress marker matches the actual elapsed weekly percentage for this sample"
+        Int((fortyHourMarker ?? -1).rounded()) == 23,
+        "40h marker matches the expected average-work pace for this sample"
     )
 }
 
@@ -628,9 +628,9 @@ func testWeeklyTooltipHoursChangeWhileMarkerPercentStaysFixed() {
         language: .english
     )
 
-    expect(forty.secondaryRow?.tooltipText?.contains("Normal elapsed: 6.6h (16%)") == true, "40h tooltip converts the shared elapsed percentage into 40-hour units")
-    expect(fiftySix.secondaryRow?.tooltipText?.contains("Normal elapsed: 9.2h (16%)") == true, "56h tooltip converts the shared elapsed percentage into 56-hour units")
-    expect(seventy.secondaryRow?.tooltipText?.contains("Normal elapsed: 12h (16%)") == true, "70h tooltip converts the shared elapsed percentage into 70-hour units")
+    expect(forty.secondaryRow?.tooltipText?.contains("Normal elapsed: 9.3h (23%)") == true, "40h tooltip converts the daily average pace into 40-hour units")
+    expect(fiftySix.secondaryRow?.tooltipText?.contains("Normal elapsed: 12h (21%)") == true, "56h tooltip converts the daily average pace into 56-hour units")
+    expect(seventy.secondaryRow?.tooltipText?.contains("Normal elapsed: 14h (19%)") == true, "70h tooltip converts the daily average pace into 70-hour units")
 }
 
 func testChineseLanguagePresentationLocalizesCoreLabels() {
