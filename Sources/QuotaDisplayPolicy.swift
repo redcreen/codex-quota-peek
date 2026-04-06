@@ -44,6 +44,17 @@ enum WeeklyPacingMode: String, CaseIterable {
         }
     }
 
+    var displayThresholdAdjustment: Double {
+        switch self {
+        case .workWeek40:
+            return 10
+        case .balanced56:
+            return 0
+        case .heavy70:
+            return -10
+        }
+    }
+
     var label: String {
         label(language: .english)
     }

@@ -1547,6 +1547,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func setWeeklyPacingMode(_ mode: WeeklyPacingMode) {
         defaults.set(mode.rawValue, forKey: PreferenceKey.weeklyPacingMode)
         syncPreferencesWindow()
+        shouldReopenMenuAfterRefresh = true
         refreshAsync(mode: .automatic)
         showFeedback(selectedAppLanguage == .english ? "Weekly pace: \(mode.title)" : "每周节奏：\(mode.title)")
     }
