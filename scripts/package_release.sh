@@ -21,6 +21,7 @@ rm -f "$RELEASE_DIR/$ZIP_NAME"
 rm -f "$RELEASE_DIR/$DMG_NAME"
 
 cp -R "$DIST_DIR/$APP_NAME" "$DMG_STAGING_DIR/$APP_NAME"
+ln -s /Applications "$DMG_STAGING_DIR/Applications"
 
 /usr/bin/ditto -c -k --sequesterRsrc --keepParent \
   "$DIST_DIR/$APP_NAME" \

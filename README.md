@@ -27,7 +27,7 @@ macOS menu bar app + CLI for checking Codex quota quickly.
 安装步骤：
 
 1. 下载 `CodexQuotaPeek-0.1.0.dmg`
-2. 打开 DMG，把 `CodexQuotaPeek.app` 拖进 `Applications`
+2. 打开 DMG，把 `CodexQuotaPeek.app` 拖到右侧的 `Applications`
 3. 双击打开，应用会常驻在菜单栏
 
 如果 macOS 提示安全限制，到“系统设置 -> 隐私与安全性”里允许打开即可。
@@ -147,7 +147,7 @@ One-click download:
 Install:
 
 1. Download `CodexQuotaPeek-0.1.0.dmg`
-2. Open the DMG and drag `CodexQuotaPeek.app` into `Applications`
+2. Open the DMG and drag `CodexQuotaPeek.app` onto the `Applications` shortcut
 3. Open it once, then it will live in the menu bar
 
 If macOS blocks the app, allow it from “System Settings -> Privacy & Security”.
