@@ -713,7 +713,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 usedPercent: secondary.usedPercent,
                 paceThresholdPercent: secondary.paceThresholdPercent,
                 markerThresholdPercent: secondary.markerThresholdPercent,
-                displayScale: selectedWeeklyPacingMode.displayScale,
+                displayScale: 1.0,
                 usedOnLeft: true
             )
             let secondaryTooltip = showsPaceAlert
@@ -732,7 +732,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 usedPercent: 0,
                 paceThresholdPercent: nil,
                 markerThresholdPercent: nil,
-                displayScale: selectedWeeklyPacingMode.displayScale,
+                displayScale: 1.0,
                 usedOnLeft: true
             )
             item(MenuTag.secondary)?.toolTip = weeklyPaceExplanation

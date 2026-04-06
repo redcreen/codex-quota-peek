@@ -574,8 +574,8 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
     let fiftySixHourMarker = StatusPresentation.markerThresholdPercent(for: weekly, weeklyPacingMode: .balanced56, isWeekly: true)
     let seventyHourMarker = StatusPresentation.markerThresholdPercent(for: weekly, weeklyPacingMode: .heavy70, isWeekly: true)
     expect(
-        fortyHourMarker != fiftySixHourMarker && fiftySixHourMarker != seventyHourMarker,
-        "weekly normal-progress marker changes across 40h, 56h, and 70h modes"
+        fortyHourMarker == fiftySixHourMarker && fiftySixHourMarker == seventyHourMarker,
+        "weekly normal-progress marker stays aligned with the same elapsed-time percentage across workload presets"
     )
 }
 

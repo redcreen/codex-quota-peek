@@ -455,8 +455,7 @@ struct StatusPresentation {
         guard let base = pacingThresholdPercent(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly) else {
             return nil
         }
-        guard isWeekly else { return base }
-        return min(100, max(0, base * weeklyPacingMode.displayScale))
+        return min(100, max(0, base))
     }
 
     private static func paceSeverity(forOffset offset: Double) -> PaceSeverity {
