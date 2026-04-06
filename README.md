@@ -22,12 +22,12 @@ macOS menu bar app + CLI for checking Codex quota quickly.
 ### 快速使用
 
 一键下载安装：
-[下载最新版应用 zip](https://github.com/redcreen/codex-quota-peek/raw/main/release/CodexQuotaPeek-mac.zip)
+[下载最新版 DMG](https://github.com/redcreen/codex-quota-peek/raw/main/release/CodexQuotaPeek-0.1.0.dmg)
 
 安装步骤：
 
-1. 下载并解压 `CodexQuotaPeek-mac.zip`
-2. 把 `CodexQuotaPeek.app` 放进 `Applications`
+1. 下载 `CodexQuotaPeek-0.1.0.dmg`
+2. 打开 DMG，把 `CodexQuotaPeek.app` 拖进 `Applications`
 3. 双击打开，应用会常驻在菜单栏
 
 如果 macOS 提示安全限制，到“系统设置 -> 隐私与安全性”里允许打开即可。
@@ -113,6 +113,7 @@ codexQuotaPeek accounts list
 ### 发布
 
 - 当前发布版本：`0.1.0`
+- 推荐下载文件：`CodexQuotaPeek-0.1.0.dmg`
 - 版本记录：[CHANGELOG.md](/Users/redcreen/Project/codex%20limit/CHANGELOG.md)
 - 发版流程：[RELEASE.md](/Users/redcreen/Project/codex%20limit/RELEASE.md)
 
@@ -141,12 +142,12 @@ It is for people who want to:
 ### Quick Start
 
 One-click download:
-[Download the latest app zip](https://github.com/redcreen/codex-quota-peek/raw/main/release/CodexQuotaPeek-mac.zip)
+[Download the latest DMG](https://github.com/redcreen/codex-quota-peek/raw/main/release/CodexQuotaPeek-0.1.0.dmg)
 
 Install:
 
-1. Download and unzip `CodexQuotaPeek-mac.zip`
-2. Move `CodexQuotaPeek.app` into `Applications`
+1. Download `CodexQuotaPeek-0.1.0.dmg`
+2. Open the DMG and drag `CodexQuotaPeek.app` into `Applications`
 3. Open it once, then it will live in the menu bar
 
 If macOS blocks the app, allow it from “System Settings -> Privacy & Security”.
@@ -226,6 +227,7 @@ Full implementation notes:
 ### Release
 
 - Current release tag: `0.1.0`
+- Recommended download: `CodexQuotaPeek-0.1.0.dmg`
 - Changelog: [CHANGELOG.md](/Users/redcreen/Project/codex%20limit/CHANGELOG.md)
 - Release guide: [RELEASE.md](/Users/redcreen/Project/codex%20limit/RELEASE.md)
 

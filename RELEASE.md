@@ -1,6 +1,6 @@
 # Release Guide
 
-This project ships a signed-style macOS app bundle, a CLI, a zip package, and generated release notes.
+This project ships a macOS app bundle, a CLI, a versioned DMG, a versioned zip package, and generated release notes.
 
 ## Local release steps
 
@@ -15,6 +15,8 @@ This project ships a signed-style macOS app bundle, a CLI, a zip package, and ge
 4. Verify the generated files:
 
 - `release/CodexQuotaPeek-mac.zip`
+- `release/CodexQuotaPeek-<version>.dmg`
+- `release/CodexQuotaPeek-<version>.zip`
 - `release/RELEASE_NOTES.md`
 - `release/GITHUB_RELEASE_DRAFT.md`
 
@@ -40,6 +42,7 @@ This extra step exists because pushing workflow files requires a token with the 
 - Tests passed
 - App builds
 - CLI builds
+- DMG generated
 - Zip package generated
 - Release notes generated
 - GitHub release draft generated

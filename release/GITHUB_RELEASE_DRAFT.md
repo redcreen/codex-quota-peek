@@ -6,7 +6,8 @@ Paste the generated release notes below into the GitHub Release body.
 
 ## Assets
 
-- `release/CodexQuotaPeek-mac.zip`
+- `release/CodexQuotaPeek-0.1.0.dmg`
+- `release/CodexQuotaPeek-0.1.0.zip`
 
 ## Notes
 

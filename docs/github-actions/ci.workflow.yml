@@ -26,11 +26,13 @@ jobs:
       - name: Build CLI
         run: ./scripts/build_cli.sh
 
-      - name: Package release zip
+      - name: Package release artifacts
         run: ./scripts/package_release.sh
 
       - name: Upload macOS release artifact
         uses: actions/upload-artifact@v4
         with:
           name: CodexQuotaPeek-mac
-          path: release/CodexQuotaPeek-mac.zip
+          path: |
+            release/CodexQuotaPeek-*.dmg
+            release/CodexQuotaPeek-*.zip

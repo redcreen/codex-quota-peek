@@ -20,7 +20,8 @@ Paste the generated release notes below into the GitHub Release body.
 
 ## Assets
 
-- \`release/CodexQuotaPeek-mac.zip\`
+- \`release/CodexQuotaPeek-$VERSION.dmg\`
+- \`release/CodexQuotaPeek-$VERSION.zip\`
 
 ## Notes
 
