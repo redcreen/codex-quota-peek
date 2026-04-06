@@ -1726,11 +1726,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         syncPreferencesWindow()
         shouldReopenMenuAfterRefresh = true
         refreshAsync(mode: .automatic)
-        showFeedback(
-            selectedAppLanguage == .english
-                ? "Weekly pace: \(mode.title). ▼ still follows wall-clock progress."
-                : "每周节奏：\(mode.title)。▼ 仍按真实经过时间计算。"
-        )
     }
 }
 
