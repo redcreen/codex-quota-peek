@@ -988,7 +988,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let barFont = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
         let detailFont = NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
         let progressSlots = 28
-        let titleColumnWidth = 4
+        let titleColumnWidth = 3
         let (percentValue, percentMarker) = splitPercentComponents(percent)
         let progressBar = styledProgressBar(
             forPercentText: percent,
@@ -1079,7 +1079,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let remainingColor = remainingColor(for: percentText, paceSeverity: paceSeverity)
         let usedColor = NSColor.tertiaryLabelColor
         let markerColor = NSColor.secondaryLabelColor
-        let titleColumnWidth = 4
+        let titleColumnWidth = 3
 
         let container = NSMutableAttributedString()
         let prefix = String(repeating: " ", count: titleColumnWidth)
@@ -1678,7 +1678,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         syncPreferencesWindow()
         shouldReopenMenuAfterRefresh = true
         refreshAsync(mode: .automatic)
-        showFeedback(selectedAppLanguage == .english ? "Weekly pace: \(mode.title)" : "每周节奏：\(mode.title)")
+        showFeedback(
+            selectedAppLanguage == .english
+                ? "Weekly pace: \(mode.title). ▼ still follows wall-clock progress."
+                : "每周节奏：\(mode.title)。▼ 仍按真实经过时间计算。"
+        )
     }
 }
 

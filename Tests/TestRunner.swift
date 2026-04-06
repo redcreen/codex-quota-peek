@@ -547,6 +547,13 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
         QuotaDisplayPolicy.weeklyPaceExplanation(for: .balanced56).contains("70h is stricter"),
         "weekly row explanation includes the selected weekly workload"
     )
+    let fortyHourMarker = StatusPresentation.pacingThresholdPercent(for: weekly, weeklyPacingMode: .workWeek40, isWeekly: true)
+    let fiftySixHourMarker = StatusPresentation.pacingThresholdPercent(for: weekly, weeklyPacingMode: .balanced56, isWeekly: true)
+    let seventyHourMarker = StatusPresentation.pacingThresholdPercent(for: weekly, weeklyPacingMode: .heavy70, isWeekly: true)
+    expect(
+        fortyHourMarker == fiftySixHourMarker && fiftySixHourMarker == seventyHourMarker,
+        "weekly normal-progress marker stays on the same wall-clock position across 40h, 56h, and 70h modes"
+    )
 }
 
 func testChineseLanguagePresentationLocalizesCoreLabels() {

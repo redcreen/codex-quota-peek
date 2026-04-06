@@ -211,7 +211,7 @@ struct StatusPresentation {
                 paceSeverity: StatusPresentation.paceSeverity(for: $0),
                 paceOverrunPercent: StatusPresentation.overAverageOffset(for: $0),
                 usedPercent: $0.usedPercent,
-                paceThresholdPercent: StatusPresentation.displayThresholdPercent(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: false),
+                paceThresholdPercent: StatusPresentation.pacingThresholdPercent(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: false),
                 tooltipText: StatusPresentation.rowTooltip(for: $0, language: language)
             )
         }
@@ -226,7 +226,7 @@ struct StatusPresentation {
                 paceSeverity: StatusPresentation.paceSeverity(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
                 paceOverrunPercent: StatusPresentation.overAverageOffset(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
                 usedPercent: $0.usedPercent,
-                paceThresholdPercent: StatusPresentation.displayThresholdPercent(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
+                paceThresholdPercent: StatusPresentation.pacingThresholdPercent(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
                 tooltipText: StatusPresentation.rowTooltip(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true, language: language)
             )
         }
@@ -474,7 +474,7 @@ struct StatusPresentation {
         guard totalHours > 0 else { return nil }
 
         let usedHours = totalHours * (window.usedPercent / 100.0)
-        let thresholdPercent = displayThresholdPercent(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly) ?? 0
+        let thresholdPercent = pacingThresholdPercent(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly) ?? 0
         let withinPaceHours = totalHours * (min(window.usedPercent, thresholdPercent) / 100.0)
         let remainingHours = max(0, totalHours - usedHours)
         let aheadHours = max(0, usedHours - withinPaceHours)
