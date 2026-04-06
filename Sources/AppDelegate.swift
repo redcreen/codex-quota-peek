@@ -605,15 +605,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func apply(_ presentation: StatusPresentation) {
         let language = selectedAppLanguage
         lastPresentation = presentation
-        badgeView.line1 = presentation.line1
-        badgeView.line2 = presentation.line2
+        let badgeLine1 = showsPaceAlert ? presentation.line1 : stripPaceMarkers(from: presentation.line1)
+        let badgeLine2 = showsPaceAlert ? presentation.line2 : stripPaceMarkers(from: presentation.line2)
+        badgeView.line1 = badgeLine1
+        badgeView.line2 = badgeLine2
         badgeView.showsColors = showsColors
 
         let image = badgeView.renderedImage()
         if let button = statusItem.button {
             button.image = nil
             button.image = image
-            button.toolTip = presentation.tooltip
+            button.toolTip = showsPaceAlert ? presentation.tooltip : stripPaceDetails(from: presentation.tooltip)
             button.needsDisplay = true
             button.display()
         }
@@ -623,7 +625,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard let self, let button = self.statusItem.button else { return }
             button.image = nil
             button.image = image
-            button.toolTip = presentation.tooltip
+            button.toolTip = showsPaceAlert ? presentation.tooltip : stripPaceDetails(from: presentation.tooltip)
             button.needsDisplay = true
             button.display()
             self.statusItem.length = image.size.width
@@ -651,15 +653,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item(MenuTag.primary)?.attributedTitle = styledQuotaRow(
                 label: primary.label,
                 language: language,
-                percent: primary.percentText,
+                percent: showsPaceAlert ? primary.percentText : stripPaceMarkers(from: primary.percentText),
                 reset: primary.resetText,
                 paceText: showsPaceAlert ? primary.paceText : nil,
-                paceSeverity: primary.paceSeverity,
-                paceOverrunPercent: primary.paceOverrunPercent,
+                paceSeverity: showsPaceAlert ? primary.paceSeverity : nil,
+                paceOverrunPercent: showsPaceAlert ? primary.paceOverrunPercent : nil,
                 usedPercent: primary.usedPercent,
                 paceThresholdPercent: primary.paceThresholdPercent
             )
-            item(MenuTag.primary)?.toolTip = primary.tooltipText
+            item(MenuTag.primary)?.toolTip = showsPaceAlert ? primary.tooltipText : stripPaceDetails(from: primary.tooltipText)
         } else {
             item(MenuTag.primary)?.attributedTitle = styledQuotaRow(
                 label: "5 hours",
@@ -679,17 +681,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item(MenuTag.secondary)?.attributedTitle = styledQuotaRow(
                 label: secondary.label,
                 language: language,
-                percent: secondary.percentText,
+                percent: showsPaceAlert ? secondary.percentText : stripPaceMarkers(from: secondary.percentText),
                 reset: secondary.resetText,
                 paceText: showsPaceAlert ? secondary.paceText : nil,
-                paceSeverity: secondary.paceSeverity,
-                paceOverrunPercent: secondary.paceOverrunPercent,
+                paceSeverity: showsPaceAlert ? secondary.paceSeverity : nil,
+                paceOverrunPercent: showsPaceAlert ? secondary.paceOverrunPercent : nil,
                 usedPercent: secondary.usedPercent,
                 paceThresholdPercent: secondary.paceThresholdPercent
             )
-            item(MenuTag.secondary)?.toolTip = [secondary.tooltipText, weeklyPaceExplanation]
-                .compactMap { $0 }
-                .joined(separator: "\n\n")
+            let secondaryTooltip = showsPaceAlert
+                ? [secondary.tooltipText, weeklyPaceExplanation].compactMap { $0 }.joined(separator: "\n\n")
+                : stripPaceDetails(from: secondary.tooltipText)
+            item(MenuTag.secondary)?.toolTip = secondaryTooltip
         } else {
             item(MenuTag.secondary)?.attributedTitle = styledQuotaRow(
                 label: "7 days",
@@ -1109,6 +1112,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let marker = percentText.filter { $0 == "!" }
         let value = percentText.replacingOccurrences(of: "!", with: "")
         return (value, marker)
+    }
+
+    private func stripPaceMarkers(from text: String) -> String {
+        text.replacingOccurrences(of: "!", with: "")
+    }
+
+    private func stripPaceDetails(from tooltip: String?) -> String? {
+        guard let tooltip else { return nil }
+        let filtered = tooltip
+            .components(separatedBy: .newlines)
+            .filter { line in
+                !line.contains("Ahead of pace:") &&
+                !line.contains("超出节奏：") &&
+                !line.contains("pace:") &&
+                !line.contains("Pace alert") &&
+                !line.contains("节奏提醒") &&
+                !line.contains("This only affects !") &&
+                !line.contains("这只会影响 !")
+            }
+            .map(stripPaceMarkers(from:))
+        return filtered.joined(separator: "\n")
     }
 
     private func quotaColor(for percentText: String) -> NSColor {

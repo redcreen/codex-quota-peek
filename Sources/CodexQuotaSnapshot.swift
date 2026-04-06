@@ -510,12 +510,7 @@ struct StatusPresentation {
 
     private static func formattedDuration(hours: Double, language: AppLanguage) -> String {
         let roundedHours = max(0, Int(hours.rounded()))
-        let days = roundedHours / 24
-        let remainingHours = roundedHours % 24
-        if days > 0 {
-            return language == .english ? "\(days)d \(remainingHours)h" : "\(days)天 \(remainingHours)小时"
-        }
-        return language == .english ? "\(remainingHours)h" : "\(remainingHours)小时"
+        return language == .english ? "\(roundedHours)h" : "\(roundedHours)小时"
     }
 
     private static func percentString(_ value: Double) -> String {
