@@ -74,6 +74,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var hasTriggeredStartupAPIRefresh = false
     private var lastNotificationSnapshot: QuotaNotificationSnapshot?
     private var preferencesWindowController: PreferencesWindowController!
+    private var lastSnapshotForDisplay: CodexQuotaSnapshot?
+    private var lastAccountInfoForDisplay: CodexAccountInfo?
+    private var lastTrendSummaryForDisplay: CodexQuotaTrendSummary?
+    private var lastSourceForDisplay: CodexQuotaFetchSource?
+    private var lastGeneratedAtForDisplay: Date?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -412,6 +417,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard let self else { return }
             let presentation: StatusPresentation
             let feedbackMessage: String?
+            let fetchedSnapshot: CodexQuotaSnapshot?
+            let fetchedAccountInfo: CodexAccountInfo?
+            let fetchedTrendSummary: CodexQuotaTrendSummary?
+            let fetchedSource: CodexQuotaFetchSource?
+            let generatedAt: Date?
             do {
                 let fetchedResult = try {
                     if mode == .apiManual {
@@ -428,19 +438,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 let result = resolvePreferredResult(fetchedResult, for: mode)
                 let accountInfo = provider.loadAccountInfo()
                 let trendSummary = try? provider.loadTrendSummary()
+                let currentGeneratedAt = Date()
                 presentation = StatusPresentation(
                     snapshot: result.snapshot,
                     accountInfo: accountInfo,
-                    generatedAt: Date(),
+                    generatedAt: currentGeneratedAt,
                     source: result.source,
                     trendSummary: trendSummary ?? nil,
                     weeklyPacingMode: selectedWeeklyPacingMode,
                     language: selectedAppLanguage
                 )
+                fetchedSnapshot = result.snapshot
+                fetchedAccountInfo = accountInfo
+                fetchedTrendSummary = trendSummary ?? nil
+                fetchedSource = result.source
+                generatedAt = currentGeneratedAt
                 feedbackMessage = mode == .apiManual
                     ? (selectedAppLanguage == .english ? "Refreshed from API" : "已通过 API 刷新")
                     : nil
             } catch {
+                fetchedSnapshot = nil
+                fetchedAccountInfo = nil
+                fetchedTrendSummary = nil
+                fetchedSource = nil
+                generatedAt = nil
                 if mode == .apiManual {
                     presentation = self.lastPresentation
                     feedbackMessage = selectedAppLanguage == .english
@@ -455,6 +476,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             DispatchQueue.main.async {
                 guard self.refreshRequestGate.shouldApply(requestID) else {
                     return
+                }
+                if let fetchedSnapshot, let fetchedSource, let generatedAt {
+                    self.lastSnapshotForDisplay = fetchedSnapshot
+                    self.lastAccountInfoForDisplay = fetchedAccountInfo
+                    self.lastTrendSummaryForDisplay = fetchedTrendSummary
+                    self.lastSourceForDisplay = fetchedSource
+                    self.lastGeneratedAtForDisplay = generatedAt
                 }
                 self.apply(presentation)
                 if let feedbackMessage {
@@ -1724,8 +1752,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard mode != selectedWeeklyPacingMode else { return }
         defaults.set(mode.rawValue, forKey: PreferenceKey.weeklyPacingMode)
         syncPreferencesWindow()
+        reapplyCachedPresentationForCurrentMode()
         shouldReopenMenuAfterRefresh = true
         refreshAsync(mode: .automatic)
+    }
+
+    private func reapplyCachedPresentationForCurrentMode() {
+        guard
+            let snapshot = lastSnapshotForDisplay,
+            let source = lastSourceForDisplay,
+            let generatedAt = lastGeneratedAtForDisplay
+        else {
+            return
+        }
+
+        let presentation = StatusPresentation(
+            snapshot: snapshot,
+            accountInfo: lastAccountInfoForDisplay,
+            generatedAt: generatedAt,
+            source: source,
+            trendSummary: lastTrendSummaryForDisplay,
+            weeklyPacingMode: selectedWeeklyPacingMode,
+            language: selectedAppLanguage
+        )
+        apply(presentation)
     }
 }
 
