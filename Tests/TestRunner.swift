@@ -334,8 +334,14 @@ func testQuotaDisplayColorThresholds() {
     expect(QuotaDisplayPolicy.menuWindowTitle(for: "5 hours") == "5 hours", "five-hour menu title stays explicit")
     expect(QuotaDisplayPolicy.menuWindowTitle(for: "7 days") == "7 days", "seven-day menu title stays explicit")
     expect(QuotaDisplayPolicy.progressBar(forPercentText: "50%", slots: 10) == "█████░░░░░", "progress bar reflects remaining percent")
-    let segments = QuotaDisplayPolicy.progressSegments(forPercentText: "49%!!", overrunPercent: 18, slots: 10)
-    expect(segments.filled == 5 && segments.exceeded == 2 && segments.empty == 3, "progress segments scale colored overflow markers from real overuse")
+    let segments = QuotaDisplayPolicy.progressSegments(
+        forPercentText: "43%!!",
+        overrunPercent: 18,
+        usedPercent: 57,
+        thresholdPercent: 14,
+        slots: 10
+    )
+    expect(segments.filled == 1 && segments.exceeded == 5 && segments.empty == 4, "alerting progress segments reflect elapsed pace plus actual overuse")
 }
 
 func testQuotaRowTooltipsIncludeDurationBreakdown() {
@@ -644,6 +650,8 @@ func testNotificationPolicyEmitsResetReminderOnce() {
             paceText: nil,
             paceSeverity: nil,
             paceOverrunPercent: nil,
+            usedPercent: 10,
+            paceThresholdPercent: nil,
             tooltipText: nil
         ),
         secondaryRow: StatusPresentation.MenuRow(
@@ -655,6 +663,8 @@ func testNotificationPolicyEmitsResetReminderOnce() {
             paceText: nil,
             paceSeverity: nil,
             paceOverrunPercent: nil,
+            usedPercent: 20,
+            paceThresholdPercent: nil,
             tooltipText: nil
         ),
         language: .english
@@ -682,6 +692,8 @@ func testNotificationPolicyRespectsCategoryPreferences() {
             paceText: nil,
             paceSeverity: nil,
             paceOverrunPercent: nil,
+            usedPercent: 10,
+            paceThresholdPercent: nil,
             tooltipText: nil
         ),
         secondaryRow: StatusPresentation.MenuRow(
@@ -693,6 +705,8 @@ func testNotificationPolicyRespectsCategoryPreferences() {
             paceText: " Pace above avg ",
             paceSeverity: .warning,
             paceOverrunPercent: 12,
+            usedPercent: 20,
+            paceThresholdPercent: 8,
             tooltipText: nil
         ),
         paceMessage: "7 days above average",

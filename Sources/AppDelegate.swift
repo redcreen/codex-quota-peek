@@ -655,7 +655,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 reset: primary.resetText,
                 paceText: showsPaceAlert ? primary.paceText : nil,
                 paceSeverity: primary.paceSeverity,
-                paceOverrunPercent: primary.paceOverrunPercent
+                paceOverrunPercent: primary.paceOverrunPercent,
+                usedPercent: primary.usedPercent,
+                paceThresholdPercent: primary.paceThresholdPercent
             )
             item(MenuTag.primary)?.toolTip = primary.tooltipText
         } else {
@@ -666,7 +668,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 reset: "--",
                 paceText: nil,
                 paceSeverity: nil,
-                paceOverrunPercent: nil
+                paceOverrunPercent: nil,
+                usedPercent: 0,
+                paceThresholdPercent: nil
             )
             item(MenuTag.primary)?.toolTip = nil
         }
@@ -679,7 +683,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 reset: secondary.resetText,
                 paceText: showsPaceAlert ? secondary.paceText : nil,
                 paceSeverity: secondary.paceSeverity,
-                paceOverrunPercent: secondary.paceOverrunPercent
+                paceOverrunPercent: secondary.paceOverrunPercent,
+                usedPercent: secondary.usedPercent,
+                paceThresholdPercent: secondary.paceThresholdPercent
             )
             item(MenuTag.secondary)?.toolTip = [secondary.tooltipText, weeklyPaceExplanation]
                 .compactMap { $0 }
@@ -692,7 +698,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 reset: "--",
                 paceText: nil,
                 paceSeverity: nil,
-                paceOverrunPercent: nil
+                paceOverrunPercent: nil,
+                usedPercent: 0,
+                paceThresholdPercent: nil
             )
             item(MenuTag.secondary)?.toolTip = weeklyPaceExplanation
         }
@@ -954,14 +962,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         reset: String,
         paceText: String?,
         paceSeverity: StatusPresentation.PaceSeverity?,
-        paceOverrunPercent: Double?
+        paceOverrunPercent: Double?,
+        usedPercent: Double,
+        paceThresholdPercent: Double?
     ) -> NSAttributedString {
         let title = QuotaDisplayPolicy.menuWindowTitle(for: label)
         let barFont = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
         let detailFont = NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
         let progressSlots = 28
         let (percentValue, percentMarker) = splitPercentComponents(percent)
-        let progressBar = styledProgressBar(forPercentText: percent, overrunPercent: paceOverrunPercent, font: barFont, slots: progressSlots)
+        let progressBar = styledProgressBar(
+            forPercentText: percent,
+            overrunPercent: paceOverrunPercent,
+            usedPercent: usedPercent,
+            thresholdPercent: paceThresholdPercent,
+            font: barFont,
+            slots: progressSlots
+        )
         let header = NSMutableAttributedString(
             string: title,
             attributes: [
@@ -1031,8 +1048,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return header
     }
 
-    private func styledProgressBar(forPercentText percentText: String, overrunPercent: Double?, font: NSFont, slots: Int) -> NSAttributedString {
-        let segments = QuotaDisplayPolicy.progressSegments(forPercentText: percentText, overrunPercent: overrunPercent, slots: slots)
+    private func styledProgressBar(
+        forPercentText percentText: String,
+        overrunPercent: Double?,
+        usedPercent: Double,
+        thresholdPercent: Double?,
+        font: NSFont,
+        slots: Int
+    ) -> NSAttributedString {
+        let segments = QuotaDisplayPolicy.progressSegments(
+            forPercentText: percentText,
+            overrunPercent: overrunPercent,
+            usedPercent: usedPercent,
+            thresholdPercent: thresholdPercent,
+            slots: slots
+        )
         let bar = NSMutableAttributedString()
 
         if segments.filled > 0 {

@@ -100,6 +100,8 @@ struct StatusPresentation {
         let paceText: String?
         let paceSeverity: PaceSeverity?
         let paceOverrunPercent: Double?
+        let usedPercent: Double
+        let paceThresholdPercent: Double?
         let tooltipText: String?
     }
 
@@ -204,6 +206,8 @@ struct StatusPresentation {
                 paceText: StatusPresentation.inlinePaceText(for: $0, language: language),
                 paceSeverity: StatusPresentation.paceSeverity(for: $0),
                 paceOverrunPercent: StatusPresentation.overAverageOffset(for: $0),
+                usedPercent: $0.usedPercent,
+                paceThresholdPercent: StatusPresentation.pacingThresholdPercent(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: false),
                 tooltipText: StatusPresentation.rowTooltip(for: $0, language: language)
             )
         }
@@ -217,6 +221,8 @@ struct StatusPresentation {
                 paceText: StatusPresentation.inlinePaceText(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true, language: language),
                 paceSeverity: StatusPresentation.paceSeverity(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
                 paceOverrunPercent: StatusPresentation.overAverageOffset(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
+                usedPercent: $0.usedPercent,
+                paceThresholdPercent: StatusPresentation.pacingThresholdPercent(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
                 tooltipText: StatusPresentation.rowTooltip(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true, language: language)
             )
         }
@@ -408,7 +414,7 @@ struct StatusPresentation {
         return window.usedPercent > thresholdPercent
     }
 
-    private static func pacingThresholdPercent(
+    static func pacingThresholdPercent(
         for window: LimitWindow,
         weeklyPacingMode: WeeklyPacingMode,
         isWeekly: Bool
