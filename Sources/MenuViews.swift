@@ -254,13 +254,13 @@ final class QuotaMenuRowView: NSView {
             textLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
             textLabel.topAnchor.constraint(equalTo: topAnchor, constant: 2),
             textLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -2),
-            textLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -30),
+            textLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -22),
 
-            helpButton.leadingAnchor.constraint(equalTo: textLabel.trailingAnchor, constant: 4),
+            helpButton.leadingAnchor.constraint(equalTo: textLabel.trailingAnchor, constant: 2),
             helpButton.topAnchor.constraint(equalTo: topAnchor, constant: 18),
-            helpButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
-            helpButton.widthAnchor.constraint(equalToConstant: 18),
-            helpButton.heightAnchor.constraint(equalToConstant: 18)
+            helpButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -4),
+            helpButton.widthAnchor.constraint(equalToConstant: 16),
+            helpButton.heightAnchor.constraint(equalToConstant: 16)
         ])
     }
 

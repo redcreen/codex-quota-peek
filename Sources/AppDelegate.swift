@@ -83,7 +83,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var lastGeneratedAtForDisplay: Date?
     private var lastPrimaryExplanationText: String?
     private var lastSecondaryExplanationText: String?
-    private let explanationPopover = NSPopover()
+    private var explanationPanel: NSPanel?
+    private var explanationDismissMonitor: Any?
+    private var explanationGlobalDismissMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -687,7 +689,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func apply(_ presentation: StatusPresentation) {
         let language = selectedAppLanguage
         lastPresentation = presentation
-        explanationPopover.performClose(nil)
         let badgeLine1 = showsPaceAlert ? presentation.line1 : stripPaceMarkers(from: presentation.line1)
         let badgeLine2 = showsPaceAlert ? presentation.line2 : stripPaceMarkers(from: presentation.line2)
         badgeView.line1 = badgeLine1
@@ -1257,30 +1258,101 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func showExplanationPopover(_ text: String?, from anchor: NSView) {
         guard let text, !text.isEmpty else { return }
-        let content = NSViewController()
+        dismissExplanationPanel()
+
         let label = NSTextField(wrappingLabelWithString: text)
         label.translatesAutoresizingMaskIntoConstraints = false
         label.font = NSFont.systemFont(ofSize: 11, weight: .regular)
         label.textColor = .labelColor
         label.preferredMaxLayoutWidth = 280
+        label.setContentCompressionResistancePriority(.required, for: .vertical)
 
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 10))
-        container.addSubview(label)
+        let effectView = NSVisualEffectView()
+        effectView.translatesAutoresizingMaskIntoConstraints = false
+        effectView.material = .popover
+        effectView.state = .active
+        effectView.blendingMode = .withinWindow
+        effectView.wantsLayer = true
+        effectView.layer?.cornerRadius = 10
+        effectView.layer?.masksToBounds = true
+
+        effectView.addSubview(label)
         NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
-            label.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
-            label.topAnchor.constraint(equalTo: container.topAnchor, constant: 12),
-            label.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -12)
+            label.leadingAnchor.constraint(equalTo: effectView.leadingAnchor, constant: 12),
+            label.trailingAnchor.constraint(equalTo: effectView.trailingAnchor, constant: -12),
+            label.topAnchor.constraint(equalTo: effectView.topAnchor, constant: 12),
+            label.bottomAnchor.constraint(equalTo: effectView.bottomAnchor, constant: -12),
+            effectView.widthAnchor.constraint(equalToConstant: 304)
         ])
-        content.view = container
 
-        explanationPopover.contentViewController = content
-        explanationPopover.behavior = .applicationDefined
-        explanationPopover.animates = true
-        if explanationPopover.isShown {
-            explanationPopover.performClose(nil)
+        let contentController = NSViewController()
+        contentController.view = effectView
+        effectView.layoutSubtreeIfNeeded()
+        let fittingSize = effectView.fittingSize
+
+        let panel = NSPanel(
+            contentRect: NSRect(origin: .zero, size: fittingSize),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.contentViewController = contentController
+        panel.isFloatingPanel = true
+        panel.level = .popUpMenu
+        panel.hidesOnDeactivate = false
+        panel.hasShadow = true
+        panel.backgroundColor = .clear
+        panel.isOpaque = false
+        panel.ignoresMouseEvents = false
+        panel.collectionBehavior = [.moveToActiveSpace, .transient]
+
+        guard let anchorWindow = anchor.window else { return }
+        let anchorRectInWindow = anchor.convert(anchor.bounds, to: nil)
+        let anchorRectOnScreen = anchorWindow.convertToScreen(anchorRectInWindow)
+        let origin = NSPoint(
+            x: anchorRectOnScreen.maxX + 6,
+            y: anchorRectOnScreen.midY - (fittingSize.height / 2.0)
+        )
+        panel.setFrameOrigin(origin)
+        panel.orderFrontRegardless()
+
+        explanationPanel = panel
+        installExplanationDismissMonitor(anchor: anchor)
+    }
+
+    private func installExplanationDismissMonitor(anchor: NSView) {
+        explanationDismissMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self, weak anchor] event in
+            guard let self else { return event }
+            guard let panel = self.explanationPanel else { return event }
+            let location = NSEvent.mouseLocation
+            let clickInPanel = panel.frame.contains(location)
+            let clickInAnchor = anchor.map { currentAnchor -> Bool in
+                guard let window = currentAnchor.window else { return false }
+                let rect = window.convertToScreen(currentAnchor.convert(currentAnchor.bounds, to: nil))
+                return rect.contains(location)
+            } ?? false
+            if clickInPanel || clickInAnchor {
+                return event
+            }
+            self.dismissExplanationPanel()
+            return event
         }
-        explanationPopover.show(relativeTo: anchor.bounds, of: anchor, preferredEdge: .maxX)
+        explanationGlobalDismissMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            self?.dismissExplanationPanel()
+        }
+    }
+
+    private func dismissExplanationPanel() {
+        if let monitor = explanationDismissMonitor {
+            NSEvent.removeMonitor(monitor)
+            explanationDismissMonitor = nil
+        }
+        if let monitor = explanationGlobalDismissMonitor {
+            NSEvent.removeMonitor(monitor)
+            explanationGlobalDismissMonitor = nil
+        }
+        explanationPanel?.orderOut(nil)
+        explanationPanel = nil
     }
 
     private func styledWeeklyPaceExplanation(_ text: String) -> NSAttributedString {
