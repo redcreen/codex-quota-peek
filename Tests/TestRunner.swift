@@ -547,12 +547,12 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
         QuotaDisplayPolicy.weeklyPaceExplanation(for: .balanced56).contains("70h is stricter"),
         "weekly row explanation includes the selected weekly workload"
     )
-    let fortyHourMarker = StatusPresentation.pacingThresholdPercent(for: weekly, weeklyPacingMode: .workWeek40, isWeekly: true)
-    let fiftySixHourMarker = StatusPresentation.pacingThresholdPercent(for: weekly, weeklyPacingMode: .balanced56, isWeekly: true)
-    let seventyHourMarker = StatusPresentation.pacingThresholdPercent(for: weekly, weeklyPacingMode: .heavy70, isWeekly: true)
+    let fortyHourMarker = StatusPresentation.markerThresholdPercent(for: weekly, weeklyPacingMode: .workWeek40, isWeekly: true)
+    let fiftySixHourMarker = StatusPresentation.markerThresholdPercent(for: weekly, weeklyPacingMode: .balanced56, isWeekly: true)
+    let seventyHourMarker = StatusPresentation.markerThresholdPercent(for: weekly, weeklyPacingMode: .heavy70, isWeekly: true)
     expect(
-        fortyHourMarker == fiftySixHourMarker && fiftySixHourMarker == seventyHourMarker,
-        "weekly normal-progress marker stays on the same wall-clock position across 40h, 56h, and 70h modes"
+        fortyHourMarker != fiftySixHourMarker && fiftySixHourMarker != seventyHourMarker,
+        "weekly normal-progress marker changes across 40h, 56h, and 70h modes"
     )
 }
 
@@ -660,6 +660,7 @@ func testNotificationPolicyEmitsResetReminderOnce() {
             paceOverrunPercent: nil,
             usedPercent: 10,
             paceThresholdPercent: nil,
+            markerThresholdPercent: nil,
             tooltipText: nil
         ),
         secondaryRow: StatusPresentation.MenuRow(
@@ -673,6 +674,7 @@ func testNotificationPolicyEmitsResetReminderOnce() {
             paceOverrunPercent: nil,
             usedPercent: 20,
             paceThresholdPercent: nil,
+            markerThresholdPercent: nil,
             tooltipText: nil
         ),
         language: .english
@@ -702,6 +704,7 @@ func testNotificationPolicyRespectsCategoryPreferences() {
             paceOverrunPercent: nil,
             usedPercent: 10,
             paceThresholdPercent: nil,
+            markerThresholdPercent: nil,
             tooltipText: nil
         ),
         secondaryRow: StatusPresentation.MenuRow(
@@ -715,6 +718,7 @@ func testNotificationPolicyRespectsCategoryPreferences() {
             paceOverrunPercent: 12,
             usedPercent: 20,
             paceThresholdPercent: 8,
+            markerThresholdPercent: 8,
             tooltipText: nil
         ),
         paceMessage: "7 days above average",

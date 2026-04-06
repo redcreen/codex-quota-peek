@@ -102,6 +102,7 @@ struct StatusPresentation {
         let paceOverrunPercent: Double?
         let usedPercent: Double
         let paceThresholdPercent: Double?
+        let markerThresholdPercent: Double?
         let tooltipText: String?
     }
 
@@ -212,6 +213,7 @@ struct StatusPresentation {
                 paceOverrunPercent: StatusPresentation.overAverageOffset(for: $0),
                 usedPercent: $0.usedPercent,
                 paceThresholdPercent: StatusPresentation.pacingThresholdPercent(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: false),
+                markerThresholdPercent: StatusPresentation.markerThresholdPercent(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: false),
                 tooltipText: StatusPresentation.rowTooltip(for: $0, language: language)
             )
         }
@@ -227,6 +229,7 @@ struct StatusPresentation {
                 paceOverrunPercent: StatusPresentation.overAverageOffset(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
                 usedPercent: $0.usedPercent,
                 paceThresholdPercent: StatusPresentation.pacingThresholdPercent(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
+                markerThresholdPercent: StatusPresentation.markerThresholdPercent(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true),
                 tooltipText: StatusPresentation.rowTooltip(for: $0, weeklyPacingMode: weeklyPacingMode, isWeekly: true, language: language)
             )
         }
@@ -442,6 +445,18 @@ struct StatusPresentation {
         }
         guard isWeekly else { return base }
         return min(100, max(0, base + weeklyPacingMode.displayThresholdAdjustment))
+    }
+
+    static func markerThresholdPercent(
+        for window: LimitWindow,
+        weeklyPacingMode: WeeklyPacingMode,
+        isWeekly: Bool
+    ) -> Double? {
+        guard let base = pacingThresholdPercent(for: window, weeklyPacingMode: weeklyPacingMode, isWeekly: isWeekly) else {
+            return nil
+        }
+        guard isWeekly else { return base }
+        return min(100, max(0, base * weeklyPacingMode.displayScale))
     }
 
     private static func paceSeverity(forOffset offset: Double) -> PaceSeverity {

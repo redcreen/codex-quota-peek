@@ -658,12 +658,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
         item(MenuTag.account)?.attributedTitle = styledMetaRow(
             label: presentation.accountRow?.label ?? language.accountLabel,
-            value: presentation.accountRow?.value ?? "--"
+            value: combinedAccountLine(from: presentation, language: language)
         )
-        item(MenuTag.plan)?.attributedTitle = styledMetaRow(
-            label: presentation.planRow?.label ?? language.planLabel,
-            value: presentation.planRow?.value ?? "--"
-        )
+        item(MenuTag.plan)?.isHidden = true
         if isMenuOpen {
             needsAccountsRefresh = true
         } else {
@@ -681,6 +678,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 paceOverrunPercent: showsPaceAlert ? primary.paceOverrunPercent : nil,
                 usedPercent: primary.usedPercent,
                 paceThresholdPercent: primary.paceThresholdPercent,
+                markerThresholdPercent: primary.markerThresholdPercent,
                 displayScale: 1.0
             )
             item(MenuTag.primary)?.toolTip = showsPaceAlert ? primary.tooltipText : stripPaceDetails(from: primary.tooltipText)
@@ -695,6 +693,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 paceOverrunPercent: nil,
                 usedPercent: 0,
                 paceThresholdPercent: nil,
+                markerThresholdPercent: nil,
                 displayScale: 1.0
             )
             item(MenuTag.primary)?.toolTip = nil
@@ -711,6 +710,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 paceOverrunPercent: showsPaceAlert ? secondary.paceOverrunPercent : nil,
                 usedPercent: secondary.usedPercent,
                 paceThresholdPercent: secondary.paceThresholdPercent,
+                markerThresholdPercent: secondary.markerThresholdPercent,
                 displayScale: selectedWeeklyPacingMode.displayScale
             )
             let secondaryTooltip = showsPaceAlert
@@ -728,6 +728,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 paceOverrunPercent: nil,
                 usedPercent: 0,
                 paceThresholdPercent: nil,
+                markerThresholdPercent: nil,
                 displayScale: selectedWeeklyPacingMode.displayScale
             )
             item(MenuTag.secondary)?.toolTip = weeklyPaceExplanation
@@ -988,6 +989,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return row
     }
 
+    private func combinedAccountLine(from presentation: StatusPresentation, language: AppLanguage) -> String {
+        let accountValue = presentation.accountRow?.value ?? "--"
+        guard let planValue = presentation.planRow?.value, planValue != "--" else {
+            return accountValue
+        }
+        return "\(accountValue) (\(planValue))"
+    }
+
     private func styledQuotaRow(
         label: String,
         language: AppLanguage,
@@ -998,6 +1007,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         paceOverrunPercent: Double?,
         usedPercent: Double,
         paceThresholdPercent: Double?,
+        markerThresholdPercent: Double?,
         displayScale: Double
     ) -> NSAttributedString {
         let title = compactQuotaLabel(for: label, language: language)
@@ -1011,6 +1021,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             overrunPercent: paceOverrunPercent,
             usedPercent: usedPercent,
             thresholdPercent: paceThresholdPercent,
+            markerThresholdPercent: markerThresholdPercent,
             paceSeverity: paceSeverity,
             displayScale: displayScale,
             font: barFont,
@@ -1081,6 +1092,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         overrunPercent: Double?,
         usedPercent: Double,
         thresholdPercent: Double?,
+        markerThresholdPercent: Double?,
         paceSeverity: StatusPresentation.PaceSeverity?,
         displayScale: Double,
         font: NSFont,
@@ -1091,17 +1103,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             overrunPercent: overrunPercent,
             usedPercent: usedPercent,
             thresholdPercent: thresholdPercent,
-            scale: displayScale,
             slots: slots
         )
         let remainingColor = remainingColor(for: percentText, paceSeverity: paceSeverity)
         let usedColor = NSColor.tertiaryLabelColor
         let markerColor = NSColor.secondaryLabelColor
         let markerLine: NSAttributedString?
-        if let markerIndex = segments.markerIndex {
-            let clamped = max(0, min(segments.totalSlots, markerIndex))
+        if let markerThresholdPercent {
+            let expectedRemaining = max(0, min(100, 100.0 - markerThresholdPercent))
+            let markerIndex = Int((expectedRemaining / 100.0 * Double(slots)).rounded())
+            let clamped = max(0, min(slots, markerIndex))
             let markerLabel = "▼"
-            let markerStart = max(0, min(segments.totalSlots - markerLabel.count, clamped))
+            let markerStart = max(0, min(slots - markerLabel.count, clamped))
             markerLine = NSAttributedString(
                 string: String(repeating: " ", count: markerStart) + markerLabel,
                 attributes: [
