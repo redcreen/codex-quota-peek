@@ -1099,6 +1099,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let activeSlots = max(1, min(progressSlots, Int((Double(progressSlots) * displayScale).rounded())))
         let header = NSMutableAttributedString()
         if let markerLine = progressBar.marker {
+            header.append(NSAttributedString(
+                string: String(repeating: " ", count: titleColumnWidth + 1),
+                attributes: [
+                    .font: barFont,
+                    .foregroundColor: NSColor.clear
+                ]
+            ))
             header.append(markerLine)
             header.append(NSAttributedString(string: "\n"))
         }
@@ -1268,7 +1275,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         content.view = container
 
         explanationPopover.contentViewController = content
-        explanationPopover.behavior = .semitransient
+        explanationPopover.behavior = .applicationDefined
         explanationPopover.animates = true
         if explanationPopover.isShown {
             explanationPopover.performClose(nil)

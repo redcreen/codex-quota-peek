@@ -585,6 +585,12 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
         Int((fortyHourMarker ?? -1).rounded()) == 29,
         "40h marker matches the expected average-work pace for this sample"
     )
+    let fiftySixSlot = Int((((fiftySixHourMarker ?? 0) / 100.0) * 28.0).rounded())
+    let seventySlot = Int((((seventyHourMarker ?? 0) / 100.0) * 28.0).rounded())
+    expect(
+        fiftySixSlot != seventySlot,
+        "56h and 70h markers land in different visual slots on the 28-step menu bar"
+    )
 }
 
 func testWeeklyTooltipHoursChangeWhileMarkerPercentStaysFixed() {

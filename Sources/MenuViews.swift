@@ -1,5 +1,12 @@
 import AppKit
 
+final class MenuHelpButton: NSButton {
+    override func mouseDown(with event: NSEvent) {
+        guard let action else { return }
+        NSApp.sendAction(action, to: target, from: self)
+    }
+}
+
 final class MenuHeaderView: NSView {
     private let imageView = NSImageView()
     private let titleLabel = NSTextField(labelWithString: "Codex Quota Peek")
@@ -208,7 +215,7 @@ final class MenuActionRowView: NSView {
 
 final class QuotaMenuRowView: NSView {
     private let textLabel = NSTextField(labelWithString: "")
-    private let helpButton = NSButton(title: "?", target: nil, action: nil)
+    private let helpButton = MenuHelpButton(title: "?", target: nil, action: nil)
     var onHelp: ((NSView) -> Void)?
 
     override init(frame frameRect: NSRect) {
