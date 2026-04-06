@@ -330,13 +330,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         planItem.tag = MenuTag.plan
         planItem.isEnabled = false
 
-        let primaryItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        let primaryItem = NSMenuItem(title: "", action: #selector(showQuotaExplanation(_:)), keyEquivalent: "")
         primaryItem.tag = MenuTag.primary
-        primaryItem.view = primaryQuotaRowView
+        primaryItem.target = self
 
-        let secondaryItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        let secondaryItem = NSMenuItem(title: "", action: #selector(showQuotaExplanation(_:)), keyEquivalent: "")
         secondaryItem.tag = MenuTag.secondary
-        secondaryItem.view = secondaryQuotaRowView
+        secondaryItem.target = self
 
         let weeklyPaceSelectorItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         weeklyPaceSelectorItem.tag = MenuTag.weeklyPaceSelector
@@ -732,8 +732,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         if let primary = presentation.primaryRow {
             lastPrimaryExplanationText = showsPaceAlert ? primary.tooltipText : stripPaceDetails(from: primary.tooltipText)
-            primaryQuotaRowView.update(
-                content: styledQuotaRow(
+            item(MenuTag.primary)?.attributedTitle = styledQuotaRow(
                 label: primary.label,
                 language: language,
                 percent: showsPaceAlert ? primary.percentText : stripPaceMarkers(from: primary.percentText),
@@ -746,12 +745,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 markerThresholdPercent: primary.markerThresholdPercent,
                 displayScale: 1.0,
                 usedOnLeft: true
-            ),
-                helpEnabled: lastPrimaryExplanationText != nil
             )
+            item(MenuTag.primary)?.isHidden = false
         } else {
             lastPrimaryExplanationText = nil
-            primaryQuotaRowView.update(content: styledQuotaRow(
+            item(MenuTag.primary)?.attributedTitle = styledQuotaRow(
                 label: "5 hours",
                 language: language,
                 percent: "--",
@@ -764,13 +762,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 markerThresholdPercent: nil,
                 displayScale: 1.0,
                 usedOnLeft: true
-            ), helpEnabled: false)
+            )
+            item(MenuTag.primary)?.isHidden = false
         }
 
         if let secondary = presentation.secondaryRow {
             let baseExplanation = showsPaceAlert ? secondary.tooltipText : stripPaceDetails(from: secondary.tooltipText)
             lastSecondaryExplanationText = [baseExplanation, weeklyPaceExplanation].compactMap { $0 }.joined(separator: "\n\n")
-            secondaryQuotaRowView.update(content: styledQuotaRow(
+            item(MenuTag.secondary)?.attributedTitle = styledQuotaRow(
                 label: secondary.label,
                 language: language,
                 percent: showsPaceAlert ? secondary.percentText : stripPaceMarkers(from: secondary.percentText),
@@ -783,10 +782,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 markerThresholdPercent: secondary.markerThresholdPercent,
                 displayScale: 1.0,
                 usedOnLeft: true
-            ), helpEnabled: true)
+            )
+            item(MenuTag.secondary)?.isHidden = false
         } else {
             lastSecondaryExplanationText = weeklyPaceExplanation
-            secondaryQuotaRowView.update(content: styledQuotaRow(
+            item(MenuTag.secondary)?.attributedTitle = styledQuotaRow(
                 label: "7 days",
                 language: language,
                 percent: "--",
@@ -799,7 +799,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 markerThresholdPercent: nil,
                 displayScale: 1.0,
                 usedOnLeft: true
-            ), helpEnabled: true)
+            )
+            item(MenuTag.secondary)?.isHidden = false
         }
 
         weeklyPaceSelectorView.update(language: language, selectedMode: selectedWeeklyPacingMode)
