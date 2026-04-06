@@ -483,6 +483,7 @@ struct StatusPresentation {
         if isWeekly {
             parts.append(language == .english ? "Based on \(weeklyPacingMode.title)" : "按 \(weeklyPacingMode.title) 计算")
         }
+        parts.append(language == .english ? "▼ marks the normal progress position on the bar." : "▼ 表示进度条上的正常进度位置。")
         parts.append(
             language == .english
                 ? "Total: \(formattedDuration(hours: totalHours, language: language)) (100%)"

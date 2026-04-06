@@ -984,11 +984,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         usedPercent: Double,
         paceThresholdPercent: Double?
     ) -> NSAttributedString {
-        let title = QuotaDisplayPolicy.menuWindowTitle(for: label)
+        let title = compactQuotaLabel(for: label, language: language)
         let barFont = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
         let detailFont = NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
         let progressSlots = 28
-        let titleColumnWidth = 8
+        let titleColumnWidth = 4
         let (percentValue, percentMarker) = splitPercentComponents(percent)
         let progressBar = styledProgressBar(
             forPercentText: percent,
@@ -1006,14 +1006,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 .foregroundColor: NSColor.labelColor
             ]
         )
-        header.append(NSAttributedString(string: "\n"))
+        header.append(NSAttributedString(string: " ", attributes: [
+            .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
+            .foregroundColor: NSColor.labelColor
+        ]))
         header.append(progressBar)
 
         let leftText = percentMarker.isEmpty ? "\(percentValue) \(language.leftLabel)" : "\(percentValue) \(percentMarker) \(language.leftLabel)"
         let rightText = "\(language.resetsLabel) \(reset)"
         let spacerCount = max(2, progressSlots + titleColumnWidth - leftText.count - rightText.count)
         let detail = NSMutableAttributedString(
-            string: "\n\(percentValue)",
+            string: "\n" + String(repeating: " ", count: titleColumnWidth + 1) + "\(percentValue)",
             attributes: [
                 .font: detailFont,
                 .foregroundColor: quotaColor(for: percent)
@@ -1076,15 +1079,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let remainingColor = remainingColor(for: percentText, paceSeverity: paceSeverity)
         let usedColor = NSColor.tertiaryLabelColor
         let markerColor = NSColor.secondaryLabelColor
-        let language = selectedAppLanguage
-        let titleColumnWidth = 8
+        let titleColumnWidth = 4
 
         let container = NSMutableAttributedString()
         let prefix = String(repeating: " ", count: titleColumnWidth)
         if let markerIndex = segments.markerIndex {
             let clamped = max(0, min(slots, markerIndex))
-            let markerLabel = language == .english ? "pace ▼" : "正常 ▼"
-            let markerStart = max(0, min(slots - markerLabel.count, clamped - max(1, markerLabel.count - 2)))
+            let markerLabel = "▼"
+            let markerStart = max(0, min(slots - markerLabel.count, clamped))
             let arrowLine = prefix + String(repeating: " ", count: markerStart) + markerLabel
             container.append(
                 NSAttributedString(
@@ -1133,6 +1135,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         container.append(bar)
         return container
+    }
+
+    private func compactQuotaLabel(for label: String, language: AppLanguage) -> String {
+        if language == .english {
+            if label == "5 hours" { return "5h" }
+            if label == "7 days" { return "7d" }
+        } else {
+            if label == "5 小时" { return "5h" }
+            if label == "7 天" { return "7d" }
+        }
+        return label
     }
 
     private func splitPercentComponents(_ percentText: String) -> (String, String) {
