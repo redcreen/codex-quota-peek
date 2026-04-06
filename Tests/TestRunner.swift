@@ -570,6 +570,10 @@ func testWeeklyPacingModeCanBeLooserThanFullWeek() {
         QuotaDisplayPolicy.weeklyPaceExplanation(for: .balanced56).contains("marker position"),
         "weekly row explanation includes the selected weekly workload"
     )
+    expect(
+        QuotaDisplayPolicy.weeklyPaceInlineExplanation(for: .balanced56).contains("56h/week"),
+        "weekly inline explanation reflects the selected weekly workload"
+    )
     let fortyHourMarker = StatusPresentation.markerThresholdPercent(for: weekly, weeklyPacingMode: .workWeek40, isWeekly: true)
     let fiftySixHourMarker = StatusPresentation.markerThresholdPercent(for: weekly, weeklyPacingMode: .balanced56, isWeekly: true)
     let seventyHourMarker = StatusPresentation.markerThresholdPercent(for: weekly, weeklyPacingMode: .heavy70, isWeekly: true)

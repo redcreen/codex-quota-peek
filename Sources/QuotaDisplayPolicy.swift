@@ -127,6 +127,12 @@ enum QuotaDisplayPolicy {
         language == .english ? "! means weekly usage is ahead of the average pace implied by \(mode.weeklyHours)/week. This preset changes the weekly marker position and alert severity, but never changes % left." : "! 表示每周使用速度超过了 \(mode.weeklyHours) 小时/周这条平均节奏线。这个档位会影响每周箭头位置和提醒严重程度，但不会改变剩余百分比。"
     }
 
+    static func weeklyPaceInlineExplanation(for mode: WeeklyPacingMode, language: AppLanguage = .english) -> String {
+        language == .english
+            ? "Weekly marker and ! use the average pace for \(mode.weeklyHours)h/week."
+            : "每周箭头和 ! 按 \(mode.weeklyHours) 小时/周的平均节奏计算。"
+    }
+
     static func colorLevel(forPercentText percentText: String) -> QuotaDisplayColorLevel? {
         guard let percent = Int(
             percentText

@@ -380,10 +380,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             primaryItem,
             secondaryItem,
             weeklyPaceSelectorItem,
+            paceNoticeItem,
             creditsItem,
             trendItem,
             sparklineItem,
-            paceNoticeItem,
             sourceItem,
             updatedAtItem,
             .separator(),
@@ -716,10 +716,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 displayScale: 1.0,
                 usedOnLeft: true
             )
-            let secondaryTooltip = showsPaceAlert
-                ? [secondary.tooltipText, weeklyPaceExplanation].compactMap { $0 }.joined(separator: "\n\n")
-                : stripPaceDetails(from: secondary.tooltipText)
-            item(MenuTag.secondary)?.toolTip = secondaryTooltip
+            item(MenuTag.secondary)?.toolTip = showsPaceAlert ? secondary.tooltipText : stripPaceDetails(from: secondary.tooltipText)
         } else {
             item(MenuTag.secondary)?.attributedTitle = styledQuotaRow(
                 label: "7 days",
@@ -735,13 +732,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 displayScale: 1.0,
                 usedOnLeft: true
             )
-            item(MenuTag.secondary)?.toolTip = weeklyPaceExplanation
+            item(MenuTag.secondary)?.toolTip = nil
         }
 
         weeklyPaceSelectorView.update(language: language, selectedMode: selectedWeeklyPacingMode)
-        item(MenuTag.weeklyPaceSelector)?.toolTip = weeklyPaceSelectorView.toolTip
-
-        item(MenuTag.paceNotice)?.isHidden = true
+        item(MenuTag.weeklyPaceSelector)?.toolTip = nil
+        item(MenuTag.paceNotice)?.isHidden = false
+        item(MenuTag.paceNotice)?.attributedTitle = styledWeeklyPaceExplanation(weeklyPaceInlineExplanation)
 
         item(MenuTag.updatedAt)?.isHidden = !showsLastUpdated
         if showsLastUpdated {
@@ -1017,7 +1014,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     ) -> NSAttributedString {
         let title = compactQuotaLabel(for: label, language: language)
         let barFont = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
-        let detailFont = NSFont.monospacedSystemFont(ofSize: 10.0, weight: .medium)
+        let detailFont = NSFont.monospacedSystemFont(ofSize: 9.5, weight: .medium)
         let progressSlots = 28
         let titleColumnWidth = 4
         let (percentValue, percentMarker) = splitPercentComponents(percent)
@@ -1047,8 +1044,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         let statusText = percentMarker.isEmpty ? "\(language.leftLabel) \(percentValue)" : "\(language.leftLabel) \(percentValue) \(percentMarker)"
         let rightText = "\(language.resetsLabel) \(reset)"
-        let detailText = "\(rightText)  \(statusText)"
-        let spacerCount = max(2, activeSlots + titleColumnWidth - detailText.count)
+        let detailText = "\(rightText) \(statusText)"
+        let spacerCount = max(0, activeSlots - detailText.count)
         let detail = NSMutableAttributedString(
             string: "\n" + String(repeating: " ", count: titleColumnWidth + 1 + spacerCount),
             attributes: [
@@ -1057,7 +1054,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             ]
         )
         detail.append(NSAttributedString(
-            string: rightText + "  ",
+            string: rightText + " ",
             attributes: [
                 .font: detailFont,
                 .foregroundColor: NSColor.secondaryLabelColor
@@ -1184,6 +1181,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let marker = percentText.filter { $0 == "!" }
         let value = percentText.replacingOccurrences(of: "!", with: "")
         return (value, marker)
+    }
+
+    private func styledWeeklyPaceExplanation(_ text: String) -> NSAttributedString {
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineBreakMode = .byWordWrapping
+        paragraph.paragraphSpacing = 0
+        paragraph.lineSpacing = 1
+        return NSAttributedString(
+            string: text,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 10.5, weight: .regular),
+                .foregroundColor: NSColor.secondaryLabelColor,
+                .paragraphStyle: paragraph
+            ]
+        )
     }
 
     private func stripPaceMarkers(from text: String) -> String {
@@ -1574,6 +1586,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private var weeklyPaceExplanation: String {
         QuotaDisplayPolicy.weeklyPaceExplanation(for: selectedWeeklyPacingMode, language: selectedAppLanguage)
+    }
+
+    private var weeklyPaceInlineExplanation: String {
+        QuotaDisplayPolicy.weeklyPaceInlineExplanation(for: selectedWeeklyPacingMode, language: selectedAppLanguage)
     }
 
     private func makePreferencesWindowController() -> PreferencesWindowController {

@@ -257,11 +257,9 @@ final class WeeklyPaceSelectorView: NSView {
         segmentedControl.selectedSegment = allCases.firstIndex(of: selectedMode) ?? 1
         for (index, mode) in allCases.enumerated() {
             segmentedControl.setLabel("\(mode.weeklyHours)h", forSegment: index)
-            segmentedControl.setToolTip(mode.detailedTooltipText(language: language), forSegment: index)
+            segmentedControl.setToolTip(nil, forSegment: index)
         }
-        toolTip = language == .english
-            ? "Pick the weekly workload used by the weekly pace chart and ! severity."
-            : "选择每周工作时长，用于每周进度图和 ! 严重程度。"
+        toolTip = nil
     }
 
     @objc
