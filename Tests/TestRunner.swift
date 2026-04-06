@@ -258,8 +258,9 @@ func testTrendSummaryMenuText() {
         ]
     )
     let menuText = summary.menuText(language: .english, weeklyPacingMode: .balanced56) ?? ""
-    expect(menuText.contains("Daily usage (56h/week)"), "daily usage chart includes the selected weekly workload")
-    expect(menuText.contains("h"), "daily usage chart includes hourly labels")
+    expect(menuText.contains("Daily usage"), "daily usage chart includes a chart title")
+    expect(menuText.contains("│"), "daily usage chart renders a y-axis")
+    expect(menuText.contains("└"), "daily usage chart renders an x-axis")
     expect(menuText.contains("█"), "daily usage chart renders bar glyphs")
 }
 

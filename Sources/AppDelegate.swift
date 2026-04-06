@@ -30,9 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let openUsageDashboard = 125
         static let trend = 126
         static let sparkline = 127
-        static let weeklyPace40 = 128
-        static let weeklyPace56 = 129
-        static let weeklyPace70 = 130
+        static let weeklyPaceSelector = 128
         static let accountsStart = 2000
     }
 
@@ -165,14 +163,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc
     private func selectWeeklyPacingMenu(_ sender: NSMenuItem) {
-        switch sender.tag {
-        case MenuTag.weeklyPace40:
-            setWeeklyPacingMode(.workWeek40)
-        case MenuTag.weeklyPace70:
-            setWeeklyPacingMode(.heavy70)
-        default:
-            setWeeklyPacingMode(.balanced56)
+        let nextMode: WeeklyPacingMode
+        switch selectedWeeklyPacingMode {
+        case .workWeek40:
+            nextMode = .balanced56
+        case .balanced56:
+            nextMode = .heavy70
+        case .heavy70:
+            nextMode = .workWeek40
         }
+        setWeeklyPacingMode(nextMode)
     }
 
     @objc
@@ -300,17 +300,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         secondaryItem.tag = MenuTag.secondary
         secondaryItem.isEnabled = false
 
-        let weeklyPace40Item = NSMenuItem(title: WeeklyPacingMode.workWeek40.title, action: #selector(selectWeeklyPacingMenu(_:)), keyEquivalent: "")
-        weeklyPace40Item.tag = MenuTag.weeklyPace40
-        weeklyPace40Item.target = self
-
-        let weeklyPace56Item = NSMenuItem(title: WeeklyPacingMode.balanced56.title, action: #selector(selectWeeklyPacingMenu(_:)), keyEquivalent: "")
-        weeklyPace56Item.tag = MenuTag.weeklyPace56
-        weeklyPace56Item.target = self
-
-        let weeklyPace70Item = NSMenuItem(title: WeeklyPacingMode.heavy70.title, action: #selector(selectWeeklyPacingMenu(_:)), keyEquivalent: "")
-        weeklyPace70Item.tag = MenuTag.weeklyPace70
-        weeklyPace70Item.target = self
+        let weeklyPaceSelectorItem = NSMenuItem(title: "", action: #selector(selectWeeklyPacingMenu(_:)), keyEquivalent: "")
+        weeklyPaceSelectorItem.tag = MenuTag.weeklyPaceSelector
+        weeklyPaceSelectorItem.target = self
 
         let paceNoticeItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         paceNoticeItem.tag = MenuTag.paceNotice
@@ -386,9 +378,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             .separator(),
             primaryItem,
             secondaryItem,
-            weeklyPace40Item,
-            weeklyPace56Item,
-            weeklyPace70Item,
+            weeklyPaceSelectorItem,
             creditsItem,
             trendItem,
             sparklineItem,
@@ -738,12 +728,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item(MenuTag.secondary)?.toolTip = weeklyPaceExplanation
         }
 
-        item(MenuTag.weeklyPace40)?.title = WeeklyPacingMode.workWeek40.menuTitle(language: language)
-        item(MenuTag.weeklyPace56)?.title = WeeklyPacingMode.balanced56.menuTitle(language: language)
-        item(MenuTag.weeklyPace70)?.title = WeeklyPacingMode.heavy70.menuTitle(language: language)
-        item(MenuTag.weeklyPace40)?.state = selectedWeeklyPacingMode == .workWeek40 ? .on : .off
-        item(MenuTag.weeklyPace56)?.state = selectedWeeklyPacingMode == .balanced56 ? .on : .off
-        item(MenuTag.weeklyPace70)?.state = selectedWeeklyPacingMode == .heavy70 ? .on : .off
+        item(MenuTag.weeklyPaceSelector)?.attributedTitle = styledWeeklyPaceSelector(language: language)
+        item(MenuTag.weeklyPaceSelector)?.toolTip = language == .english
+            ? "Click to switch between 40h, 56h, and 70h weekly pacing."
+            : "点击可在 40h、56h、70h 每周工作时长之间切换。"
 
         item(MenuTag.paceNotice)?.isHidden = true
 
@@ -1230,6 +1218,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
         }
         return result
+    }
+
+    private func styledWeeklyPaceSelector(language: AppLanguage) -> NSAttributedString {
+        let title = language == .english ? "Weekly work hours: " : "每周工作时长："
+        let row = NSMutableAttributedString(
+            string: title,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11.5, weight: .medium),
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
+
+        for (index, mode) in WeeklyPacingMode.allCases.enumerated() {
+            let isSelected = mode == selectedWeeklyPacingMode
+            row.append(
+                NSAttributedString(
+                    string: mode.title,
+                    attributes: [
+                        .font: NSFont.monospacedSystemFont(ofSize: 11.5, weight: isSelected ? .bold : .medium),
+                        .foregroundColor: isSelected ? NSColor.labelColor : NSColor.secondaryLabelColor
+                    ]
+                )
+            )
+            if index < WeeklyPacingMode.allCases.count - 1 {
+                row.append(NSAttributedString(string: "  ", attributes: [
+                    .font: NSFont.monospacedSystemFont(ofSize: 11.5, weight: .medium),
+                    .foregroundColor: NSColor.secondaryLabelColor
+                ]))
+            }
+        }
+        return row
     }
 
     private func styledSparkline(_ text: String) -> NSAttributedString {

@@ -26,21 +26,27 @@ struct CodexQuotaTrendSummary {
 
     func menuText(language: AppLanguage = .english, weeklyPacingMode: WeeklyPacingMode = .balanced56) -> String? {
         guard !dailyUsageBars.isEmpty else { return nil }
-        let maxPercent = max(dailyUsageBars.map(\.usedPercent).max() ?? 0, 1)
-        let title = language == .english ? "Daily usage (\(weeklyPacingMode.title))" : "每日用量（\(weeklyPacingMode.title)）"
-        let lines = dailyUsageBars.map { bar -> String in
-            let formatter = DateFormatter()
-            formatter.setLocalizedDateFormatFromTemplate(language == .english ? "MMM d" : "M月d日")
-            let label = formatter.string(from: bar.date)
-            let hours = Int((Double(weeklyPacingMode.weeklyHours) * (bar.usedPercent / 100.0)).rounded())
-            let slots = 12
-            let filled = max(1, Int((bar.usedPercent / maxPercent * Double(slots)).rounded()))
-            let glyphs = String(repeating: "█", count: min(slots, filled))
-            return language == .english
-                ? "\(label) \(glyphs) \(hours)h"
-                : "\(label) \(glyphs) \(hours)小时"
+        let title = language == .english ? "Daily usage" : "每日用量"
+        let hoursByDay = dailyUsageBars.map { Int((Double(weeklyPacingMode.weeklyHours) * ($0.usedPercent / 100.0)).rounded()) }
+        let maxHours = max(hoursByDay.max() ?? 0, 1)
+        let rowLevels = 4
+
+        let yAxisLabels: [String] = stride(from: rowLevels, through: 1, by: -1).map { level in
+            let threshold = Int((Double(level) / Double(rowLevels) * Double(maxHours)).rounded())
+            return String(format: "%2dh", max(1, threshold))
         }
-        return ([title] + lines).joined(separator: "\n")
+
+        let chartRows: [String] = zip(stride(from: rowLevels, through: 1, by: -1), yAxisLabels).map { level, label in
+            let threshold = Double(level) / Double(rowLevels) * Double(maxHours)
+            let bars = hoursByDay.map { $0 >= Int(ceil(threshold)) ? "█" : " " }.joined(separator: " ")
+            return "\(label) │ \(bars)"
+        }
+
+        let formatter = DateFormatter()
+        formatter.setLocalizedDateFormatFromTemplate(language == .english ? "d" : "d")
+        let labels = dailyUsageBars.map { formatter.string(from: $0.date) }.joined(separator: " ")
+        let footer = "    └ \(labels)"
+        return ([title] + chartRows + [footer]).joined(separator: "\n")
     }
 
     func sparklineText(language: AppLanguage = .english) -> String? {
