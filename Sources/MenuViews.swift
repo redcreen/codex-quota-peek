@@ -205,3 +205,67 @@ final class MenuActionRowView: NSView {
         ])
     }
 }
+
+final class WeeklyPaceSelectorView: NSView {
+    private let titleLabel = NSTextField(labelWithString: "")
+    private let segmentedControl = NSSegmentedControl(labels: ["40h", "56h", "70h"], trackingMode: .selectOne, target: nil, action: nil)
+    var onSelect: ((WeeklyPacingMode) -> Void)?
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        setup()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setup()
+    }
+
+    private func setup() {
+        frame = NSRect(x: 0, y: 0, width: 320, height: 26)
+
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.font = NSFont.systemFont(ofSize: 11.5, weight: .medium)
+        titleLabel.textColor = .secondaryLabelColor
+
+        segmentedControl.translatesAutoresizingMaskIntoConstraints = false
+        segmentedControl.segmentStyle = .rounded
+        segmentedControl.setWidth(52, forSegment: 0)
+        segmentedControl.setWidth(52, forSegment: 1)
+        segmentedControl.setWidth(52, forSegment: 2)
+        segmentedControl.target = self
+        segmentedControl.action = #selector(changeSelection(_:))
+
+        addSubview(titleLabel)
+        addSubview(segmentedControl)
+
+        NSLayoutConstraint.activate([
+            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+
+            segmentedControl.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
+            segmentedControl.centerYAnchor.constraint(equalTo: centerYAnchor),
+            segmentedControl.leadingAnchor.constraint(greaterThanOrEqualTo: titleLabel.trailingAnchor, constant: 12)
+        ])
+    }
+
+    func update(language: AppLanguage, selectedMode: WeeklyPacingMode) {
+        titleLabel.stringValue = language == .english ? "Weekly work hours:" : "每周工作时长："
+        let allCases = WeeklyPacingMode.allCases
+        segmentedControl.selectedSegment = allCases.firstIndex(of: selectedMode) ?? 1
+        for (index, mode) in allCases.enumerated() {
+            segmentedControl.setLabel("\(mode.weeklyHours)h", forSegment: index)
+            segmentedControl.setToolTip(mode.detailedTooltipText(language: language), forSegment: index)
+        }
+        toolTip = language == .english
+            ? "Pick the weekly workload used by the weekly pace chart and ! severity."
+            : "选择每周工作时长，用于每周进度图和 ! 严重程度。"
+    }
+
+    @objc
+    private func changeSelection(_ sender: NSSegmentedControl) {
+        let index = sender.selectedSegment
+        guard index >= 0, index < WeeklyPacingMode.allCases.count else { return }
+        onSelect?(WeeklyPacingMode.allCases[index])
+    }
+}

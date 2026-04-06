@@ -252,16 +252,21 @@ func testDisplayPresentationUsesPaceMarkersAndSourceText() {
 func testTrendSummaryMenuText() {
     let summary = CodexQuotaTrendSummary(
         dailyUsageBars: [
-            .init(date: Date(timeIntervalSince1970: 1_775_291_731), usedPercent: 8),
-            .init(date: Date(timeIntervalSince1970: 1_775_378_131), usedPercent: 12),
-            .init(date: Date(timeIntervalSince1970: 1_775_464_531), usedPercent: 4)
+            .init(date: Date(timeIntervalSince1970: 1_775_291_731), usedPercent: 8, cumulativeUsedPercent: 8, expectedUsedPercent: 6, isFuture: false),
+            .init(date: Date(timeIntervalSince1970: 1_775_378_131), usedPercent: 12, cumulativeUsedPercent: 20, expectedUsedPercent: 14, isFuture: false),
+            .init(date: Date(timeIntervalSince1970: 1_775_464_531), usedPercent: 4, cumulativeUsedPercent: 24, expectedUsedPercent: 20, isFuture: false),
+            .init(date: Date(timeIntervalSince1970: 1_775_550_931), usedPercent: 0, cumulativeUsedPercent: 24, expectedUsedPercent: 28, isFuture: true),
+            .init(date: Date(timeIntervalSince1970: 1_775_637_331), usedPercent: 0, cumulativeUsedPercent: 24, expectedUsedPercent: 28, isFuture: true),
+            .init(date: Date(timeIntervalSince1970: 1_775_723_731), usedPercent: 0, cumulativeUsedPercent: 24, expectedUsedPercent: 28, isFuture: true),
+            .init(date: Date(timeIntervalSince1970: 1_775_810_131), usedPercent: 0, cumulativeUsedPercent: 24, expectedUsedPercent: 28, isFuture: true)
         ]
     )
     let menuText = summary.menuText(language: .english, weeklyPacingMode: .balanced56) ?? ""
     expect(menuText.contains("Daily usage"), "daily usage chart includes a chart title")
     expect(menuText.contains("│"), "daily usage chart renders a y-axis")
-    expect(menuText.contains("└"), "daily usage chart renders an x-axis")
+    expect(menuText.contains("1"), "daily usage chart includes date labels for the week")
     expect(menuText.contains("█"), "daily usage chart renders bar glyphs")
+    expect(summary.chartPresentation(language: .english, weeklyPacingMode: .balanced56)?.days.count == 7, "daily usage chart always renders a full seven-day week")
 }
 
 func testSparklineSampling() {
@@ -551,8 +556,13 @@ func testChineseLanguagePresentationLocalizesCoreLabels() {
         source: .realtimeLogs,
         trendSummary: CodexQuotaTrendSummary(
             dailyUsageBars: [
-                .init(date: Date(), usedPercent: 8),
-                .init(date: Date().addingTimeInterval(24 * 3600), usedPercent: 12)
+                .init(date: Date(), usedPercent: 8, cumulativeUsedPercent: 8, expectedUsedPercent: 6, isFuture: false),
+                .init(date: Date().addingTimeInterval(24 * 3600), usedPercent: 12, cumulativeUsedPercent: 20, expectedUsedPercent: 14, isFuture: false),
+                .init(date: Date().addingTimeInterval(2 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 20, expectedUsedPercent: 20, isFuture: true),
+                .init(date: Date().addingTimeInterval(3 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 20, expectedUsedPercent: 20, isFuture: true),
+                .init(date: Date().addingTimeInterval(4 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 20, expectedUsedPercent: 20, isFuture: true),
+                .init(date: Date().addingTimeInterval(5 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 20, expectedUsedPercent: 20, isFuture: true),
+                .init(date: Date().addingTimeInterval(6 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 20, expectedUsedPercent: 20, isFuture: true)
             ]
         ),
         weeklyPacingMode: .balanced56,

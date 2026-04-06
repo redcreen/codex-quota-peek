@@ -51,6 +51,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let badgeView = StatusBadgeView(frame: NSRect(x: 0, y: 0, width: 56, height: 24))
     private let menu = NSMenu()
+    private let weeklyPaceSelectorView = WeeklyPaceSelectorView(frame: NSRect(x: 0, y: 0, width: 320, height: 26))
     private let homeDirectory = FileManager.default.homeDirectoryForCurrentUser
     private let defaults = UserDefaults.standard
     private var refreshTimer: Timer?
@@ -162,20 +163,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc
-    private func selectWeeklyPacingMenu(_ sender: NSMenuItem) {
-        let nextMode: WeeklyPacingMode
-        switch selectedWeeklyPacingMode {
-        case .workWeek40:
-            nextMode = .balanced56
-        case .balanced56:
-            nextMode = .heavy70
-        case .heavy70:
-            nextMode = .workWeek40
-        }
-        setWeeklyPacingMode(nextMode)
-    }
-
-    @objc
     private func switchAccount(_ sender: NSMenuItem) {
         let language = selectedAppLanguage
         guard let account = accountItemLookup[sender.tag] else { return }
@@ -257,6 +244,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let language = selectedAppLanguage
         menu.autoenablesItems = false
         menu.minimumWidth = 340
+        weeklyPaceSelectorView.onSelect = { [weak self] mode in
+            self?.setWeeklyPacingMode(mode)
+        }
 
         let titleItem = NSMenuItem(title: "Codex", action: nil, keyEquivalent: "")
         titleItem.tag = MenuTag.title
@@ -300,9 +290,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         secondaryItem.tag = MenuTag.secondary
         secondaryItem.isEnabled = false
 
-        let weeklyPaceSelectorItem = NSMenuItem(title: "", action: #selector(selectWeeklyPacingMenu(_:)), keyEquivalent: "")
+        let weeklyPaceSelectorItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         weeklyPaceSelectorItem.tag = MenuTag.weeklyPaceSelector
-        weeklyPaceSelectorItem.target = self
+        weeklyPaceSelectorItem.view = weeklyPaceSelectorView
 
         let paceNoticeItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         paceNoticeItem.tag = MenuTag.paceNotice
@@ -728,10 +718,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item(MenuTag.secondary)?.toolTip = weeklyPaceExplanation
         }
 
-        item(MenuTag.weeklyPaceSelector)?.attributedTitle = styledWeeklyPaceSelector(language: language)
-        item(MenuTag.weeklyPaceSelector)?.toolTip = language == .english
-            ? "Click to switch between 40h, 56h, and 70h weekly pacing."
-            : "点击可在 40h、56h、70h 每周工作时长之间切换。"
+        weeklyPaceSelectorView.update(language: language, selectedMode: selectedWeeklyPacingMode)
+        item(MenuTag.weeklyPaceSelector)?.toolTip = weeklyPaceSelectorView.toolTip
 
         item(MenuTag.paceNotice)?.isHidden = true
 
@@ -747,9 +735,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item(MenuTag.credits)?.attributedTitle = styledCredits(creditsText)
         }
 
-        item(MenuTag.trend)?.isHidden = presentation.trendText == nil
-        if let trendText = presentation.trendText {
-            item(MenuTag.trend)?.attributedTitle = styledDailyUsageChart(trendText)
+        item(MenuTag.trend)?.isHidden = presentation.trendSummary == nil
+        if let trendSummary = presentation.trendSummary {
+            item(MenuTag.trend)?.attributedTitle = styledDailyUsageChart(
+                trendSummary,
+                language: language,
+                weeklyPacingMode: selectedWeeklyPacingMode,
+                showsPaceHighlights: showsPaceAlert
+            )
         }
 
         item(MenuTag.sparkline)?.isHidden = true
@@ -1199,20 +1192,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
     }
 
-    private func styledDailyUsageChart(_ text: String) -> NSAttributedString {
-        let lines = text.components(separatedBy: .newlines)
+    private func styledDailyUsageChart(
+        _ summary: CodexQuotaTrendSummary,
+        language: AppLanguage,
+        weeklyPacingMode: WeeklyPacingMode,
+        showsPaceHighlights: Bool
+    ) -> NSAttributedString {
+        guard let chart = summary.chartPresentation(
+            language: language,
+            weeklyPacingMode: weeklyPacingMode,
+            showsPaceHighlights: showsPaceHighlights
+        ) else {
+            return NSAttributedString(string: "")
+        }
+
+        let lines = dailyUsageChartLines(for: chart)
         let result = NSMutableAttributedString()
         for (index, line) in lines.enumerated() {
-            let attributes: [NSAttributedString.Key: Any] = index == 0
-                ? [
-                    .font: NSFont.systemFont(ofSize: 11.5, weight: .semibold),
-                    .foregroundColor: NSColor.secondaryLabelColor
-                ]
-                : [
-                    .font: NSFont.monospacedSystemFont(ofSize: 11.5, weight: .medium),
-                    .foregroundColor: NSColor.secondaryLabelColor
-                ]
-            result.append(NSAttributedString(string: line, attributes: attributes))
+            if index == 0 {
+                result.append(NSAttributedString(
+                    string: line,
+                    attributes: [
+                        .font: NSFont.systemFont(ofSize: 11.5, weight: .semibold),
+                        .foregroundColor: NSColor.secondaryLabelColor
+                    ]
+                ))
+            } else if index <= chart.axisThresholds.count {
+                let threshold = chart.axisThresholds[index - 1]
+                result.append(styledDailyUsageChartRow(for: chart, threshold: threshold))
+            } else {
+                result.append(styledDailyUsageChartFooter(for: chart))
+            }
             if index < lines.count - 1 {
                 result.append(NSAttributedString(string: "\n"))
             }
@@ -1220,35 +1230,84 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return result
     }
 
-    private func styledWeeklyPaceSelector(language: AppLanguage) -> NSAttributedString {
-        let title = language == .english ? "Weekly work hours: " : "每周工作时长："
+    private func dailyUsageChartLines(for chart: CodexQuotaTrendSummary.ChartPresentation) -> [String] {
+        let rows = chart.axisThresholds.map { threshold -> String in
+            let bars = chart.days.map { day -> String in
+                let glyph = day.hours >= threshold ? "██" : "  "
+                return glyph.padding(toLength: chart.columnWidth, withPad: " ", startingAt: 0)
+            }.joined()
+            return String(format: "%2dh │ %@", threshold, bars)
+        }
+        let footer = "    " + chart.days.map { day in
+            day.label.padding(toLength: chart.columnWidth, withPad: " ", startingAt: 0)
+        }.joined()
+        return [chart.title] + rows + [footer]
+    }
+
+    private func styledDailyUsageChartRow(for chart: CodexQuotaTrendSummary.ChartPresentation, threshold: Int) -> NSAttributedString {
+        let axisFont = NSFont.monospacedSystemFont(ofSize: 11.5, weight: .medium)
         let row = NSMutableAttributedString(
-            string: title,
+            string: String(format: "%2dh │ ", threshold),
             attributes: [
-                .font: NSFont.systemFont(ofSize: 11.5, weight: .medium),
+                .font: axisFont,
                 .foregroundColor: NSColor.secondaryLabelColor
             ]
         )
 
-        for (index, mode) in WeeklyPacingMode.allCases.enumerated() {
-            let isSelected = mode == selectedWeeklyPacingMode
-            row.append(
-                NSAttributedString(
-                    string: mode.title,
-                    attributes: [
-                        .font: NSFont.monospacedSystemFont(ofSize: 11.5, weight: isSelected ? .bold : .medium),
-                        .foregroundColor: isSelected ? NSColor.labelColor : NSColor.secondaryLabelColor
-                    ]
-                )
-            )
-            if index < WeeklyPacingMode.allCases.count - 1 {
-                row.append(NSAttributedString(string: "  ", attributes: [
-                    .font: NSFont.monospacedSystemFont(ofSize: 11.5, weight: .medium),
-                    .foregroundColor: NSColor.secondaryLabelColor
-                ]))
+        for day in chart.days {
+            let isFilled = day.hours >= threshold
+            let glyph = isFilled ? "██" : "  "
+            let paddedGlyph = glyph.padding(toLength: chart.columnWidth, withPad: " ", startingAt: 0)
+            let color: NSColor
+            if !isFilled {
+                color = NSColor.tertiaryLabelColor
+            } else if day.isAheadOfPace {
+                color = NSColor.systemRed
+            } else if day.isFuture {
+                color = NSColor.tertiaryLabelColor
+            } else {
+                color = NSColor.systemGreen
             }
+            row.append(NSAttributedString(
+                string: paddedGlyph,
+                attributes: [
+                    .font: axisFont,
+                    .foregroundColor: color
+                ]
+            ))
         }
+
         return row
+    }
+
+    private func styledDailyUsageChartFooter(for chart: CodexQuotaTrendSummary.ChartPresentation) -> NSAttributedString {
+        let font = NSFont.monospacedSystemFont(ofSize: 11.5, weight: .medium)
+        let footer = NSMutableAttributedString(
+            string: "    ",
+            attributes: [
+                .font: font,
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
+
+        for day in chart.days {
+            let color: NSColor
+            if day.isFuture {
+                color = NSColor.tertiaryLabelColor
+            } else if day.isAheadOfPace {
+                color = NSColor.systemRed
+            } else {
+                color = NSColor.secondaryLabelColor
+            }
+            footer.append(NSAttributedString(
+                string: day.label.padding(toLength: chart.columnWidth, withPad: " ", startingAt: 0),
+                attributes: [
+                    .font: font,
+                    .foregroundColor: color
+                ]
+            ))
+        }
+        return footer
     }
 
     private func styledSparkline(_ text: String) -> NSAttributedString {
@@ -1545,6 +1604,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func setWeeklyPacingMode(_ mode: WeeklyPacingMode) {
+        guard mode != selectedWeeklyPacingMode else { return }
         defaults.set(mode.rawValue, forKey: PreferenceKey.weeklyPacingMode)
         syncPreferencesWindow()
         shouldReopenMenuAfterRefresh = true

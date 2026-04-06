@@ -20,33 +20,78 @@ struct CodexQuotaTrendSummary {
     struct DailyUsageBar {
         let date: Date
         let usedPercent: Double
+        let cumulativeUsedPercent: Double
+        let expectedUsedPercent: Double
+        let isFuture: Bool
+    }
+
+    struct ChartPresentation {
+        struct Day {
+            let label: String
+            let hours: Int
+            let isAheadOfPace: Bool
+            let isFuture: Bool
+        }
+
+        let title: String
+        let axisThresholds: [Int]
+        let days: [Day]
+        let rowLevels: Int
+        let columnWidth: Int
     }
 
     let dailyUsageBars: [DailyUsageBar]
 
-    func menuText(language: AppLanguage = .english, weeklyPacingMode: WeeklyPacingMode = .balanced56) -> String? {
-        guard !dailyUsageBars.isEmpty else { return nil }
-        let title = language == .english ? "Daily usage" : "每日用量"
+    func chartPresentation(
+        language: AppLanguage = .english,
+        weeklyPacingMode: WeeklyPacingMode = .balanced56,
+        showsPaceHighlights: Bool = true
+    ) -> ChartPresentation? {
+        guard dailyUsageBars.count == 7 else { return nil }
+
         let hoursByDay = dailyUsageBars.map { Int((Double(weeklyPacingMode.weeklyHours) * ($0.usedPercent / 100.0)).rounded()) }
         let maxHours = max(hoursByDay.max() ?? 0, 1)
         let rowLevels = 4
-
-        let yAxisLabels: [String] = stride(from: rowLevels, through: 1, by: -1).map { level in
-            let threshold = Int((Double(level) / Double(rowLevels) * Double(maxHours)).rounded())
-            return String(format: "%2dh", max(1, threshold))
-        }
-
-        let chartRows: [String] = zip(stride(from: rowLevels, through: 1, by: -1), yAxisLabels).map { level, label in
-            let threshold = Double(level) / Double(rowLevels) * Double(maxHours)
-            let bars = hoursByDay.map { $0 >= Int(ceil(threshold)) ? "█" : " " }.joined(separator: " ")
-            return "\(label) │ \(bars)"
+        let axisThresholds: [Int] = stride(from: rowLevels, through: 1, by: -1).map { level in
+            max(1, Int((Double(level) / Double(rowLevels) * Double(maxHours)).rounded()))
         }
 
         let formatter = DateFormatter()
-        formatter.setLocalizedDateFormatFromTemplate(language == .english ? "d" : "d")
-        let labels = dailyUsageBars.map { formatter.string(from: $0.date) }.joined(separator: " ")
-        let footer = "    └ \(labels)"
-        return ([title] + chartRows + [footer]).joined(separator: "\n")
+        formatter.dateFormat = "d"
+        let days = zip(dailyUsageBars, hoursByDay).map { day, hours in
+            ChartPresentation.Day(
+                label: formatter.string(from: day.date),
+                hours: hours,
+                isAheadOfPace: showsPaceHighlights && !day.isFuture && day.cumulativeUsedPercent > day.expectedUsedPercent,
+                isFuture: day.isFuture
+            )
+        }
+
+        return ChartPresentation(
+            title: language == .english ? "Daily usage" : "每日用量",
+            axisThresholds: axisThresholds,
+            days: days,
+            rowLevels: rowLevels,
+            columnWidth: 4
+        )
+    }
+
+    func menuText(language: AppLanguage = .english, weeklyPacingMode: WeeklyPacingMode = .balanced56) -> String? {
+        guard let chart = chartPresentation(language: language, weeklyPacingMode: weeklyPacingMode) else { return nil }
+
+        let rows = chart.axisThresholds.map { threshold -> String in
+            let bars = chart.days.map { day -> String in
+                let glyph = day.hours >= threshold ? "██" : "  "
+                return glyph.padding(toLength: chart.columnWidth, withPad: " ", startingAt: 0)
+            }.joined()
+            return String(format: "%2dh │ %@", threshold, bars)
+        }
+
+        let footer = "    " + chart.days.map { day in
+            day.label.padding(toLength: chart.columnWidth, withPad: " ", startingAt: 0)
+        }.joined()
+
+        return ([chart.title] + rows + [footer]).joined(separator: "\n")
     }
 
     func sparklineText(language: AppLanguage = .english) -> String? {
@@ -63,26 +108,53 @@ extension CodexQuotaProvider {
     private static func dailyUsageBars(
         from rows: [CodexQuotaFetchResult]
     ) -> [CodexQuotaTrendSummary.DailyUsageBar] {
-        let calendar = Calendar.current
-        let dayMaxima = Dictionary(grouping: rows.compactMap { row -> DailyUsageAccumulator? in
-            guard let window = row.snapshot.rateLimits.secondary,
-                  let date = row.sourceDate else { return nil }
-            return DailyUsageAccumulator(date: calendar.startOfDay(for: date), maxUsedPercent: window.usedPercent)
-        }, by: \.date)
-            .map { date, accumulators in
-                DailyUsageAccumulator(date: date, maxUsedPercent: accumulators.map(\.maxUsedPercent).max() ?? 0)
-            }
-            .sorted { $0.date < $1.date }
-
-        guard !dayMaxima.isEmpty else { return [] }
-
-        var previousMax: Double = 0
-        return dayMaxima.map { day in
-            let dailyPercent = max(0, day.maxUsedPercent - previousMax)
-            previousMax = max(previousMax, day.maxUsedPercent)
-            return CodexQuotaTrendSummary.DailyUsageBar(date: day.date, usedPercent: dailyPercent)
+        guard let latestRow = rows.last,
+              let window = latestRow.snapshot.rateLimits.secondary,
+              let resetAt = window.resetAt,
+              let windowMinutes = window.windowMinutes else {
+            return []
         }
-        .filter { $0.usedPercent > 0 }
+
+        let calendar = Calendar.current
+        let resetDate = Date(timeIntervalSince1970: resetAt)
+        let windowStart = resetDate.addingTimeInterval(-Double(windowMinutes * 60))
+        let startOfFirstDay = calendar.startOfDay(for: windowStart)
+        let latestObservedDate = rows.last?.sourceDate ?? Date()
+
+        let maximaByDay = Dictionary(grouping: rows.compactMap { row -> DailyUsageAccumulator? in
+            guard let weekly = row.snapshot.rateLimits.secondary,
+                  let date = row.sourceDate else { return nil }
+            return DailyUsageAccumulator(date: calendar.startOfDay(for: date), maxUsedPercent: weekly.usedPercent)
+        }, by: \.date).mapValues { accumulators in
+            accumulators.map(\.maxUsedPercent).max() ?? 0
+        }
+
+        let totalSeconds = Double(windowMinutes * 60)
+        var previousMax: Double = 0
+
+        return (0..<7).compactMap { offset in
+            guard let dayStart = calendar.date(byAdding: .day, value: offset, to: startOfFirstDay),
+                  let nextDayStart = calendar.date(byAdding: .day, value: 1, to: dayStart) else {
+                return nil
+            }
+
+            let dayMax = max(previousMax, maximaByDay[dayStart] ?? previousMax)
+            let dailyPercent = max(0, dayMax - previousMax)
+            previousMax = dayMax
+
+            let comparisonDate = min(nextDayStart, resetDate, latestObservedDate)
+            let elapsedSeconds = max(0, comparisonDate.timeIntervalSince(windowStart))
+            let expectedUsedPercent = min(100, max(0, elapsedSeconds / totalSeconds * 100.0))
+            let isFuture = dayStart > calendar.startOfDay(for: latestObservedDate)
+
+            return CodexQuotaTrendSummary.DailyUsageBar(
+                date: dayStart,
+                usedPercent: dailyPercent,
+                cumulativeUsedPercent: dayMax,
+                expectedUsedPercent: expectedUsedPercent,
+                isFuture: isFuture
+            )
+        }
     }
 }
 

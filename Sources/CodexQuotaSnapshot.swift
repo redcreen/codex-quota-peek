@@ -115,6 +115,7 @@ struct StatusPresentation {
     let paceMessage: String?
     let paceSeverity: PaceSeverity?
     let trendText: String?
+    let trendSummary: CodexQuotaTrendSummary?
     let sparklineText: String?
     let updatedAtText: String
     let sourceText: String
@@ -132,6 +133,7 @@ struct StatusPresentation {
         paceMessage: String? = nil,
         paceSeverity: PaceSeverity? = nil,
         trendText: String? = nil,
+        trendSummary: CodexQuotaTrendSummary? = nil,
         sparklineText: String? = nil,
         updatedAtText: String = "--",
         sourceText: String = "Source: local logs",
@@ -148,6 +150,7 @@ struct StatusPresentation {
         self.paceMessage = paceMessage
         self.paceSeverity = paceSeverity
         self.trendText = trendText
+        self.trendSummary = trendSummary
         self.sparklineText = sparklineText
         self.updatedAtText = updatedAtText
         self.sourceText = sourceText
@@ -167,9 +170,10 @@ struct StatusPresentation {
             line1: "H --",
             line2: "W --",
             tooltip: reason,
-            paceMessage: nil,
-            paceSeverity: nil,
-            updatedAtText: "--",
+        paceMessage: nil,
+        paceSeverity: nil,
+        trendSummary: nil,
+        updatedAtText: "--",
             sourceText: language.unavailableSourceText,
             creditsText: nil,
             language: language
@@ -229,6 +233,7 @@ struct StatusPresentation {
         paceMessage = StatusPresentation.paceMessage(primary: primary, secondary: secondary, weeklyPacingMode: weeklyPacingMode, language: language)
         paceSeverity = StatusPresentation.paceSeverity(primary: primary, secondary: secondary, weeklyPacingMode: weeklyPacingMode)
         trendText = trendSummary?.menuText(language: language, weeklyPacingMode: weeklyPacingMode)
+        self.trendSummary = trendSummary
         sparklineText = trendSummary?.sparklineText(language: language)
         updatedAtText = StatusPresentation.relativeUpdatedAtLabel(for: generatedAt, language: language)
         creditsText = StatusPresentation.creditsText(for: snapshot.credits, language: language)
