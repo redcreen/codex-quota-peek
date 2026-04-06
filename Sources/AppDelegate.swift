@@ -988,6 +988,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let barFont = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
         let detailFont = NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
         let progressSlots = 28
+        let titleColumnWidth = 8
         let (percentValue, percentMarker) = splitPercentComponents(percent)
         let progressBar = styledProgressBar(
             forPercentText: percent,
@@ -999,29 +1000,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             slots: progressSlots
         )
         let header = NSMutableAttributedString(
-            string: title,
+            string: title.padding(toLength: titleColumnWidth, withPad: " ", startingAt: 0),
             attributes: [
                 .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
                 .foregroundColor: NSColor.labelColor
             ]
         )
-        if let paceText, let paceSeverity {
-            header.append(
-                NSAttributedString(
-                    string: paceText,
-                    attributes: [
-                        .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
-                        .foregroundColor: paceSeverity == .warning ? NSColor.systemYellow : NSColor.systemRed
-                    ]
-                )
-            )
-        }
         header.append(NSAttributedString(string: "\n"))
         header.append(progressBar)
 
         let leftText = percentMarker.isEmpty ? "\(percentValue) \(language.leftLabel)" : "\(percentValue) \(percentMarker) \(language.leftLabel)"
         let rightText = "\(language.resetsLabel) \(reset)"
-        let spacerCount = max(2, progressSlots - leftText.count - rightText.count)
+        let spacerCount = max(2, progressSlots + titleColumnWidth - leftText.count - rightText.count)
         let detail = NSMutableAttributedString(
             string: "\n\(percentValue)",
             attributes: [
@@ -1086,11 +1076,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let remainingColor = remainingColor(for: percentText, paceSeverity: paceSeverity)
         let usedColor = NSColor.tertiaryLabelColor
         let markerColor = NSColor.secondaryLabelColor
+        let language = selectedAppLanguage
+        let titleColumnWidth = 8
 
         let container = NSMutableAttributedString()
+        let prefix = String(repeating: " ", count: titleColumnWidth)
         if let markerIndex = segments.markerIndex {
             let clamped = max(0, min(slots, markerIndex))
-            let arrowLine = String(repeating: " ", count: max(0, clamped)) + "↓"
+            let markerLabel = language == .english ? "pace ▼" : "正常 ▼"
+            let markerStart = max(0, min(slots - markerLabel.count, clamped - max(1, markerLabel.count - 2)))
+            let arrowLine = prefix + String(repeating: " ", count: markerStart) + markerLabel
             container.append(
                 NSAttributedString(
                     string: arrowLine + "\n",
@@ -1103,6 +1098,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         let bar = NSMutableAttributedString()
+        bar.append(
+            NSAttributedString(
+                string: prefix,
+                attributes: [
+                    .font: font,
+                    .foregroundColor: NSColor.secondaryLabelColor
+                ]
+            )
+        )
         if segments.remaining > 0 {
             bar.append(
                 NSAttributedString(
@@ -1242,6 +1246,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             } else if index <= chart.axisThresholds.count {
                 let threshold = chart.axisThresholds[index - 1]
                 result.append(styledDailyUsageChartRow(for: chart, threshold: threshold))
+            } else if index == chart.axisThresholds.count + 1 {
+                result.append(styledDailyUsageChartAxis(for: chart))
             } else {
                 result.append(styledDailyUsageChartFooter(for: chart))
             }
@@ -1260,10 +1266,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }.joined()
             return String(format: "%2dh │ %@", threshold, bars)
         }
+        let axis = "    └" + chart.days.enumerated().map { index, _ in
+            index == chart.days.count - 1 ? "───" : "──┬"
+        }.joined()
         let footer = "    " + chart.days.map { day in
             day.label.padding(toLength: chart.columnWidth, withPad: " ", startingAt: 0)
         }.joined()
-        return [chart.title] + rows + [footer]
+        return [chart.title] + rows + [axis, footer]
     }
 
     private func styledDailyUsageChartRow(for chart: CodexQuotaTrendSummary.ChartPresentation, threshold: Int) -> NSAttributedString {
@@ -1330,6 +1339,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             ))
         }
         return footer
+    }
+
+    private func styledDailyUsageChartAxis(for chart: CodexQuotaTrendSummary.ChartPresentation) -> NSAttributedString {
+        let font = NSFont.monospacedSystemFont(ofSize: 11.5, weight: .medium)
+        let axis = NSMutableAttributedString(
+            string: "    └",
+            attributes: [
+                .font: font,
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
+
+        for (index, _) in chart.days.enumerated() {
+            axis.append(
+                NSAttributedString(
+                    string: index == chart.days.count - 1 ? "───" : "──┬",
+                    attributes: [
+                        .font: font,
+                        .foregroundColor: NSColor.secondaryLabelColor
+                    ]
+                )
+            )
+        }
+
+        return axis
     }
 
     private func styledSparkline(_ text: String) -> NSAttributedString {

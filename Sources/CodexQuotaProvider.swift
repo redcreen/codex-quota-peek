@@ -87,11 +87,14 @@ struct CodexQuotaTrendSummary {
             return String(format: "%2dh │ %@", threshold, bars)
         }
 
+        let axis = "    └" + chart.days.enumerated().map { index, _ in
+            index == chart.days.count - 1 ? "───" : "──┬"
+        }.joined()
         let footer = "    " + chart.days.map { day in
             day.label.padding(toLength: chart.columnWidth, withPad: " ", startingAt: 0)
         }.joined()
 
-        return ([chart.title] + rows + [footer]).joined(separator: "\n")
+        return ([chart.title] + rows + [axis, footer]).joined(separator: "\n")
     }
 
     func sparklineText(language: AppLanguage = .english) -> String? {
