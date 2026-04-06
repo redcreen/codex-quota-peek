@@ -679,7 +679,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 usedPercent: primary.usedPercent,
                 paceThresholdPercent: primary.paceThresholdPercent,
                 markerThresholdPercent: primary.markerThresholdPercent,
-                displayScale: 1.0
+                displayScale: 1.0,
+                usedOnLeft: false
             )
             item(MenuTag.primary)?.toolTip = showsPaceAlert ? primary.tooltipText : stripPaceDetails(from: primary.tooltipText)
         } else {
@@ -694,7 +695,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 usedPercent: 0,
                 paceThresholdPercent: nil,
                 markerThresholdPercent: nil,
-                displayScale: 1.0
+                displayScale: 1.0,
+                usedOnLeft: false
             )
             item(MenuTag.primary)?.toolTip = nil
         }
@@ -711,7 +713,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 usedPercent: secondary.usedPercent,
                 paceThresholdPercent: secondary.paceThresholdPercent,
                 markerThresholdPercent: secondary.markerThresholdPercent,
-                displayScale: selectedWeeklyPacingMode.displayScale
+                displayScale: selectedWeeklyPacingMode.displayScale,
+                usedOnLeft: true
             )
             let secondaryTooltip = showsPaceAlert
                 ? [secondary.tooltipText, weeklyPaceExplanation].compactMap { $0 }.joined(separator: "\n\n")
@@ -729,7 +732,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 usedPercent: 0,
                 paceThresholdPercent: nil,
                 markerThresholdPercent: nil,
-                displayScale: selectedWeeklyPacingMode.displayScale
+                displayScale: selectedWeeklyPacingMode.displayScale,
+                usedOnLeft: true
             )
             item(MenuTag.secondary)?.toolTip = weeklyPaceExplanation
         }
@@ -1008,7 +1012,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         usedPercent: Double,
         paceThresholdPercent: Double?,
         markerThresholdPercent: Double?,
-        displayScale: Double
+        displayScale: Double,
+        usedOnLeft: Bool
     ) -> NSAttributedString {
         let title = compactQuotaLabel(for: label, language: language)
         let barFont = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
@@ -1024,6 +1029,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             markerThresholdPercent: markerThresholdPercent,
             paceSeverity: paceSeverity,
             displayScale: displayScale,
+            usedOnLeft: usedOnLeft,
             font: barFont,
             slots: progressSlots
         )
@@ -1095,6 +1101,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         markerThresholdPercent: Double?,
         paceSeverity: StatusPresentation.PaceSeverity?,
         displayScale: Double,
+        usedOnLeft: Bool,
         font: NSFont,
         slots: Int
     ) -> (marker: NSAttributedString?, bar: NSAttributedString) {
@@ -1103,6 +1110,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             overrunPercent: overrunPercent,
             usedPercent: usedPercent,
             thresholdPercent: thresholdPercent,
+            usedOnLeft: usedOnLeft,
             slots: slots
         )
         let remainingColor = remainingColor(for: percentText, paceSeverity: paceSeverity)
@@ -1127,7 +1135,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         let bar = NSMutableAttributedString()
-        if segments.remaining > 0 {
+        if usedOnLeft, segments.used > 0 {
+            bar.append(
+                NSAttributedString(
+                    string: String(repeating: "░", count: segments.used),
+                    attributes: [
+                        .font: font,
+                        .foregroundColor: usedColor
+                    ]
+                )
+            )
+        }
+
+        if usedOnLeft, segments.remaining > 0 {
             bar.append(
                 NSAttributedString(
                     string: String(repeating: "█", count: segments.remaining),
@@ -1139,7 +1159,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             )
         }
 
-        if segments.used > 0 {
+        if !usedOnLeft, segments.remaining > 0 {
+            bar.append(
+                NSAttributedString(
+                    string: String(repeating: "█", count: segments.remaining),
+                    attributes: [
+                        .font: font,
+                        .foregroundColor: remainingColor
+                    ]
+                )
+            )
+        }
+
+        if !usedOnLeft, segments.used > 0 {
             bar.append(
                 NSAttributedString(
                     string: String(repeating: "░", count: segments.used),

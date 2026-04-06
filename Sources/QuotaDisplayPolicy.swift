@@ -169,6 +169,7 @@ enum QuotaDisplayPolicy {
         overrunPercent: Double? = nil,
         usedPercent: Double? = nil,
         thresholdPercent: Double? = nil,
+        usedOnLeft: Bool = false,
         scale: Double = 1.0,
         slots: Int = 18
     ) -> (remaining: Int, used: Int, markerIndex: Int?, totalSlots: Int) {
@@ -185,8 +186,10 @@ enum QuotaDisplayPolicy {
         let used = max(0, activeSlots - remaining)
         let markerIndex: Int?
         if let thresholdPercent {
-            let expectedRemaining = max(0, min(100, 100.0 - thresholdPercent))
-            markerIndex = max(0, min(activeSlots, Int((expectedRemaining / 100.0 * Double(activeSlots)).rounded())))
+            let expectedPercent = usedOnLeft
+                ? max(0, min(100, thresholdPercent))
+                : max(0, min(100, 100.0 - thresholdPercent))
+            markerIndex = max(0, min(activeSlots, Int((expectedPercent / 100.0 * Double(activeSlots)).rounded())))
         } else {
             markerIndex = nil
         }
