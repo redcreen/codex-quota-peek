@@ -31,6 +31,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         static let trend = 126
         static let sparkline = 127
         static let weeklyPaceSelector = 128
+        static let weeklyPace40 = 129
+        static let weeklyPace56 = 130
+        static let weeklyPace70 = 131
         static let accountsStart = 2000
     }
 
@@ -125,6 +128,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func refreshNow(_ sender: Any?) {
         shouldReopenMenuAfterRefresh = true
         refreshAsync(mode: .apiManual)
+    }
+
+    @objc
+    private func selectWeeklyPaceFromMenu(_ sender: NSMenuItem) {
+        switch sender.tag {
+        case MenuTag.weeklyPace40:
+            setWeeklyPacingMode(.workWeek40)
+        case MenuTag.weeklyPace56:
+            setWeeklyPacingMode(.balanced56)
+        case MenuTag.weeklyPace70:
+            setWeeklyPacingMode(.heavy70)
+        default:
+            break
+        }
     }
 
     @objc
@@ -338,9 +355,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         secondaryItem.tag = MenuTag.secondary
         secondaryItem.target = self
 
-        let weeklyPaceSelectorItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        let weeklyPaceSelectorItem = NSMenuItem(title: language == .english ? "Weekly work hours" : "每周工作时长", action: nil, keyEquivalent: "")
         weeklyPaceSelectorItem.tag = MenuTag.weeklyPaceSelector
-        weeklyPaceSelectorItem.view = weeklyPaceSelectorView
+        let weeklyPaceMenu = NSMenu(title: language == .english ? "Weekly work hours" : "每周工作时长")
+        let weekly40 = NSMenuItem(title: "40h", action: #selector(selectWeeklyPaceFromMenu(_:)), keyEquivalent: "")
+        weekly40.tag = MenuTag.weeklyPace40
+        weekly40.target = self
+        let weekly56 = NSMenuItem(title: "56h", action: #selector(selectWeeklyPaceFromMenu(_:)), keyEquivalent: "")
+        weekly56.tag = MenuTag.weeklyPace56
+        weekly56.target = self
+        let weekly70 = NSMenuItem(title: "70h", action: #selector(selectWeeklyPaceFromMenu(_:)), keyEquivalent: "")
+        weekly70.tag = MenuTag.weeklyPace70
+        weekly70.target = self
+        weeklyPaceMenu.items = [weekly40, weekly56, weekly70]
+        weeklyPaceSelectorItem.submenu = weeklyPaceMenu
 
         let paceNoticeItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
         paceNoticeItem.tag = MenuTag.paceNotice
@@ -803,8 +831,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item(MenuTag.secondary)?.isHidden = false
         }
 
-        weeklyPaceSelectorView.update(language: language, selectedMode: selectedWeeklyPacingMode)
+        item(MenuTag.weeklyPaceSelector)?.title = language == .english ? "Weekly work hours" : "每周工作时长"
         item(MenuTag.weeklyPaceSelector)?.toolTip = nil
+        item(MenuTag.weeklyPace40)?.state = selectedWeeklyPacingMode == .workWeek40 ? .on : .off
+        item(MenuTag.weeklyPace56)?.state = selectedWeeklyPacingMode == .balanced56 ? .on : .off
+        item(MenuTag.weeklyPace70)?.state = selectedWeeklyPacingMode == .heavy70 ? .on : .off
         item(MenuTag.paceNotice)?.isHidden = false
         item(MenuTag.paceNotice)?.attributedTitle = styledWeeklyPaceExplanation(weeklyPaceInlineExplanation)
 
