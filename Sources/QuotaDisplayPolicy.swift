@@ -33,6 +33,10 @@ enum WeeklyPacingMode: String, CaseIterable {
         }
     }
 
+    var displayScale: Double {
+        Double(weeklyHours) / 70.0
+    }
+
     var paceSeverityBoost: Double {
         switch self {
         case .workWeek40:
@@ -165,25 +169,27 @@ enum QuotaDisplayPolicy {
         overrunPercent: Double? = nil,
         usedPercent: Double? = nil,
         thresholdPercent: Double? = nil,
+        scale: Double = 1.0,
         slots: Int = 18
-    ) -> (remaining: Int, used: Int, markerIndex: Int?) {
+    ) -> (remaining: Int, used: Int, markerIndex: Int?, totalSlots: Int) {
+        let activeSlots = max(1, min(slots, Int((Double(slots) * scale).rounded())))
         guard let percent = Int(
             percentText
                 .replacingOccurrences(of: "%", with: "")
                 .replacingOccurrences(of: "!", with: "")
         ) else {
-            return (0, slots, nil)
+            return (0, activeSlots, nil, activeSlots)
         }
 
-        let remaining = max(0, min(slots, Int((Double(percent) / 100.0 * Double(slots)).rounded())))
-        let used = max(0, slots - remaining)
+        let remaining = max(0, min(activeSlots, Int((Double(percent) / 100.0 * Double(activeSlots)).rounded())))
+        let used = max(0, activeSlots - remaining)
         let markerIndex: Int?
         if let thresholdPercent {
             let expectedRemaining = max(0, min(100, 100.0 - thresholdPercent))
-            markerIndex = max(0, min(slots, Int((expectedRemaining / 100.0 * Double(slots)).rounded())))
+            markerIndex = max(0, min(activeSlots, Int((expectedRemaining / 100.0 * Double(activeSlots)).rounded())))
         } else {
             markerIndex = nil
         }
-        return (remaining, used, markerIndex)
+        return (remaining, used, markerIndex, activeSlots)
     }
 }

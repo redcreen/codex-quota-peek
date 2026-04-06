@@ -680,7 +680,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 paceSeverity: showsPaceAlert ? primary.paceSeverity : nil,
                 paceOverrunPercent: showsPaceAlert ? primary.paceOverrunPercent : nil,
                 usedPercent: primary.usedPercent,
-                paceThresholdPercent: primary.paceThresholdPercent
+                paceThresholdPercent: primary.paceThresholdPercent,
+                displayScale: 1.0
             )
             item(MenuTag.primary)?.toolTip = showsPaceAlert ? primary.tooltipText : stripPaceDetails(from: primary.tooltipText)
         } else {
@@ -693,7 +694,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 paceSeverity: nil,
                 paceOverrunPercent: nil,
                 usedPercent: 0,
-                paceThresholdPercent: nil
+                paceThresholdPercent: nil,
+                displayScale: 1.0
             )
             item(MenuTag.primary)?.toolTip = nil
         }
@@ -708,7 +710,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 paceSeverity: showsPaceAlert ? secondary.paceSeverity : nil,
                 paceOverrunPercent: showsPaceAlert ? secondary.paceOverrunPercent : nil,
                 usedPercent: secondary.usedPercent,
-                paceThresholdPercent: secondary.paceThresholdPercent
+                paceThresholdPercent: secondary.paceThresholdPercent,
+                displayScale: selectedWeeklyPacingMode.displayScale
             )
             let secondaryTooltip = showsPaceAlert
                 ? [secondary.tooltipText, weeklyPaceExplanation].compactMap { $0 }.joined(separator: "\n\n")
@@ -724,7 +727,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 paceSeverity: nil,
                 paceOverrunPercent: nil,
                 usedPercent: 0,
-                paceThresholdPercent: nil
+                paceThresholdPercent: nil,
+                displayScale: selectedWeeklyPacingMode.displayScale
             )
             item(MenuTag.secondary)?.toolTip = weeklyPaceExplanation
         }
@@ -993,7 +997,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         paceSeverity: StatusPresentation.PaceSeverity?,
         paceOverrunPercent: Double?,
         usedPercent: Double,
-        paceThresholdPercent: Double?
+        paceThresholdPercent: Double?,
+        displayScale: Double
     ) -> NSAttributedString {
         let title = compactQuotaLabel(for: label, language: language)
         let barFont = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
@@ -1007,25 +1012,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             usedPercent: usedPercent,
             thresholdPercent: paceThresholdPercent,
             paceSeverity: paceSeverity,
+            displayScale: displayScale,
             font: barFont,
             slots: progressSlots
         )
-        let header = NSMutableAttributedString(
-            string: title.padding(toLength: titleColumnWidth, withPad: " ", startingAt: 0),
-            attributes: [
-                .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
-                .foregroundColor: NSColor.labelColor
-            ]
-        )
-        header.append(NSAttributedString(string: " ", attributes: [
+        let activeSlots = max(1, min(progressSlots, Int((Double(progressSlots) * displayScale).rounded())))
+        let header = NSMutableAttributedString()
+        if let markerLine = progressBar.marker {
+            header.append(markerLine)
+            header.append(NSAttributedString(string: "\n"))
+        }
+        header.append(NSAttributedString(string: title.padding(toLength: titleColumnWidth, withPad: " ", startingAt: 0) + " ", attributes: [
             .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
             .foregroundColor: NSColor.labelColor
         ]))
-        header.append(progressBar)
+        header.append(progressBar.bar)
 
         let leftText = percentMarker.isEmpty ? "\(percentValue) \(language.leftLabel)" : "\(percentValue) \(percentMarker) \(language.leftLabel)"
         let rightText = "\(language.resetsLabel) \(reset)"
-        let spacerCount = max(2, progressSlots + titleColumnWidth - leftText.count - rightText.count)
+        let spacerCount = max(2, activeSlots + titleColumnWidth - leftText.count - rightText.count)
         let detail = NSMutableAttributedString(
             string: "\n" + String(repeating: " ", count: titleColumnWidth + 1) + "\(percentValue)",
             attributes: [
@@ -1077,49 +1082,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         usedPercent: Double,
         thresholdPercent: Double?,
         paceSeverity: StatusPresentation.PaceSeverity?,
+        displayScale: Double,
         font: NSFont,
         slots: Int
-    ) -> NSAttributedString {
+    ) -> (marker: NSAttributedString?, bar: NSAttributedString) {
         let segments = QuotaDisplayPolicy.progressSegments(
             forPercentText: percentText,
             overrunPercent: overrunPercent,
             usedPercent: usedPercent,
             thresholdPercent: thresholdPercent,
+            scale: displayScale,
             slots: slots
         )
         let remainingColor = remainingColor(for: percentText, paceSeverity: paceSeverity)
         let usedColor = NSColor.tertiaryLabelColor
         let markerColor = NSColor.secondaryLabelColor
-        let titleColumnWidth = 4
-
-        let container = NSMutableAttributedString()
-        let prefix = String(repeating: " ", count: titleColumnWidth)
+        let markerLine: NSAttributedString?
         if let markerIndex = segments.markerIndex {
-            let clamped = max(0, min(slots, markerIndex))
+            let clamped = max(0, min(segments.totalSlots, markerIndex))
             let markerLabel = "▼"
-            let markerStart = max(0, min(slots - markerLabel.count, clamped))
-            let arrowLine = prefix + String(repeating: " ", count: markerStart) + markerLabel
-            container.append(
-                NSAttributedString(
-                    string: arrowLine + "\n",
-                    attributes: [
-                        .font: font,
-                        .foregroundColor: markerColor
-                    ]
-                )
+            let markerStart = max(0, min(segments.totalSlots - markerLabel.count, clamped))
+            markerLine = NSAttributedString(
+                string: String(repeating: " ", count: markerStart) + markerLabel,
+                attributes: [
+                    .font: font,
+                    .foregroundColor: markerColor
+                ]
             )
+        } else {
+            markerLine = nil
         }
 
         let bar = NSMutableAttributedString()
-        bar.append(
-            NSAttributedString(
-                string: prefix,
-                attributes: [
-                    .font: font,
-                    .foregroundColor: NSColor.secondaryLabelColor
-                ]
-            )
-        )
         if segments.remaining > 0 {
             bar.append(
                 NSAttributedString(
@@ -1144,8 +1138,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             )
         }
 
-        container.append(bar)
-        return container
+        return (markerLine, bar)
     }
 
     private func compactQuotaLabel(for label: String, language: AppLanguage) -> String {

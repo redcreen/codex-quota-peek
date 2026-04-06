@@ -221,6 +221,9 @@ open "dist/CodexQuotaPeek.app"
 3. 历史趋势与节奏分析
    已完成当前阶段：除了最近趋势和近期低点，现在也会显示低点出现的大致时间，用来判断危险值是刚发生还是较早前出现。
 
+   已记录的下一步：
+   每日用量图需要重做成更准确的日度模型。后续会考虑保存一份本地 daily usage ledger，避免重复扫描日志，并把颜色规则改成“按当天是否压住当日节奏”判断，而不是被第一天的大用量永久染红。
+
 4. 主动通知
    已完成当前阶段：低额度、新出现的 `! / !!` 节奏告警，以及窗口即将重置时，都会触发去重后的 macOS 通知；而且这些通知类型现在可以分别开关配置。
 
@@ -506,6 +509,9 @@ To grow this project into a more sustainable product, the current roadmap is:
 
 3. History and pacing analysis
    The current stage is done: besides recent trends and low-water marks, the app now also shows roughly when each low happened so you can tell whether the risky point was recent or historical.
+
+   Recorded next step:
+   the daily usage chart needs a more accurate day-level model. The plan is to keep a local daily usage ledger so the app does not need to re-scan logs every time, and to change the color logic so each day is judged by whether that day stayed within pace instead of staying permanently red because of an early spike.
 
 4. Proactive notifications
    The current stage is done: low remaining quota, newly triggered `! / !!` pace warnings, and upcoming reset windows can now send deduplicated macOS notifications, and each notification category can be toggled independently.
