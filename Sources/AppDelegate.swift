@@ -1017,7 +1017,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     ) -> NSAttributedString {
         let title = compactQuotaLabel(for: label, language: language)
         let barFont = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
-        let detailFont = NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
+        let detailFont = NSFont.monospacedSystemFont(ofSize: 10.5, weight: .medium)
         let progressSlots = 28
         let titleColumnWidth = 4
         let (percentValue, percentMarker) = splitPercentComponents(percent)
@@ -1045,47 +1045,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ]))
         header.append(progressBar.bar)
 
-        let leftText = percentMarker.isEmpty ? "\(percentValue) \(language.leftLabel)" : "\(percentValue) \(percentMarker) \(language.leftLabel)"
+        let statusText = percentMarker.isEmpty ? "\(language.leftLabel) \(percentValue)" : "\(language.leftLabel) \(percentValue) \(percentMarker)"
         let rightText = "\(language.resetsLabel) \(reset)"
-        let spacerCount = max(2, activeSlots + titleColumnWidth - leftText.count - rightText.count)
+        let spacerCount = max(2, activeSlots + titleColumnWidth - rightText.count - statusText.count - 2)
         let detail = NSMutableAttributedString(
-            string: "\n" + String(repeating: " ", count: titleColumnWidth + 1) + "\(percentValue)",
+            string: "\n" + String(repeating: " ", count: titleColumnWidth + 1 + spacerCount) + rightText + "  ",
             attributes: [
                 .font: detailFont,
-                .foregroundColor: quotaColor(for: percent)
+                .foregroundColor: NSColor.secondaryLabelColor
             ]
         )
-        if !percentMarker.isEmpty {
-            detail.append(
-                NSAttributedString(
-                    string: " \(percentMarker) ",
-                    attributes: [
-                        .font: detailFont,
-                        .foregroundColor: paceColor(for: percentMarker)
-                    ]
-                )
-            )
-        } else {
-            detail.append(NSAttributedString(string: " ", attributes: [
-                .font: detailFont,
-                .foregroundColor: quotaColor(for: percent)
-            ]))
-        }
         detail.append(
             NSAttributedString(
-                string: language.leftLabel,
+                string: statusText,
                 attributes: [
                     .font: detailFont,
                     .foregroundColor: quotaColor(for: percent)
-                ]
-            )
-        )
-        detail.append(
-            NSAttributedString(
-                string: String(repeating: " ", count: spacerCount) + rightText,
-                attributes: [
-                    .font: detailFont,
-                    .foregroundColor: NSColor.secondaryLabelColor
                 ]
             )
         )
@@ -1118,8 +1093,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let markerColor = NSColor.secondaryLabelColor
         let markerLine: NSAttributedString?
         if let markerThresholdPercent {
-            let expectedRemaining = max(0, min(100, 100.0 - markerThresholdPercent))
-            let markerIndex = Int((expectedRemaining / 100.0 * Double(slots)).rounded())
+            let expectedPercent = usedOnLeft
+                ? max(0, min(100, markerThresholdPercent))
+                : max(0, min(100, 100.0 - markerThresholdPercent))
+            let markerIndex = Int((expectedPercent / 100.0 * Double(slots)).rounded())
             let clamped = max(0, min(slots, markerIndex))
             let markerLabel = "▼"
             let markerStart = max(0, min(slots - markerLabel.count, clamped))
