@@ -1169,6 +1169,28 @@ func testMenuContractSnapshotKeepsSelectorAndExplanationTogether() {
     expect(snapshot.weeklyExplanation.contains("70h/week"), "menu contract keeps the explanation tied to the selected preset")
 }
 
+func testMenuFactoryBuildsCoreMenuTagsAndOrder() {
+    final class DummyTarget: NSObject {}
+    let menu = MenuFactory.buildMenu(language: .english, target: DummyTarget())
+    let tags = menu.items.map(\.tag)
+
+    expect(tags.contains(MenuTag.title), "menu factory keeps the title item")
+    expect(tags.contains(MenuTag.account), "menu factory keeps the account item")
+    expect(tags.contains(MenuTag.primary), "menu factory keeps the 5h quota item")
+    expect(tags.contains(MenuTag.secondary), "menu factory keeps the 7d quota item")
+    expect(tags.contains(MenuTag.weeklyPaceSelector), "menu factory keeps the weekly selector")
+    expect(tags.contains(MenuTag.refresh), "menu factory keeps the refresh action")
+    expect(tags.contains(MenuTag.preferences), "menu factory keeps the preferences action")
+
+    let refreshIndex = tags.firstIndex(of: MenuTag.refresh) ?? -1
+    let switchIndex = tags.firstIndex(of: MenuTag.switchAccountMenu) ?? -1
+    let usageIndex = tags.firstIndex(of: MenuTag.openUsageDashboard) ?? -1
+    expect(refreshIndex < switchIndex && switchIndex < usageIndex, "menu factory preserves the core action ordering")
+
+    let weeklySubmenuTags = menu.item(withTag: MenuTag.weeklyPaceSelector)?.submenu?.items.map(\.tag) ?? []
+    expect(weeklySubmenuTags == [MenuTag.weeklyPace40, MenuTag.weeklyPace56, MenuTag.weeklyPace70], "menu factory preserves weekly selector submenu order")
+}
+
 func testMenuContractSnapshotFallsBackToPlaceholderAccount() {
     let presentation = StatusPresentation.unavailable("no data", language: .english)
     let snapshot = MenuContractBuilder.build(
@@ -1398,6 +1420,7 @@ struct TestRunner {
         testMenuContractSnapshotKeepsActionOrderAndCredits()
         testMenuContractSnapshotKeepsSelectorAndExplanationTogether()
         testMenuContractSnapshotFallsBackToPlaceholderAccount()
+        testMenuFactoryBuildsCoreMenuTagsAndOrder()
         testSystemLanguagePreferenceFallsBackToMacOSLocale()
         testNotificationPolicyTriggersOnlyOnEscalation()
         testNotificationPolicyStaysQuietForRepeatedState()

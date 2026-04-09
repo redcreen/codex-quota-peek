@@ -8,9 +8,12 @@ EXECUTABLE="$BUILD_DIR/CodexQuotaPeekTests"
 mkdir -p "$BUILD_DIR"
 
 /usr/bin/swiftc \
+  -framework AppKit \
   "$ROOT_DIR/Sources/CliFormatter.swift" \
   "$ROOT_DIR/Sources/AppLanguage.swift" \
   "$ROOT_DIR/Sources/CodexAuthSnapshotStore.swift" \
+  "$ROOT_DIR/Sources/MenuTag.swift" \
+  "$ROOT_DIR/Sources/MenuFactory.swift" \
   "$ROOT_DIR/Sources/MenuContractSnapshot.swift" \
   "$ROOT_DIR/Sources/CodexQuotaSnapshot.swift" \
   "$ROOT_DIR/Sources/CodexQuotaProvider.swift" \
