@@ -50,6 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var lastGeneratedAtForDisplay: Date?
     private var lastPrimaryExplanationText: String?
     private var lastSecondaryExplanationText: String?
+    private var pendingStatusItemRecoveryWorkItems: [DispatchWorkItem] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -68,6 +69,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         preferencesWindowController = makePreferencesWindowController()
         configureStatusItem()
         configureMenu()
+        scheduleStatusItemRecoveryChecks()
         setupFileWatchers()
         _ = provider.captureCurrentAuthSnapshot()
         refreshAsync(mode: .automatic) { [weak self] in
@@ -240,6 +242,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func configureStatusItem() {
         guard let button = statusItem.button else { return }
+        statusItem.isVisible = true
         button.title = ""
         button.imagePosition = .imageOnly
         menu.delegate = self
@@ -250,6 +253,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let image = badgeView.renderedImage()
         button.image = image
         statusItem.length = image.size.width
+    }
+
+    private func scheduleStatusItemRecoveryChecks() {
+        pendingStatusItemRecoveryWorkItems.forEach { $0.cancel() }
+        pendingStatusItemRecoveryWorkItems.removeAll()
+
+        [0.15, 0.6, 1.5].forEach { delay in
+            let workItem = DispatchWorkItem { [weak self] in
+                self?.ensureStatusItemAttached()
+            }
+            pendingStatusItemRecoveryWorkItems.append(workItem)
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+        }
+    }
+
+    private func ensureStatusItemAttached() {
+        guard let button = statusItem.button else {
+            configureStatusItem()
+            return
+        }
+
+        if statusItem.menu !== menu {
+            statusItem.menu = menu
+        }
+
+        let needsRecovery = button.image == nil || menu.items.isEmpty || statusItem.length <= 0
+        guard needsRecovery else {
+            button.needsDisplay = true
+            button.display()
+            return
+        }
+
+        configureStatusItem()
+        configureMenu()
+        apply(lastPresentation)
     }
 
     private func configureMenu() {
@@ -524,6 +562,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             button.display()
         }
         statusItem.length = image.size.width
+        ensureStatusItemAttached()
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
             guard let self, let button = self.statusItem.button else { return }
