@@ -15,10 +15,12 @@ mkdir -p "$BUILD_DIR"
   "$ROOT_DIR/Sources/CodexAuthSnapshotStore.swift" \
   "$ROOT_DIR/Sources/CodexQuotaSnapshot.swift" \
   "$ROOT_DIR/Sources/CodexQuotaProvider.swift" \
+  "$ROOT_DIR/Sources/DailyUsageLedger.swift" \
   "$ROOT_DIR/Sources/QuotaRowLayout.swift" \
   "$ROOT_DIR/Sources/QuotaDisplayPolicy.swift" \
   "$ROOT_DIR/Sources/QuotaRefreshPolicy.swift" \
   "$ROOT_DIR/Sources/RefreshRequestGate.swift" \
+  "$ROOT_DIR/Sources/WeeklyPaceMath.swift" \
   -o "$EXECUTABLE"
 
 echo "Built CLI at: $EXECUTABLE"

@@ -461,38 +461,14 @@ struct StatusPresentation {
         for window: LimitWindow,
         weeklyPacingMode: WeeklyPacingMode
     ) -> Double? {
-        guard
-            let resetAt = window.resetAt,
-            let resetAfterSeconds = window.resetAfterSeconds
-        else {
+        guard let resetAt = window.resetAt, let resetAfterSeconds = window.resetAfterSeconds else {
             return nil
         }
-
-        let windowSeconds = 7.0 * 24.0 * 60.0 * 60.0
-        let resetDate = Date(timeIntervalSince1970: resetAt)
-        let currentDate = resetDate.addingTimeInterval(-Double(resetAfterSeconds))
-        let windowStart = resetDate.addingTimeInterval(-windowSeconds)
-        let dailyActiveSeconds = weeklyPacingMode.dailyActiveHours * 60.0 * 60.0
-        let daySeconds = 24.0 * 60.0 * 60.0
-        let totalActiveSeconds = Double(weeklyPacingMode.weeklyHours) * 60.0 * 60.0
-        guard totalActiveSeconds > 0 else { return nil }
-
-        var activeElapsedSeconds = 0.0
-        for day in 0..<7 {
-            let dayStart = windowStart.addingTimeInterval(Double(day) * daySeconds)
-            if day >= weeklyPacingMode.activeDaysPerWeek {
-                continue
-            }
-            let activeStart = dayStart
-            let activeEnd = dayStart.addingTimeInterval(dailyActiveSeconds)
-            let overlapStart = max(activeStart.timeIntervalSince1970, windowStart.timeIntervalSince1970)
-            let overlapEnd = min(activeEnd.timeIntervalSince1970, currentDate.timeIntervalSince1970)
-            if overlapEnd > overlapStart {
-                activeElapsedSeconds += overlapEnd - overlapStart
-            }
-        }
-
-        return min(max(activeElapsedSeconds / totalActiveSeconds, 0), 1)
+        return WeeklyPaceMath.activeElapsedFraction(
+            resetAt: resetAt,
+            resetAfterSeconds: resetAfterSeconds,
+            mode: weeklyPacingMode
+        )
     }
 
     private static func paceSeverity(forOffset offset: Double) -> PaceSeverity {

@@ -41,12 +41,14 @@ cp "$ICON_PNG" "$ICONSET_DIR/icon_512x512@2x.png"
   "$ROOT_DIR/Sources/CodexAuthSnapshotStore.swift" \
   "$ROOT_DIR/Sources/CodexQuotaSnapshot.swift" \
   "$ROOT_DIR/Sources/CodexQuotaProvider.swift" \
+  "$ROOT_DIR/Sources/DailyUsageLedger.swift" \
   "$ROOT_DIR/Sources/QuotaRowLayout.swift" \
   "$ROOT_DIR/Sources/PreferencesWindowController.swift" \
   "$ROOT_DIR/Sources/QuotaDisplayPolicy.swift" \
   "$ROOT_DIR/Sources/QuotaNotificationPolicy.swift" \
   "$ROOT_DIR/Sources/QuotaRefreshPolicy.swift" \
   "$ROOT_DIR/Sources/RefreshRequestGate.swift" \
+  "$ROOT_DIR/Sources/WeeklyPaceMath.swift" \
   "$ROOT_DIR/Sources/MenuViews.swift" \
   "$ROOT_DIR/Sources/StatusBadgeView.swift" \
   -o "$EXECUTABLE"

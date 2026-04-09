@@ -287,13 +287,13 @@ func testDisplayPresentationUsesPaceMarkersAndSourceText() {
 func testTrendSummaryMenuText() {
     let summary = CodexQuotaTrendSummary(
         dailyUsageBars: [
-            .init(date: Date(timeIntervalSince1970: 1_775_291_731), usedPercent: 8, cumulativeUsedPercent: 8, expectedUsedPercent: 6, isFuture: false),
-            .init(date: Date(timeIntervalSince1970: 1_775_378_131), usedPercent: 12, cumulativeUsedPercent: 20, expectedUsedPercent: 14, isFuture: false),
-            .init(date: Date(timeIntervalSince1970: 1_775_464_531), usedPercent: 4, cumulativeUsedPercent: 24, expectedUsedPercent: 20, isFuture: false),
-            .init(date: Date(timeIntervalSince1970: 1_775_550_931), usedPercent: 0, cumulativeUsedPercent: 24, expectedUsedPercent: 28, isFuture: true),
-            .init(date: Date(timeIntervalSince1970: 1_775_637_331), usedPercent: 0, cumulativeUsedPercent: 24, expectedUsedPercent: 28, isFuture: true),
-            .init(date: Date(timeIntervalSince1970: 1_775_723_731), usedPercent: 0, cumulativeUsedPercent: 24, expectedUsedPercent: 28, isFuture: true),
-            .init(date: Date(timeIntervalSince1970: 1_775_810_131), usedPercent: 0, cumulativeUsedPercent: 24, expectedUsedPercent: 28, isFuture: true)
+            .init(date: Date(timeIntervalSince1970: 1_775_291_731), usedPercent: 8, cumulativeUsedPercent: 8, expectedUsedPercent: 6, expectedDailyUsedPercent: 6, isFuture: false),
+            .init(date: Date(timeIntervalSince1970: 1_775_378_131), usedPercent: 12, cumulativeUsedPercent: 20, expectedUsedPercent: 14, expectedDailyUsedPercent: 8, isFuture: false),
+            .init(date: Date(timeIntervalSince1970: 1_775_464_531), usedPercent: 4, cumulativeUsedPercent: 24, expectedUsedPercent: 20, expectedDailyUsedPercent: 6, isFuture: false),
+            .init(date: Date(timeIntervalSince1970: 1_775_550_931), usedPercent: 0, cumulativeUsedPercent: 24, expectedUsedPercent: 28, expectedDailyUsedPercent: 8, isFuture: true),
+            .init(date: Date(timeIntervalSince1970: 1_775_637_331), usedPercent: 0, cumulativeUsedPercent: 24, expectedUsedPercent: 28, expectedDailyUsedPercent: 0, isFuture: true),
+            .init(date: Date(timeIntervalSince1970: 1_775_723_731), usedPercent: 0, cumulativeUsedPercent: 24, expectedUsedPercent: 28, expectedDailyUsedPercent: 0, isFuture: true),
+            .init(date: Date(timeIntervalSince1970: 1_775_810_131), usedPercent: 0, cumulativeUsedPercent: 24, expectedUsedPercent: 28, expectedDailyUsedPercent: 0, isFuture: true)
         ]
     )
     let menuText = summary.menuText(language: .english, weeklyPacingMode: .balanced56) ?? ""
@@ -769,6 +769,69 @@ func testWeeklyTooltipHoursChangeWhileMarkerPercentStaysFixed() {
     expect(seventy.secondaryRow?.tooltipText?.contains("Normal elapsed: 14h (19%)") == true, "70h tooltip converts the 7x10 schedule into weekly progress")
 }
 
+func testWeeklyPaceMathActiveElapsedFractionUsesPresetSchedule() {
+    let resetAt = 1_775_874_219.0
+    let resetAfterSeconds = 505_436
+
+    let forty = WeeklyPaceMath.activeElapsedFraction(
+        resetAt: resetAt,
+        resetAfterSeconds: resetAfterSeconds,
+        mode: .workWeek40
+    )
+    let fiftySix = WeeklyPaceMath.activeElapsedFraction(
+        resetAt: resetAt,
+        resetAfterSeconds: resetAfterSeconds,
+        mode: .balanced56
+    )
+    let seventy = WeeklyPaceMath.activeElapsedFraction(
+        resetAt: resetAt,
+        resetAfterSeconds: resetAfterSeconds,
+        mode: .heavy70
+    )
+
+    expect(Int((forty * 100).rounded()) == 29, "40h weekly pace math matches the expected 5x8 schedule progress")
+    expect(Int((fiftySix * 100).rounded()) == 21, "56h weekly pace math matches the expected 7x8 schedule progress")
+    expect(Int((seventy * 100).rounded()) == 19, "70h weekly pace math matches the expected 7x10 schedule progress")
+}
+
+func testDailyUsageLedgerTracksDailyBudgetInsteadOfOnlyCumulativeTrend() {
+    let baseDate = Date(timeIntervalSince1970: 1_775_291_731)
+    let calendar = Calendar(identifier: .gregorian)
+    let resetAt = baseDate.addingTimeInterval(7 * 24 * 3600).timeIntervalSince1970
+
+    let rows = [
+        CodexQuotaFetchResult(
+            snapshot: makeSnapshot(primaryUsed: 0, secondaryUsed: 10, secondaryResetAt: resetAt, secondaryResetAfterSeconds: 6 * 24 * 3600),
+            source: .realtimeLogs,
+            sourceDate: baseDate
+        ),
+        CodexQuotaFetchResult(
+            snapshot: makeSnapshot(primaryUsed: 0, secondaryUsed: 22, secondaryResetAt: resetAt, secondaryResetAfterSeconds: 5 * 24 * 3600),
+            source: .realtimeLogs,
+            sourceDate: baseDate.addingTimeInterval(24 * 3600)
+        ),
+        CodexQuotaFetchResult(
+            snapshot: makeSnapshot(primaryUsed: 0, secondaryUsed: 27, secondaryResetAt: resetAt, secondaryResetAfterSeconds: 4 * 24 * 3600),
+            source: .realtimeLogs,
+            sourceDate: baseDate.addingTimeInterval(2 * 24 * 3600)
+        )
+    ]
+
+    let days = DailyUsageLedger.build(
+        rows: rows,
+        calendar: calendar,
+        latestObservedDate: baseDate.addingTimeInterval(2 * 24 * 3600)
+    )
+
+    expect(days.count == 7, "daily usage ledger always expands to a full seven-day week")
+    expect(days[0].usedPercent == 10, "daily usage ledger keeps the first day's used percent")
+    expect(days[1].usedPercent == 12, "daily usage ledger calculates per-day deltas from cumulative maxima")
+    expect(days[2].usedPercent == 5, "daily usage ledger keeps later-day deltas independent from earlier spikes")
+    expect(days[1].expectedDailyUsedPercent > 0, "daily usage ledger records expected daily budget")
+    expect(days[2].expectedDailyUsedPercent > days[2].usedPercent, "daily usage ledger can show a controlled day after a heavy earlier day")
+    expect(days[2].isAheadOfDailyPace == false, "daily usage ledger highlights days against their own budget, not only cumulative total")
+}
+
 func testChineseLanguagePresentationLocalizesCoreLabels() {
     let presentation = StatusPresentation(
         snapshot: makeSnapshot(primaryUsed: 10, secondaryUsed: 20),
@@ -777,13 +840,13 @@ func testChineseLanguagePresentationLocalizesCoreLabels() {
         source: .realtimeLogs,
         trendSummary: CodexQuotaTrendSummary(
             dailyUsageBars: [
-                .init(date: Date(), usedPercent: 8, cumulativeUsedPercent: 8, expectedUsedPercent: 6, isFuture: false),
-                .init(date: Date().addingTimeInterval(24 * 3600), usedPercent: 12, cumulativeUsedPercent: 20, expectedUsedPercent: 14, isFuture: false),
-                .init(date: Date().addingTimeInterval(2 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 20, expectedUsedPercent: 20, isFuture: true),
-                .init(date: Date().addingTimeInterval(3 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 20, expectedUsedPercent: 20, isFuture: true),
-                .init(date: Date().addingTimeInterval(4 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 20, expectedUsedPercent: 20, isFuture: true),
-                .init(date: Date().addingTimeInterval(5 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 20, expectedUsedPercent: 20, isFuture: true),
-                .init(date: Date().addingTimeInterval(6 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 20, expectedUsedPercent: 20, isFuture: true)
+                .init(date: Date(), usedPercent: 8, cumulativeUsedPercent: 8, expectedUsedPercent: 6, expectedDailyUsedPercent: 6, isFuture: false),
+                .init(date: Date().addingTimeInterval(24 * 3600), usedPercent: 12, cumulativeUsedPercent: 20, expectedUsedPercent: 14, expectedDailyUsedPercent: 8, isFuture: false),
+                .init(date: Date().addingTimeInterval(2 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 20, expectedUsedPercent: 20, expectedDailyUsedPercent: 6, isFuture: true),
+                .init(date: Date().addingTimeInterval(3 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 20, expectedUsedPercent: 20, expectedDailyUsedPercent: 0, isFuture: true),
+                .init(date: Date().addingTimeInterval(4 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 20, expectedUsedPercent: 20, expectedDailyUsedPercent: 0, isFuture: true),
+                .init(date: Date().addingTimeInterval(5 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 20, expectedUsedPercent: 20, expectedDailyUsedPercent: 0, isFuture: true),
+                .init(date: Date().addingTimeInterval(6 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 20, expectedUsedPercent: 20, expectedDailyUsedPercent: 0, isFuture: true)
             ]
         ),
         weeklyPacingMode: .balanced56,
@@ -804,13 +867,13 @@ func testEnglishMenuContractSnapshotKeepsCoreMenuStructure() {
         source: .api,
         trendSummary: CodexQuotaTrendSummary(
             dailyUsageBars: [
-                .init(date: Date(), usedPercent: 10, cumulativeUsedPercent: 10, expectedUsedPercent: 8, isFuture: false),
-                .init(date: Date().addingTimeInterval(24 * 3600), usedPercent: 12, cumulativeUsedPercent: 22, expectedUsedPercent: 16, isFuture: false),
-                .init(date: Date().addingTimeInterval(2 * 24 * 3600), usedPercent: 5, cumulativeUsedPercent: 27, expectedUsedPercent: 24, isFuture: false),
-                .init(date: Date().addingTimeInterval(3 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 27, expectedUsedPercent: 32, isFuture: true),
-                .init(date: Date().addingTimeInterval(4 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 27, expectedUsedPercent: 32, isFuture: true),
-                .init(date: Date().addingTimeInterval(5 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 27, expectedUsedPercent: 32, isFuture: true),
-                .init(date: Date().addingTimeInterval(6 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 27, expectedUsedPercent: 32, isFuture: true)
+                .init(date: Date(), usedPercent: 10, cumulativeUsedPercent: 10, expectedUsedPercent: 8, expectedDailyUsedPercent: 8, isFuture: false),
+                .init(date: Date().addingTimeInterval(24 * 3600), usedPercent: 12, cumulativeUsedPercent: 22, expectedUsedPercent: 16, expectedDailyUsedPercent: 8, isFuture: false),
+                .init(date: Date().addingTimeInterval(2 * 24 * 3600), usedPercent: 5, cumulativeUsedPercent: 27, expectedUsedPercent: 24, expectedDailyUsedPercent: 8, isFuture: false),
+                .init(date: Date().addingTimeInterval(3 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 27, expectedUsedPercent: 32, expectedDailyUsedPercent: 8, isFuture: true),
+                .init(date: Date().addingTimeInterval(4 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 27, expectedUsedPercent: 32, expectedDailyUsedPercent: 0, isFuture: true),
+                .init(date: Date().addingTimeInterval(5 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 27, expectedUsedPercent: 32, expectedDailyUsedPercent: 0, isFuture: true),
+                .init(date: Date().addingTimeInterval(6 * 24 * 3600), usedPercent: 0, cumulativeUsedPercent: 27, expectedUsedPercent: 32, expectedDailyUsedPercent: 0, isFuture: true)
             ]
         ),
         weeklyPacingMode: .workWeek40,
@@ -1144,6 +1207,8 @@ struct TestRunner {
         testStartupAPIRefreshFallsBackWithoutOverridingCurrentRules()
         testWeeklyPacingModeCanBeLooserThanFullWeek()
         testWeeklyTooltipHoursChangeWhileMarkerPercentStaysFixed()
+        testWeeklyPaceMathActiveElapsedFractionUsesPresetSchedule()
+        testDailyUsageLedgerTracksDailyBudgetInsteadOfOnlyCumulativeTrend()
         testChineseLanguagePresentationLocalizesCoreLabels()
         testEnglishMenuContractSnapshotKeepsCoreMenuStructure()
         testChineseMenuContractSnapshotKeepsCoreMenuStructure()
