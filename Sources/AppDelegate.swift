@@ -535,24 +535,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self.statusItem.length = image.size.width
         }
 
-        item(MenuTag.title)?.attributedTitle = styledTitle(
+        let titleAttributedTitle = styledTitle(
             title: language.menuQuotaTitle,
             subtitle: ""
         )
-        item(MenuTag.account)?.attributedTitle = styledMetaRow(
+        let accountAttributedTitle = styledMetaRow(
             label: presentation.accountRow?.label ?? language.accountLabel,
             value: combinedAccountLine(from: presentation, language: language)
         )
-        item(MenuTag.plan)?.isHidden = true
         if isMenuOpen {
             needsAccountsRefresh = true
         } else {
             rebuildAccountItems()
         }
 
+        let primaryAttributedTitle: NSAttributedString
         if let primary = presentation.primaryRow {
             lastPrimaryExplanationText = showsPaceAlert ? primary.tooltipText : stripPaceDetails(from: primary.tooltipText)
-            item(MenuTag.primary)?.attributedTitle = styledQuotaRow(
+            primaryAttributedTitle = styledQuotaRow(
                 label: primary.label,
                 language: language,
                 percent: showsPaceAlert ? primary.percentText : stripPaceMarkers(from: primary.percentText),
@@ -566,10 +566,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 displayScale: 1.0,
                 usedOnLeft: true
             )
-            item(MenuTag.primary)?.isHidden = false
         } else {
             lastPrimaryExplanationText = nil
-            item(MenuTag.primary)?.attributedTitle = styledQuotaRow(
+            primaryAttributedTitle = styledQuotaRow(
                 label: "5 hours",
                 language: language,
                 percent: "--",
@@ -583,13 +582,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 displayScale: 1.0,
                 usedOnLeft: true
             )
-            item(MenuTag.primary)?.isHidden = false
         }
 
+        let secondaryAttributedTitle: NSAttributedString
         if let secondary = presentation.secondaryRow {
             let baseExplanation = showsPaceAlert ? secondary.tooltipText : stripPaceDetails(from: secondary.tooltipText)
             lastSecondaryExplanationText = [baseExplanation, weeklyPaceExplanation].compactMap { $0 }.joined(separator: "\n\n")
-            item(MenuTag.secondary)?.attributedTitle = styledQuotaRow(
+            secondaryAttributedTitle = styledQuotaRow(
                 label: secondary.label,
                 language: language,
                 percent: showsPaceAlert ? secondary.percentText : stripPaceMarkers(from: secondary.percentText),
@@ -603,10 +602,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 displayScale: 1.0,
                 usedOnLeft: true
             )
-            item(MenuTag.secondary)?.isHidden = false
         } else {
             lastSecondaryExplanationText = weeklyPaceExplanation
-            item(MenuTag.secondary)?.attributedTitle = styledQuotaRow(
+            secondaryAttributedTitle = styledQuotaRow(
                 label: "7 days",
                 language: language,
                 percent: "--",
@@ -620,40 +618,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 displayScale: 1.0,
                 usedOnLeft: true
             )
-            item(MenuTag.secondary)?.isHidden = false
         }
 
-        item(MenuTag.weeklyPaceSelector)?.title = language == .english ? "Weekly work hours" : "每周工作时长"
-        item(MenuTag.weeklyPaceSelector)?.toolTip = nil
-        item(MenuTag.weeklyPace40)?.state = selectedWeeklyPacingMode == .workWeek40 ? .on : .off
-        item(MenuTag.weeklyPace56)?.state = selectedWeeklyPacingMode == .balanced56 ? .on : .off
-        item(MenuTag.weeklyPace70)?.state = selectedWeeklyPacingMode == .heavy70 ? .on : .off
-        item(MenuTag.paceNotice)?.isHidden = false
-        item(MenuTag.paceNotice)?.attributedTitle = styledWeeklyPaceExplanation(weeklyPaceInlineExplanation)
-
-        item(MenuTag.updatedAt)?.isHidden = !showsLastUpdated
-        if showsLastUpdated {
-            item(MenuTag.updatedAt)?.attributedTitle = styledUpdatedAt(presentation.updatedAtText, source: presentation.sourceText)
-        }
-
-        item(MenuTag.source)?.isHidden = true
-
-        item(MenuTag.credits)?.isHidden = presentation.creditsText == nil
-        if let creditsText = presentation.creditsText {
-            item(MenuTag.credits)?.attributedTitle = styledCredits(creditsText)
-        }
-
-        item(MenuTag.trend)?.isHidden = presentation.trendSummary == nil
-        if let trendSummary = presentation.trendSummary {
-            item(MenuTag.trend)?.attributedTitle = styledDailyUsageChart(
-                trendSummary,
+        let updatedAttributedTitle = showsLastUpdated
+            ? styledUpdatedAt(presentation.updatedAtText, source: presentation.sourceText)
+            : nil
+        let creditsAttributedTitle = presentation.creditsText.map { styledCredits($0) }
+        let trendAttributedTitle = presentation.trendSummary.map {
+            styledDailyUsageChart(
+                $0,
                 language: language,
                 weeklyPacingMode: selectedWeeklyPacingMode,
                 showsPaceHighlights: showsPaceAlert
             )
         }
-
-        item(MenuTag.sparkline)?.isHidden = true
+        MenuUpdater.apply(
+            menu: menu,
+            input: MenuUpdaterInput(
+                language: language,
+                presentation: presentation,
+                selectedWeeklyPacingMode: selectedWeeklyPacingMode,
+                showsLastUpdated: showsLastUpdated,
+                title: titleAttributedTitle,
+                account: accountAttributedTitle,
+                primary: primaryAttributedTitle,
+                secondary: secondaryAttributedTitle,
+                paceNotice: styledWeeklyPaceExplanation(weeklyPaceInlineExplanation),
+                updatedAt: updatedAttributedTitle,
+                credits: creditsAttributedTitle,
+                trend: trendAttributedTitle
+            )
+        )
     }
 
     private func maybeSendNotification(for presentation: StatusPresentation) {
@@ -682,19 +677,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func item(_ tag: Int) -> NSMenuItem? {
-        findItem(in: menu, tag: tag)
-    }
-
-    private func findItem(in menu: NSMenu, tag: Int) -> NSMenuItem? {
-        for item in menu.items {
-            if item.tag == tag {
-                return item
-            }
-            if let submenu = item.submenu, let match = findItem(in: submenu, tag: tag) {
-                return match
-            }
-        }
-        return nil
+        MenuUpdater.item(tag, in: menu)
     }
 
     private func updateLaunchAtLoginMenuItem() {

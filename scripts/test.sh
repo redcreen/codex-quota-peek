@@ -15,6 +15,7 @@ mkdir -p "$BUILD_DIR"
   "$ROOT_DIR/Sources/CodexAuthSnapshotStore.swift" \
   "$ROOT_DIR/Sources/MenuTag.swift" \
   "$ROOT_DIR/Sources/MenuFactory.swift" \
+  "$ROOT_DIR/Sources/MenuUpdater.swift" \
   "$ROOT_DIR/Sources/MenuContractSnapshot.swift" \
   "$ROOT_DIR/Sources/CodexQuotaSnapshot.swift" \
   "$ROOT_DIR/Sources/CodexQuotaProvider.swift" \

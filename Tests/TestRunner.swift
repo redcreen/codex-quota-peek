@@ -1237,6 +1237,43 @@ func testMenuFactoryBuildsCoreMenuTagsAndOrder() {
     expect(weeklySubmenuTags == [MenuTag.weeklyPace40, MenuTag.weeklyPace56, MenuTag.weeklyPace70], "menu factory preserves weekly selector submenu order")
 }
 
+func testMenuUpdaterAppliesVisibilityAndWeeklyState() {
+    final class DummyTarget: NSObject {}
+    let menu = MenuFactory.buildMenu(language: .english, target: DummyTarget())
+    let input = MenuUpdaterInput(
+        language: .english,
+        presentation: StatusPresentation(
+            line1: "H 90%",
+            line2: "W 40%!!",
+            tooltip: "quota",
+            updatedAtText: "just updated",
+            sourceText: "Source: API",
+            creditsText: "12 left",
+            language: .english
+        ),
+        selectedWeeklyPacingMode: .heavy70,
+        showsLastUpdated: true,
+        title: NSAttributedString(string: "Title"),
+        account: NSAttributedString(string: "Account user@example.com (Pro)"),
+        primary: NSAttributedString(string: "5h row"),
+        secondary: NSAttributedString(string: "7d row"),
+        paceNotice: NSAttributedString(string: "Weekly marker..."),
+        updatedAt: NSAttributedString(string: "Updated just updated  Source: API"),
+        credits: NSAttributedString(string: "Credits: 12 left"),
+        trend: NSAttributedString(string: "Daily usage")
+    )
+
+    MenuUpdater.apply(menu: menu, input: input)
+
+    expect(MenuUpdater.item(MenuTag.title, in: menu)?.attributedTitle?.string == "Title", "menu updater applies the title")
+    expect(MenuUpdater.item(MenuTag.account, in: menu)?.attributedTitle?.string == "Account user@example.com (Pro)", "menu updater applies the account row")
+    expect(MenuUpdater.item(MenuTag.updatedAt, in: menu)?.isHidden == false, "menu updater shows the updated/source row when enabled")
+    expect(MenuUpdater.item(MenuTag.credits, in: menu)?.isHidden == false, "menu updater shows credits when present")
+    expect(MenuUpdater.item(MenuTag.trend, in: menu)?.isHidden == false, "menu updater shows the trend block when present")
+    expect(MenuUpdater.item(MenuTag.weeklyPace70, in: menu)?.state == .on, "menu updater selects the active weekly preset")
+    expect(MenuUpdater.item(MenuTag.weeklyPace40, in: menu)?.state == .off, "menu updater clears inactive weekly presets")
+}
+
 func testMenuContractSnapshotFallsBackToPlaceholderAccount() {
     let presentation = StatusPresentation.unavailable("no data", language: .english)
     let snapshot = MenuContractBuilder.build(
@@ -1468,6 +1505,7 @@ struct TestRunner {
         testMenuContractSnapshotKeepsSelectorAndExplanationTogether()
         testMenuContractSnapshotFallsBackToPlaceholderAccount()
         testMenuFactoryBuildsCoreMenuTagsAndOrder()
+        testMenuUpdaterAppliesVisibilityAndWeeklyState()
         testSystemLanguagePreferenceFallsBackToMacOSLocale()
         testNotificationPolicyTriggersOnlyOnEscalation()
         testNotificationPolicyStaysQuietForRepeatedState()
