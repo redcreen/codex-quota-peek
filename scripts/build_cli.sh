@@ -18,6 +18,7 @@ mkdir -p "$BUILD_DIR"
   "$ROOT_DIR/Sources/DailyUsageLedger.swift" \
   "$ROOT_DIR/Sources/DailyUsageChartRenderer.swift" \
   "$ROOT_DIR/Sources/DailyUsageChartStylePolicy.swift" \
+  "$ROOT_DIR/Sources/QuotaExplanationBuilder.swift" \
   "$ROOT_DIR/Sources/QuotaRowLayout.swift" \
   "$ROOT_DIR/Sources/QuotaRowTextRenderer.swift" \
   "$ROOT_DIR/Sources/QuotaDisplayPolicy.swift" \

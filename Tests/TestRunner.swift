@@ -429,6 +429,35 @@ func testQuotaRowTooltipsUseReadableSmallDurations() {
     expect(presentation.primaryRow?.tooltipText?.contains("正常经过：2.1小时（42%）") == true, "normal elapsed keeps readable fractional hours")
 }
 
+func testQuotaExplanationBuilderFormatsEdgeDurations() {
+    expect(QuotaExplanationBuilder.formattedDuration(hours: 0, language: .english) == "0m", "quota explanation builder formats zero duration in minutes")
+    expect(QuotaExplanationBuilder.formattedDuration(hours: 0.4, language: .english) == "24m", "quota explanation builder formats sub-hour values in minutes")
+    expect(QuotaExplanationBuilder.formattedDuration(hours: 2.1, language: .english) == "2.1h", "quota explanation builder keeps one decimal for small fractional hours")
+    expect(QuotaExplanationBuilder.formattedDuration(hours: 12.2, language: .english) == "12h", "quota explanation builder rounds larger durations to whole hours")
+}
+
+func testQuotaExplanationBuilderKeepsWeeklyTooltipSemantics() {
+    let weekly = LimitWindow(
+        usedPercent: 58,
+        windowMinutes: 10080,
+        resetAfterSeconds: 505_436,
+        resetAt: 1_775_874_219
+    )
+    let tooltip = QuotaExplanationBuilder.rowTooltip(
+        for: weekly,
+        weeklyPacingMode: .workWeek40,
+        isWeekly: true,
+        language: .english,
+        thresholdPercent: 29
+    )
+
+    expect(tooltip?.contains("Based on 40h/week") == true, "quota explanation builder prefixes weekly tooltips with the selected preset")
+    expect(tooltip?.contains("Normal elapsed: 12h (29%)") == true, "quota explanation builder keeps normal elapsed details")
+    expect(tooltip?.contains("Used: 23h (58%)") == true, "quota explanation builder keeps used duration details")
+    expect(tooltip?.contains("Remaining: 17h (42%)") == true, "quota explanation builder keeps remaining duration details")
+    expect(tooltip?.contains("Ahead of pace: 12h (29%)") == true, "quota explanation builder keeps ahead-of-pace details")
+}
+
 func testQuotaRowLayoutBuildsCompactLabelsAndDetailText() {
     let layout = QuotaRowLayout.build(
         label: "5 hours",
@@ -1341,6 +1370,8 @@ struct TestRunner {
         testQuotaDisplayColorThresholds()
         testQuotaRowTooltipsIncludeDurationBreakdown()
         testQuotaRowTooltipsUseReadableSmallDurations()
+        testQuotaExplanationBuilderFormatsEdgeDurations()
+        testQuotaExplanationBuilderKeepsWeeklyTooltipSemantics()
         testQuotaRowLayoutBuildsCompactLabelsAndDetailText()
         testQuotaRowLayoutMarkerIndexFollowsMarkerPercent()
         testQuotaRowLayoutKeepsBarWidthStableAcrossDisplayScales()

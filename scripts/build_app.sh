@@ -44,6 +44,7 @@ cp "$ICON_PNG" "$ICONSET_DIR/icon_512x512@2x.png"
   "$ROOT_DIR/Sources/DailyUsageLedger.swift" \
   "$ROOT_DIR/Sources/DailyUsageChartRenderer.swift" \
   "$ROOT_DIR/Sources/DailyUsageChartStylePolicy.swift" \
+  "$ROOT_DIR/Sources/QuotaExplanationBuilder.swift" \
   "$ROOT_DIR/Sources/QuotaRowLayout.swift" \
   "$ROOT_DIR/Sources/QuotaRowTextRenderer.swift" \
   "$ROOT_DIR/Sources/PreferencesWindowController.swift" \
