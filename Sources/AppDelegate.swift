@@ -54,9 +54,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let badgeView = StatusBadgeView(frame: NSRect(x: 0, y: 0, width: 56, height: 24))
     private let menu = NSMenu()
-    private let primaryQuotaRowView = QuotaMenuRowView(frame: NSRect(x: 0, y: 0, width: 340, height: 54))
-    private let secondaryQuotaRowView = QuotaMenuRowView(frame: NSRect(x: 0, y: 0, width: 340, height: 54))
-    private let weeklyPaceSelectorView = WeeklyPaceSelectorView(frame: NSRect(x: 0, y: 0, width: 320, height: 26))
     private let homeDirectory = FileManager.default.homeDirectoryForCurrentUser
     private let defaults = UserDefaults.standard
     private var refreshTimer: Timer?
@@ -86,9 +83,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var lastGeneratedAtForDisplay: Date?
     private var lastPrimaryExplanationText: String?
     private var lastSecondaryExplanationText: String?
-    private var explanationPanel: NSPanel?
-    private var explanationDismissMonitor: Any?
-    private var explanationGlobalDismissMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -295,16 +289,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let language = selectedAppLanguage
         menu.autoenablesItems = false
         menu.minimumWidth = 340
-        weeklyPaceSelectorView.onSelect = { [weak self] mode in
-            self?.setWeeklyPacingMode(mode)
-        }
-        primaryQuotaRowView.onHelp = { [weak self] anchor in
-            self?.showExplanationPopover(self?.lastPrimaryExplanationText, from: anchor)
-        }
-        secondaryQuotaRowView.onHelp = { [weak self] anchor in
-            self?.showExplanationPopover(self?.lastSecondaryExplanationText, from: anchor)
-        }
-
         let titleItem = NSMenuItem(title: "Codex", action: nil, keyEquivalent: "")
         titleItem.tag = MenuTag.title
         titleItem.isEnabled = false
@@ -1119,12 +1103,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         displayScale: Double,
         usedOnLeft: Bool
     ) -> NSAttributedString {
-        let title = compactQuotaLabel(for: label, language: language)
         let barFont = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
         let detailFont = NSFont.monospacedSystemFont(ofSize: 9.5, weight: .medium)
         let progressSlots = 28
         let titleColumnWidth = 4
-        let (percentValue, percentMarker) = splitPercentComponents(percent)
+        let layout = QuotaRowLayout.build(
+            label: label,
+            language: language,
+            percentText: percent,
+            reset: reset,
+            markerThresholdPercent: markerThresholdPercent,
+            usedOnLeft: usedOnLeft,
+            displayScale: displayScale,
+            slots: progressSlots
+        )
         let progressBar = styledProgressBar(
             forPercentText: percent,
             overrunPercent: paceOverrunPercent,
@@ -1137,7 +1129,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             font: barFont,
             slots: progressSlots
         )
-        let activeSlots = max(1, min(progressSlots, Int((Double(progressSlots) * displayScale).rounded())))
         let header = NSMutableAttributedString()
         if let markerLine = progressBar.marker {
             header.append(NSAttributedString(
@@ -1150,15 +1141,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             header.append(markerLine)
             header.append(NSAttributedString(string: "\n"))
         }
-        header.append(NSAttributedString(string: title.padding(toLength: titleColumnWidth, withPad: " ", startingAt: 0) + " ", attributes: [
+        header.append(NSAttributedString(string: layout.compactLabel.padding(toLength: titleColumnWidth, withPad: " ", startingAt: 0) + " ", attributes: [
             .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
             .foregroundColor: NSColor.labelColor
         ]))
         header.append(progressBar.bar)
-        let statusText = percentMarker.isEmpty ? "\(language.leftLabel) \(percentValue)" : "\(language.leftLabel) \(percentValue) \(percentMarker)"
-        let rightText = "\(language.resetsLabel) \(reset)"
-        let detailText = "\(rightText) \(statusText)"
-        let spacerCount = max(0, activeSlots - detailText.count)
+        let spacerCount = max(0, layout.activeSlots - layout.detailText.count)
         let detail = NSMutableAttributedString(
             string: "\n" + String(repeating: " ", count: titleColumnWidth + 1 + spacerCount),
             attributes: [
@@ -1167,14 +1155,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             ]
         )
         detail.append(NSAttributedString(
-            string: rightText + " ",
+            string: layout.resetText + " ",
             attributes: [
                 .font: detailFont,
                 .foregroundColor: NSColor.secondaryLabelColor
             ]
         ))
         detail.append(NSAttributedString(
-            string: statusText,
+            string: layout.statusText,
             attributes: [
                 .font: detailFont,
                 .foregroundColor: quotaColor(for: percent)
@@ -1196,23 +1184,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         font: NSFont,
         slots: Int
     ) -> (marker: NSAttributedString?, bar: NSAttributedString) {
-        let segments = QuotaDisplayPolicy.progressSegments(
-            forPercentText: percentText,
-            overrunPercent: overrunPercent,
-            usedPercent: usedPercent,
-            thresholdPercent: thresholdPercent,
+        let layout = QuotaRowLayout.build(
+            label: "",
+            language: .english,
+            percentText: percentText,
+            reset: "",
+            markerThresholdPercent: markerThresholdPercent,
             usedOnLeft: usedOnLeft,
+            displayScale: displayScale,
             slots: slots
         )
         let remainingColor = remainingColor(for: percentText, paceSeverity: paceSeverity)
         let usedColor = NSColor.tertiaryLabelColor
         let markerColor = NSColor.secondaryLabelColor
         let markerLine: NSAttributedString?
-        if let markerThresholdPercent {
-            let expectedPercent = usedOnLeft
-                ? max(0, min(100, markerThresholdPercent))
-                : max(0, min(100, 100.0 - markerThresholdPercent))
-            let markerIndex = Int((expectedPercent / 100.0 * Double(slots)).rounded())
+        if let markerIndex = layout.markerIndex {
             let clamped = max(0, min(slots, markerIndex))
             let markerLabel = "▼"
             let markerStart = max(0, min(slots - markerLabel.count, clamped))
@@ -1228,10 +1214,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         let bar = NSMutableAttributedString()
-        if usedOnLeft, segments.used > 0 {
+        if usedOnLeft, layout.usedSlots > 0 {
             bar.append(
                 NSAttributedString(
-                    string: String(repeating: "░", count: segments.used),
+                    string: String(repeating: "░", count: layout.usedSlots),
                     attributes: [
                         .font: font,
                         .foregroundColor: usedColor
@@ -1240,10 +1226,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             )
         }
 
-        if usedOnLeft, segments.remaining > 0 {
+        if usedOnLeft, layout.remainingSlots > 0 {
             bar.append(
                 NSAttributedString(
-                    string: String(repeating: "█", count: segments.remaining),
+                    string: String(repeating: "█", count: layout.remainingSlots),
                     attributes: [
                         .font: font,
                         .foregroundColor: remainingColor
@@ -1252,10 +1238,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             )
         }
 
-        if !usedOnLeft, segments.remaining > 0 {
+        if !usedOnLeft, layout.remainingSlots > 0 {
             bar.append(
                 NSAttributedString(
-                    string: String(repeating: "█", count: segments.remaining),
+                    string: String(repeating: "█", count: layout.remainingSlots),
                     attributes: [
                         .font: font,
                         .foregroundColor: remainingColor
@@ -1264,10 +1250,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             )
         }
 
-        if !usedOnLeft, segments.used > 0 {
+        if !usedOnLeft, layout.usedSlots > 0 {
             bar.append(
                 NSAttributedString(
-                    string: String(repeating: "░", count: segments.used),
+                    string: String(repeating: "░", count: layout.usedSlots),
                     attributes: [
                         .font: font,
                         .foregroundColor: usedColor
@@ -1279,121 +1265,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return (markerLine, bar)
     }
 
-    private func compactQuotaLabel(for label: String, language: AppLanguage) -> String {
-        if language == .english {
-            if label == "5 hours" { return "5h" }
-            if label == "7 days" { return "7d" }
-        } else {
-            if label == "5 小时" { return "5h" }
-            if label == "7 天" { return "7d" }
-        }
-        return label
-    }
-
-    private func splitPercentComponents(_ percentText: String) -> (String, String) {
-        let marker = percentText.filter { $0 == "!" }
-        let value = percentText.replacingOccurrences(of: "!", with: "")
-        return (value, marker)
-    }
-
-    private func showExplanationPopover(_ text: String?, from anchor: NSView) {
-        guard let text, !text.isEmpty else { return }
-        dismissExplanationPanel()
-
-        let label = NSTextField(wrappingLabelWithString: text)
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = NSFont.systemFont(ofSize: 11, weight: .regular)
-        label.textColor = .labelColor
-        label.preferredMaxLayoutWidth = 280
-        label.setContentCompressionResistancePriority(.required, for: .vertical)
-
-        let effectView = NSVisualEffectView()
-        effectView.translatesAutoresizingMaskIntoConstraints = false
-        effectView.material = .popover
-        effectView.state = .active
-        effectView.blendingMode = .withinWindow
-        effectView.wantsLayer = true
-        effectView.layer?.cornerRadius = 10
-        effectView.layer?.masksToBounds = true
-
-        effectView.addSubview(label)
-        NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: effectView.leadingAnchor, constant: 12),
-            label.trailingAnchor.constraint(equalTo: effectView.trailingAnchor, constant: -12),
-            label.topAnchor.constraint(equalTo: effectView.topAnchor, constant: 12),
-            label.bottomAnchor.constraint(equalTo: effectView.bottomAnchor, constant: -12),
-            effectView.widthAnchor.constraint(equalToConstant: 304)
-        ])
-
-        let contentController = NSViewController()
-        contentController.view = effectView
-        effectView.layoutSubtreeIfNeeded()
-        let fittingSize = effectView.fittingSize
-
-        let panel = NSPanel(
-            contentRect: NSRect(origin: .zero, size: fittingSize),
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: false
-        )
-        panel.contentViewController = contentController
-        panel.isFloatingPanel = true
-        panel.level = .popUpMenu
-        panel.hidesOnDeactivate = false
-        panel.hasShadow = true
-        panel.backgroundColor = .clear
-        panel.isOpaque = false
-        panel.ignoresMouseEvents = false
-        panel.collectionBehavior = [.moveToActiveSpace, .transient]
-
-        guard let anchorWindow = anchor.window else { return }
-        let anchorRectInWindow = anchor.convert(anchor.bounds, to: nil)
-        let anchorRectOnScreen = anchorWindow.convertToScreen(anchorRectInWindow)
-        let origin = NSPoint(
-            x: anchorRectOnScreen.maxX + 6,
-            y: anchorRectOnScreen.midY - (fittingSize.height / 2.0)
-        )
-        panel.setFrameOrigin(origin)
-        panel.orderFrontRegardless()
-
-        explanationPanel = panel
-        installExplanationDismissMonitor(anchor: anchor)
-    }
-
-    private func installExplanationDismissMonitor(anchor: NSView) {
-        explanationDismissMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self, weak anchor] event in
-            guard let self else { return event }
-            guard let panel = self.explanationPanel else { return event }
-            let location = NSEvent.mouseLocation
-            let clickInPanel = panel.frame.contains(location)
-            let clickInAnchor = anchor.map { currentAnchor -> Bool in
-                guard let window = currentAnchor.window else { return false }
-                let rect = window.convertToScreen(currentAnchor.convert(currentAnchor.bounds, to: nil))
-                return rect.contains(location)
-            } ?? false
-            if clickInPanel || clickInAnchor {
-                return event
-            }
-            self.dismissExplanationPanel()
-            return event
-        }
-        explanationGlobalDismissMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-            self?.dismissExplanationPanel()
-        }
-    }
-
-    private func dismissExplanationPanel() {
-        if let monitor = explanationDismissMonitor {
-            NSEvent.removeMonitor(monitor)
-            explanationDismissMonitor = nil
-        }
-        if let monitor = explanationGlobalDismissMonitor {
-            NSEvent.removeMonitor(monitor)
-            explanationGlobalDismissMonitor = nil
-        }
-        explanationPanel?.orderOut(nil)
-        explanationPanel = nil
-    }
 
     private func styledWeeklyPaceExplanation(_ text: String) -> NSAttributedString {
         let paragraph = NSMutableParagraphStyle()

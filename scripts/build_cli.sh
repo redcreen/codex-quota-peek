@@ -15,6 +15,7 @@ mkdir -p "$BUILD_DIR"
   "$ROOT_DIR/Sources/CodexAuthSnapshotStore.swift" \
   "$ROOT_DIR/Sources/CodexQuotaSnapshot.swift" \
   "$ROOT_DIR/Sources/CodexQuotaProvider.swift" \
+  "$ROOT_DIR/Sources/QuotaRowLayout.swift" \
   "$ROOT_DIR/Sources/QuotaDisplayPolicy.swift" \
   "$ROOT_DIR/Sources/QuotaRefreshPolicy.swift" \
   "$ROOT_DIR/Sources/RefreshRequestGate.swift" \

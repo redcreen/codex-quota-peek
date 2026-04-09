@@ -429,6 +429,71 @@ func testQuotaRowTooltipsUseReadableSmallDurations() {
     expect(presentation.primaryRow?.tooltipText?.contains("正常经过：2.1小时（42%）") == true, "normal elapsed keeps readable fractional hours")
 }
 
+func testQuotaRowLayoutBuildsCompactLabelsAndDetailText() {
+    let layout = QuotaRowLayout.build(
+        label: "5 hours",
+        language: .english,
+        percentText: "96%!",
+        reset: "19:04",
+        markerThresholdPercent: 12,
+        usedOnLeft: true
+    )
+
+    expect(layout.compactLabel == "5h", "quota row layout compacts five-hour label")
+    expect(layout.percentValue == "96%", "quota row layout keeps percent value without pace marker")
+    expect(layout.percentMarker == "!", "quota row layout keeps pace marker separately")
+    expect(layout.statusText == "left 96% !", "quota row layout builds right-side status text in stable order")
+    expect(layout.resetText == "Resets 19:04", "quota row layout builds reset text in stable order")
+    expect(layout.detailText == "Resets 19:04 left 96% !", "quota row layout builds the full detail row text")
+}
+
+func testQuotaRowLayoutMarkerIndexFollowsMarkerPercent() {
+    let forty = QuotaRowLayout.build(
+        label: "7 days",
+        language: .english,
+        percentText: "36%!!",
+        reset: "Apr 16",
+        markerThresholdPercent: 29,
+        usedOnLeft: true
+    )
+    let seventy = QuotaRowLayout.build(
+        label: "7 days",
+        language: .english,
+        percentText: "36%!!!",
+        reset: "Apr 16",
+        markerThresholdPercent: 19,
+        usedOnLeft: true
+    )
+
+    expect(forty.markerIndex != nil, "quota row layout produces a marker index when threshold exists")
+    expect(seventy.markerIndex != nil, "quota row layout keeps weekly marker index available for rendering")
+    expect((forty.markerIndex ?? -1) > (seventy.markerIndex ?? -1), "quota row layout moves the marker left/right as weekly pace changes")
+}
+
+func testQuotaRowLayoutKeepsBarWidthStableAcrossDisplayScales() {
+    let full = QuotaRowLayout.build(
+        label: "7 days",
+        language: .english,
+        percentText: "36%!!",
+        reset: "Apr 16",
+        markerThresholdPercent: 29,
+        usedOnLeft: true,
+        displayScale: 1.0
+    )
+    let scaled = QuotaRowLayout.build(
+        label: "7 days",
+        language: .english,
+        percentText: "36%!!",
+        reset: "Apr 16",
+        markerThresholdPercent: 29,
+        usedOnLeft: true,
+        displayScale: 0.57
+    )
+
+    expect(full.remainingSlots + full.usedSlots == 28, "quota row layout uses the full bar width by default")
+    expect(scaled.remainingSlots + scaled.usedSlots == 28, "quota row layout keeps bar width stable even when display scale changes")
+}
+
 func testAuthSnapshotStoreReadsSavedAccountMetadata() {
     let tempRoot = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("codex-quota-peek-tests-\(UUID().uuidString)")
     try! FileManager.default.createDirectory(at: tempRoot, withIntermediateDirectories: true)
@@ -1068,6 +1133,9 @@ struct TestRunner {
         testQuotaDisplayColorThresholds()
         testQuotaRowTooltipsIncludeDurationBreakdown()
         testQuotaRowTooltipsUseReadableSmallDurations()
+        testQuotaRowLayoutBuildsCompactLabelsAndDetailText()
+        testQuotaRowLayoutMarkerIndexFollowsMarkerPercent()
+        testQuotaRowLayoutKeepsBarWidthStableAcrossDisplayScales()
         testAuthSnapshotStoreReadsSavedAccountMetadata()
         testCliHelpPrefersRefreshOverUpdate()
         testRefreshRequestGateOnlyAppliesLatestRequest()

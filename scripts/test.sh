@@ -14,6 +14,7 @@ mkdir -p "$BUILD_DIR"
   "$ROOT_DIR/Sources/MenuContractSnapshot.swift" \
   "$ROOT_DIR/Sources/CodexQuotaSnapshot.swift" \
   "$ROOT_DIR/Sources/CodexQuotaProvider.swift" \
+  "$ROOT_DIR/Sources/QuotaRowLayout.swift" \
   "$ROOT_DIR/Sources/QuotaDisplayPolicy.swift" \
   "$ROOT_DIR/Sources/QuotaNotificationPolicy.swift" \
   "$ROOT_DIR/Sources/QuotaRefreshPolicy.swift" \

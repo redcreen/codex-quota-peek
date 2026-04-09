@@ -41,6 +41,7 @@ cp "$ICON_PNG" "$ICONSET_DIR/icon_512x512@2x.png"
   "$ROOT_DIR/Sources/CodexAuthSnapshotStore.swift" \
   "$ROOT_DIR/Sources/CodexQuotaSnapshot.swift" \
   "$ROOT_DIR/Sources/CodexQuotaProvider.swift" \
+  "$ROOT_DIR/Sources/QuotaRowLayout.swift" \
   "$ROOT_DIR/Sources/PreferencesWindowController.swift" \
   "$ROOT_DIR/Sources/QuotaDisplayPolicy.swift" \
   "$ROOT_DIR/Sources/QuotaNotificationPolicy.swift" \
