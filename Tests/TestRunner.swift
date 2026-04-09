@@ -824,6 +824,61 @@ func testMenuContractSnapshotRespectsLastUpdatedVisibility() {
     expect(hidden.updatedLine == nil, "menu contract hides updated/source line when disabled")
 }
 
+func testMenuContractSnapshotKeepsActionOrderAndCredits() {
+    let presentation = StatusPresentation(
+        snapshot: CodexQuotaSnapshot(
+            planType: "pro",
+            rateLimits: RateLimits(
+                allowed: true,
+                limitReached: false,
+                primary: makeWindow(usedPercent: 5),
+                secondary: makeWindow(usedPercent: 18, windowMinutes: 10080)
+            ),
+            credits: CreditsInfo(hasCredits: true, unlimited: false, balance: "12.34")
+        ),
+        accountInfo: CodexAccountInfo(displayName: "67560691@qq.com", email: "67560691@qq.com", planDisplayName: "Pro"),
+        generatedAt: Date(),
+        source: .api,
+        language: .english
+    )
+
+    let snapshot = MenuContractBuilder.build(
+        presentation: presentation,
+        language: .english,
+        weeklyPacingMode: .balanced56,
+        showsLastUpdated: true
+    )
+
+    expect(snapshot.creditsLine == "Credits: 12.34 left", "menu contract keeps credits line when credits exist")
+    expect(
+        snapshot.actionTitles == [
+            "Refresh Now (API)",
+            "Switch Account…",
+            "Usage Dashboard",
+            "Status Page",
+            "Copy Details",
+            "Open Codex Folder",
+            "Reveal Logs Database",
+            "Preferences...",
+            "About Codex Quota Peek",
+            "Quit"
+        ],
+        "menu contract preserves core action ordering"
+    )
+}
+
+func testMenuContractSnapshotFallsBackToPlaceholderAccount() {
+    let presentation = StatusPresentation.unavailable("no data", language: .english)
+    let snapshot = MenuContractBuilder.build(
+        presentation: presentation,
+        language: .english,
+        weeklyPacingMode: .balanced56,
+        showsLastUpdated: false
+    )
+
+    expect(snapshot.accountLine == "Account --", "menu contract keeps placeholder account line when account data is missing")
+}
+
 func testSystemLanguagePreferenceFallsBackToMacOSLocale() {
     expect(AppLanguage.systemPreferred(preferredLanguages: ["zh-Hans-CN"]) == .chinese, "system language detection maps Chinese locales to Chinese UI")
     expect(AppLanguage.systemPreferred(preferredLanguages: ["en-US"]) == .english, "system language detection keeps English locales on English UI")
@@ -1025,6 +1080,8 @@ struct TestRunner {
         testEnglishMenuContractSnapshotKeepsCoreMenuStructure()
         testChineseMenuContractSnapshotKeepsCoreMenuStructure()
         testMenuContractSnapshotRespectsLastUpdatedVisibility()
+        testMenuContractSnapshotKeepsActionOrderAndCredits()
+        testMenuContractSnapshotFallsBackToPlaceholderAccount()
         testSystemLanguagePreferenceFallsBackToMacOSLocale()
         testNotificationPolicyTriggersOnlyOnEscalation()
         testNotificationPolicyStaysQuietForRepeatedState()

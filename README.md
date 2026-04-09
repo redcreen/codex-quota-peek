@@ -240,6 +240,9 @@ Primary data sources:
 Full implementation notes:
 [docs/architecture.md](/Users/redcreen/Project/codex%20limit/docs/architecture.md)
 
+Product requirements baseline:
+[docs/requirements.md](/Users/redcreen/Project/codex%20limit/docs/requirements.md)
+
 ### Known Limits
 
 - The official Codex UI may sometimes surface newer quota values slightly earlier

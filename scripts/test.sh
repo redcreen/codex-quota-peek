@@ -26,4 +26,8 @@ mkdir -p "$BUILD_DIR"
 CLI_EXECUTABLE="$ROOT_DIR/build/cli/codexQuotaPeek"
 "$ROOT_DIR/scripts/build_cli.sh" >/dev/null
 "$CLI_EXECUTABLE" help >/dev/null
-"$CLI_EXECUTABLE" status --json >/dev/null
+"$CLI_EXECUTABLE" accounts list >/dev/null
+
+if [[ "${CODEX_QUOTA_PEEK_RUN_LIVE_SMOKE:-0}" == "1" ]]; then
+  "$CLI_EXECUTABLE" status --json >/dev/null
+fi
