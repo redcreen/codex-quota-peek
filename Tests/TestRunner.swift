@@ -1274,6 +1274,35 @@ func testMenuUpdaterAppliesVisibilityAndWeeklyState() {
     expect(MenuUpdater.item(MenuTag.weeklyPace40, in: menu)?.state == .off, "menu updater clears inactive weekly presets")
 }
 
+func testMenuAttributedContentBuilderBuildsMenuInputAndExplanations() {
+    let presentation = StatusPresentation(
+        snapshot: makeSnapshot(primaryUsed: 12, secondaryUsed: 40),
+        accountInfo: CodexAccountInfo(displayName: "user@example.com", email: "user@example.com", planDisplayName: "Pro"),
+        generatedAt: Date(timeIntervalSince1970: 1_000),
+        source: .api,
+        trendSummary: nil,
+        weeklyPacingMode: .balanced56,
+        language: .english
+    )
+
+    let result = MenuAttributedContentBuilder.build(
+        presentation: presentation,
+        language: .english,
+        showsPaceAlert: true,
+        showsLastUpdated: true,
+        selectedWeeklyPacingMode: .balanced56,
+        weeklyPaceExplanation: "Weekly detail explanation",
+        weeklyPaceInlineExplanation: "Inline weekly explanation"
+    )
+
+    expect(result.input.title.string.contains("Codex"), "content builder keeps the menu title text")
+    expect(result.input.account.string.contains("user@example.com"), "content builder keeps account information")
+    expect(result.input.updatedAt?.string.contains("Source: API") == true, "content builder includes updated/source text when enabled")
+    expect(result.input.paceNotice.string.contains("Inline weekly explanation"), "content builder keeps weekly inline explanation")
+    expect(result.primaryExplanationText?.isEmpty == false, "content builder exposes primary explanation text")
+    expect(result.secondaryExplanationText?.contains("Weekly detail explanation") == true, "content builder appends weekly explanation to the secondary explanation")
+}
+
 func testMenuContractSnapshotFallsBackToPlaceholderAccount() {
     let presentation = StatusPresentation.unavailable("no data", language: .english)
     let snapshot = MenuContractBuilder.build(
@@ -1506,6 +1535,7 @@ struct TestRunner {
         testMenuContractSnapshotFallsBackToPlaceholderAccount()
         testMenuFactoryBuildsCoreMenuTagsAndOrder()
         testMenuUpdaterAppliesVisibilityAndWeeklyState()
+        testMenuAttributedContentBuilderBuildsMenuInputAndExplanations()
         testSystemLanguagePreferenceFallsBackToMacOSLocale()
         testNotificationPolicyTriggersOnlyOnEscalation()
         testNotificationPolicyStaysQuietForRepeatedState()
