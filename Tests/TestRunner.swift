@@ -207,12 +207,47 @@ func testSourceStrategyFetchPlans() {
         "prefer API strategy upgrades automatic refresh to API-first"
     )
     expect(
-        QuotaRefreshPolicy.fetchPlan(for: .startupAPI, sourceStrategy: .preferLocalLogs) == .localFirst,
-        "prefer local logs keeps startup refresh on local-first"
+        QuotaRefreshPolicy.fetchPlan(for: .startupAPI, sourceStrategy: .preferLocalLogs) == .apiPreferred,
+        "startup refresh always stays API-first even when local logs are preferred"
     )
     expect(
         QuotaRefreshPolicy.fetchPlan(for: .apiManual, sourceStrategy: .preferLocalLogs) == .apiPreferred,
         "manual refresh always remains API-first"
+    )
+}
+
+func testMenuOpenRefreshPrefersAPIForLogsOrStaleData() {
+    expect(
+        QuotaRefreshPolicy.shouldPreferAPIMenuOpenRefresh(
+            lastSource: nil,
+            lastGeneratedAt: nil,
+            now: Date(timeIntervalSince1970: 1_000)
+        ),
+        "menu open prefers API when there is no previous snapshot"
+    )
+    expect(
+        QuotaRefreshPolicy.shouldPreferAPIMenuOpenRefresh(
+            lastSource: .realtimeLogs,
+            lastGeneratedAt: Date(timeIntervalSince1970: 950),
+            now: Date(timeIntervalSince1970: 1_000)
+        ),
+        "menu open prefers API when the current value comes from local logs"
+    )
+    expect(
+        !QuotaRefreshPolicy.shouldPreferAPIMenuOpenRefresh(
+            lastSource: .api,
+            lastGeneratedAt: Date(timeIntervalSince1970: 950),
+            now: Date(timeIntervalSince1970: 1_000)
+        ),
+        "menu open keeps automatic refresh when a recent API snapshot is already displayed"
+    )
+    expect(
+        QuotaRefreshPolicy.shouldPreferAPIMenuOpenRefresh(
+            lastSource: .api,
+            lastGeneratedAt: Date(timeIntervalSince1970: 800),
+            now: Date(timeIntervalSince1970: 1_000)
+        ),
+        "menu open prefers API again when the last API snapshot has gone stale"
     )
 }
 
@@ -941,9 +976,10 @@ struct TestRunner {
         testAutomaticRefreshPrefersRecentAPIOverOlderLogs()
         testAutomaticRefreshAllowsLogsAfterTheyCatchUp()
         testAutomaticRefreshPrefersAPIWhenLogsShowOlderResetWindow()
-testManualRefreshDoesNotForceCachedAPIOverFetchedLogs()
-testSourceStrategyFetchPlans()
-testDisplayPresentationUsesPaceMarkersAndSourceText()
+        testManualRefreshDoesNotForceCachedAPIOverFetchedLogs()
+        testSourceStrategyFetchPlans()
+        testMenuOpenRefreshPrefersAPIForLogsOrStaleData()
+        testDisplayPresentationUsesPaceMarkersAndSourceText()
     testTrendSummaryMenuText()
     testSparklineSampling()
     testTrendRowsStayInsideCurrentResetWindow()

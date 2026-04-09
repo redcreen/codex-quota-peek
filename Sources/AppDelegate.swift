@@ -962,7 +962,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuWillOpen(_ menu: NSMenu) {
         isMenuOpen = true
-        refreshAsync(mode: .automatic)
+        let mode: QuotaRefreshMode = QuotaRefreshPolicy.shouldPreferAPIMenuOpenRefresh(
+            lastSource: lastSourceForDisplay,
+            lastGeneratedAt: lastGeneratedAtForDisplay
+        ) ? .startupAPI : .automatic
+        refreshAsync(mode: mode)
         refreshAccountsAsync()
     }
 

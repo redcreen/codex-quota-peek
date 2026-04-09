@@ -49,10 +49,23 @@ enum QuotaRefreshPolicy {
         case .apiManual:
             return .apiPreferred
         case .startupAPI:
-            return sourceStrategy == .preferLocalLogs ? .localFirst : .apiPreferred
+            return .apiPreferred
         case .automatic:
             return sourceStrategy == .preferAPI ? .apiPreferred : .localFirst
         }
+    }
+
+    static func shouldPreferAPIMenuOpenRefresh(
+        lastSource: CodexQuotaFetchSource?,
+        lastGeneratedAt: Date?,
+        now: Date = Date()
+    ) -> Bool {
+        guard let lastSource else { return true }
+        if lastSource != .api {
+            return true
+        }
+        guard let lastGeneratedAt else { return true }
+        return now.timeIntervalSince(lastGeneratedAt) > apiProtectionWindow
     }
 
     static func preferredResult(
