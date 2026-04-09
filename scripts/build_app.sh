@@ -37,6 +37,7 @@ cp "$ICON_PNG" "$ICONSET_DIR/icon_512x512@2x.png"
   -framework AppKit \
   "$ROOT_DIR/Sources/main.swift" \
   "$ROOT_DIR/Sources/AppDelegate.swift" \
+  "$ROOT_DIR/Sources/AccountMenuBuilder.swift" \
   "$ROOT_DIR/Sources/AppLanguage.swift" \
   "$ROOT_DIR/Sources/CodexAuthSnapshotStore.swift" \
   "$ROOT_DIR/Sources/MenuTag.swift" \

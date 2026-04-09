@@ -11,6 +11,7 @@ mkdir -p "$BUILD_DIR"
   -O \
   "$ROOT_DIR/Sources/CliFormatter.swift" \
   "$ROOT_DIR/Sources/AppLanguage.swift" \
+  "$ROOT_DIR/Sources/AccountMenuBuilder.swift" \
   "$ROOT_DIR/Sources/cli_main.swift" \
   "$ROOT_DIR/Sources/CodexAuthSnapshotStore.swift" \
   "$ROOT_DIR/Sources/CodexQuotaSnapshot.swift" \

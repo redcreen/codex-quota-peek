@@ -789,28 +789,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         let insertionIndex = 2
-        for (offset, account) in pendingAccounts.enumerated() {
-            let title: String
-            if account.isCurrent {
-                title = language.currentAccountTitle(account.displayName) + "\(account.planDisplayName.map { " (\($0))" } ?? "")\(savedSuffix(for: account))"
-            } else if account.canSwitchLocally {
-                title = language.switchToAccountTitle(account.displayName) + "\(account.planDisplayName.map { " (\($0))" } ?? "")\(savedSuffix(for: account))"
-            } else {
-                title = language.reloginAccountTitle(account.displayName)
+        let entries = AccountMenuBuilder.buildEntries(
+            accounts: pendingAccounts,
+            language: language,
+            relativeUpdatedAt: { [language] date in
+                StatusPresentation.relativeUpdatedAtLabel(for: date, language: language)
             }
-            let item = NSMenuItem(title: title, action: #selector(switchAccount(_:)), keyEquivalent: "")
+        )
+        for (offset, account) in pendingAccounts.enumerated() {
+            let entry = entries[offset]
+            let item = NSMenuItem(title: entry.title, action: #selector(switchAccount(_:)), keyEquivalent: "")
             item.target = self
             item.indentationLevel = 1
-            item.isEnabled = !account.isCurrent
+            item.isEnabled = entry.isEnabled
             item.tag = MenuTag.accountsStart + offset
             accountItemLookup[item.tag] = account
             switchMenu.insertItem(item, at: insertionIndex + offset)
         }
-    }
-
-    private func savedSuffix(for account: CodexKnownAccount) -> String {
-        guard let date = account.snapshotUpdatedAt else { return "" }
-        return selectedAppLanguage.savedSuffix(StatusPresentation.relativeUpdatedAtLabel(for: date, language: selectedAppLanguage))
     }
 
     private func styledTitle(title: String, subtitle: String) -> NSAttributedString {

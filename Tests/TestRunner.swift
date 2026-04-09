@@ -622,6 +622,52 @@ func testAuthSnapshotStoreReadsSavedAccountMetadata() {
     expect(accounts.first?.snapshotIdentifier == "acct-second", "snapshot store uses account id as snapshot identifier")
 }
 
+func testAccountMenuBuilderBuildsStableSwitchLabels() {
+    let now = Date(timeIntervalSince1970: 2_000)
+    let entries = AccountMenuBuilder.buildEntries(
+        accounts: [
+            CodexKnownAccount(
+                displayName: "current@example.com",
+                email: "current@example.com",
+                accountID: "a1",
+                isCurrent: true,
+                planDisplayName: "Pro",
+                snapshotIdentifier: "a1",
+                canSwitchLocally: true,
+                snapshotUpdatedAt: now
+            ),
+            CodexKnownAccount(
+                displayName: "switch@example.com",
+                email: "switch@example.com",
+                accountID: "a2",
+                isCurrent: false,
+                planDisplayName: "Plus",
+                snapshotIdentifier: "a2",
+                canSwitchLocally: true,
+                snapshotUpdatedAt: now
+            ),
+            CodexKnownAccount(
+                displayName: "history@example.com",
+                email: "history@example.com",
+                accountID: "a3",
+                isCurrent: false,
+                planDisplayName: nil,
+                snapshotIdentifier: nil,
+                canSwitchLocally: false,
+                snapshotUpdatedAt: nil
+            )
+        ],
+        language: .english,
+        relativeUpdatedAt: { _ in "just updated" }
+    )
+
+    expect(entries[0].title == "Current: current@example.com (Pro) · saved just updated", "account menu builder formats the current account title")
+    expect(entries[0].isEnabled == false, "account menu builder disables the current account")
+    expect(entries[1].title == "Switch to: switch@example.com (Plus) · saved just updated", "account menu builder formats local switch targets")
+    expect(entries[1].isEnabled == true, "account menu builder enables local switch targets")
+    expect(entries[2].title == "Re-login as history@example.com", "account menu builder formats history-only accounts")
+}
+
 func testCliHelpPrefersRefreshOverUpdate() {
     let helpText = """
     codexQuotaPeek
@@ -1401,6 +1447,7 @@ struct TestRunner {
         testQuotaRowTextRendererMirrorsFiveHourRowsCorrectly()
         testQuotaRowTextRendererPlacesMarkerAtLayoutIndex()
         testAuthSnapshotStoreReadsSavedAccountMetadata()
+        testAccountMenuBuilderBuildsStableSwitchLabels()
         testCliHelpPrefersRefreshOverUpdate()
         testRefreshRequestGateOnlyAppliesLatestRequest()
         testAutomaticRefreshDoesNotRegressWithinSameResetWindow()
