@@ -526,6 +526,32 @@ func testAutomaticRefreshDoesNotRegressWithinSameResetWindow() {
     expect(preferred.snapshot.rateLimits.secondary?.remainingPercent == 86, "same reset window does not regress to older higher remaining percent")
 }
 
+func testAutomaticRefreshFailureShouldKeepCurrentSnapshot() {
+    let currentAccepted = CodexQuotaFetchResult(
+        snapshot: CodexQuotaSnapshot(
+            planType: "pro",
+            rateLimits: RateLimits(
+                allowed: true,
+                limitReached: false,
+                primary: makeWindow(usedPercent: 2, windowMinutes: 300, resetAfterSeconds: 200, resetAt: 5_000),
+                secondary: makeWindow(usedPercent: 64, windowMinutes: 10080, resetAfterSeconds: 200, resetAt: 9_000)
+            ),
+            credits: nil
+        ),
+        source: .api,
+        sourceDate: Date(timeIntervalSince1970: 3_000)
+    )
+    let preferred = QuotaRefreshPolicy.preferredResult(
+        fetchedResult: currentAccepted,
+        mode: .automatic,
+        lastSuccessfulAPIResult: currentAccepted,
+        lastAcceptedResult: currentAccepted
+    )
+
+    expect(preferred.snapshot.rateLimits.primary?.remainingPercent == 98, "automatic refresh keeps current primary snapshot when nothing newer arrives")
+    expect(preferred.snapshot.rateLimits.secondary?.remainingPercent == 36, "automatic refresh keeps current weekly snapshot when nothing newer arrives")
+}
+
 func testStartupAPIRefreshFallsBackWithoutOverridingCurrentRules() {
     let recentAPI = makeResult(
         source: .api,
@@ -991,6 +1017,7 @@ struct TestRunner {
         testCliHelpPrefersRefreshOverUpdate()
         testRefreshRequestGateOnlyAppliesLatestRequest()
         testAutomaticRefreshDoesNotRegressWithinSameResetWindow()
+        testAutomaticRefreshFailureShouldKeepCurrentSnapshot()
         testStartupAPIRefreshFallsBackWithoutOverridingCurrentRules()
         testWeeklyPacingModeCanBeLooserThanFullWeek()
         testWeeklyTooltipHoursChangeWhileMarkerPercentStaysFixed()

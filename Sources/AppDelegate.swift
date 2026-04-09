@@ -531,7 +531,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                         ? "API refresh failed; keeping current value"
                         : "API 刷新失败，已保留当前数据"
                 } else {
-                    presentation = .unavailable(error.localizedDescription, language: selectedAppLanguage)
+                    if self.lastSnapshotForDisplay != nil {
+                        presentation = self.lastPresentation
+                    } else {
+                        presentation = .unavailable(error.localizedDescription, language: selectedAppLanguage)
+                    }
                     feedbackMessage = nil
                 }
             }
