@@ -537,6 +537,26 @@ func testQuotaRowTextRendererMirrorsFiveHourRowsCorrectly() {
     expect(rendered.markerLine?.contains("▼") == true, "quota row text renderer keeps a visible marker line when thresholds exist")
 }
 
+func testQuotaRowTextRendererPlacesMarkerAtLayoutIndex() {
+    let layout = QuotaRowLayout.build(
+        label: "7 days",
+        language: .english,
+        percentText: "36%!!",
+        reset: "Apr 16",
+        markerThresholdPercent: 29,
+        usedOnLeft: true
+    )
+    let rendered = QuotaRowTextRenderer.render(
+        layout: layout,
+        usedOnLeft: true,
+        slots: 28,
+        titleColumnWidth: 4
+    )
+
+    let markerPosition = rendered.markerLine?.firstIndex(of: "▼")?.utf16Offset(in: rendered.markerLine ?? "") ?? -1
+    expect(markerPosition == layout.markerIndex, "quota row text renderer places the marker exactly at the computed layout index")
+}
+
 func testAuthSnapshotStoreReadsSavedAccountMetadata() {
     let tempRoot = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("codex-quota-peek-tests-\(UUID().uuidString)")
     try! FileManager.default.createDirectory(at: tempRoot, withIntermediateDirectories: true)
@@ -837,6 +857,36 @@ func testWeeklyPaceMathActiveElapsedFractionUsesPresetSchedule() {
     expect(Int((seventy * 100).rounded()) == 19, "70h weekly pace math matches the expected 7x10 schedule progress")
 }
 
+func testWeeklyMarkerPresentationFlowsIntoLayoutSlots() {
+    let weekly = LimitWindow(
+        usedPercent: 58,
+        windowMinutes: 10080,
+        resetAfterSeconds: 505_436,
+        resetAt: 1_775_874_219
+    )
+    let fortyMarker = StatusPresentation.markerThresholdPercent(for: weekly, weeklyPacingMode: .workWeek40, isWeekly: true)!
+    let seventyMarker = StatusPresentation.markerThresholdPercent(for: weekly, weeklyPacingMode: .heavy70, isWeekly: true)!
+
+    let fortyLayout = QuotaRowLayout.build(
+        label: "7 days",
+        language: .english,
+        percentText: "42%!!",
+        reset: "Apr 16",
+        markerThresholdPercent: fortyMarker,
+        usedOnLeft: true
+    )
+    let seventyLayout = QuotaRowLayout.build(
+        label: "7 days",
+        language: .english,
+        percentText: "42%!!!",
+        reset: "Apr 16",
+        markerThresholdPercent: seventyMarker,
+        usedOnLeft: true
+    )
+
+    expect((fortyLayout.markerIndex ?? -1) > (seventyLayout.markerIndex ?? -1), "weekly marker layout places the 40h marker further right than the 70h marker for used-left rows")
+}
+
 func testDailyUsageLedgerTracksDailyBudgetInsteadOfOnlyCumulativeTrend() {
     let baseDate = Date(timeIntervalSince1970: 1_775_291_731)
     let calendar = Calendar(identifier: .gregorian)
@@ -896,6 +946,14 @@ func testDailyUsageChartRendererKeepsAxisAndFooterAligned() {
     expect(lines[5].contains("└"), "daily usage chart renderer keeps the x-axis baseline")
     expect(lines[6].hasPrefix("     "), "daily usage chart renderer indents the footer to the chart origin")
     expect(lines[6].contains("4") && lines[6].contains("10"), "daily usage chart renderer keeps the full seven-day footer labels")
+}
+
+func testDailyUsageChartStylePolicySeparatesAlertAndFutureSemantics() {
+    expect(DailyUsageChartStylePolicy.barTone(isFilled: false, isAheadOfPace: true, isFuture: false) == .muted, "daily usage chart style keeps empty bar cells muted even on alert days")
+    expect(DailyUsageChartStylePolicy.barTone(isFilled: true, isAheadOfPace: false, isFuture: false) == .normal, "daily usage chart style marks filled on-budget cells as normal")
+    expect(DailyUsageChartStylePolicy.barTone(isFilled: true, isAheadOfPace: true, isFuture: false) == .alert, "daily usage chart style marks filled ahead-of-pace cells as alert")
+    expect(DailyUsageChartStylePolicy.footerTone(isAheadOfPace: true, isFuture: false) == .alert, "daily usage chart footer highlights over-budget dates")
+    expect(DailyUsageChartStylePolicy.footerTone(isAheadOfPace: false, isFuture: true) == .muted, "daily usage chart footer mutes future dates")
 }
 
 func testChineseLanguagePresentationLocalizesCoreLabels() {
@@ -1288,6 +1346,7 @@ struct TestRunner {
         testQuotaRowLayoutKeepsBarWidthStableAcrossDisplayScales()
         testQuotaRowTextRendererKeepsUsedRemainingDirectionAndRightAlignedDetail()
         testQuotaRowTextRendererMirrorsFiveHourRowsCorrectly()
+        testQuotaRowTextRendererPlacesMarkerAtLayoutIndex()
         testAuthSnapshotStoreReadsSavedAccountMetadata()
         testCliHelpPrefersRefreshOverUpdate()
         testRefreshRequestGateOnlyAppliesLatestRequest()
@@ -1297,8 +1356,10 @@ struct TestRunner {
         testWeeklyPacingModeCanBeLooserThanFullWeek()
         testWeeklyTooltipHoursChangeWhileMarkerPercentStaysFixed()
         testWeeklyPaceMathActiveElapsedFractionUsesPresetSchedule()
+        testWeeklyMarkerPresentationFlowsIntoLayoutSlots()
         testDailyUsageLedgerTracksDailyBudgetInsteadOfOnlyCumulativeTrend()
         testDailyUsageChartRendererKeepsAxisAndFooterAligned()
+        testDailyUsageChartStylePolicySeparatesAlertAndFutureSemantics()
         testChineseLanguagePresentationLocalizesCoreLabels()
         testEnglishMenuContractSnapshotKeepsCoreMenuStructure()
         testChineseMenuContractSnapshotKeepsCoreMenuStructure()

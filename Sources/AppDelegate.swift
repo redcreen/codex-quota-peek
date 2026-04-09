@@ -1441,13 +1441,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let glyph = isFilled ? "██" : "  "
             let paddedGlyph = glyph.padding(toLength: chart.columnWidth, withPad: " ", startingAt: 0)
             let color: NSColor
-            if !isFilled {
+            switch DailyUsageChartStylePolicy.barTone(
+                isFilled: isFilled,
+                isAheadOfPace: day.isAheadOfPace,
+                isFuture: day.isFuture
+            ) {
+            case .muted:
                 color = NSColor.tertiaryLabelColor
-            } else if day.isAheadOfPace {
+            case .alert:
                 color = NSColor.systemRed
-            } else if day.isFuture {
-                color = NSColor.tertiaryLabelColor
-            } else {
+            case .normal:
                 color = NSColor.systemGreen
             }
             row.append(NSAttributedString(
@@ -1474,11 +1477,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         for day in chart.days {
             let color: NSColor
-            if day.isFuture {
+            switch DailyUsageChartStylePolicy.footerTone(
+                isAheadOfPace: day.isAheadOfPace,
+                isFuture: day.isFuture
+            ) {
+            case .muted:
                 color = NSColor.tertiaryLabelColor
-            } else if day.isAheadOfPace {
+            case .alert:
                 color = NSColor.systemRed
-            } else {
+            case .normal:
                 color = NSColor.secondaryLabelColor
             }
             footer.append(NSAttributedString(
