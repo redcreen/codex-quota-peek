@@ -1117,6 +1117,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             displayScale: displayScale,
             slots: progressSlots
         )
+        let rendered = QuotaRowTextRenderer.render(
+            layout: layout,
+            usedOnLeft: usedOnLeft,
+            slots: progressSlots,
+            titleColumnWidth: titleColumnWidth
+        )
         let progressBar = styledProgressBar(
             forPercentText: percent,
             overrunPercent: paceOverrunPercent,
@@ -1146,16 +1152,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             .foregroundColor: NSColor.labelColor
         ]))
         header.append(progressBar.bar)
-        let spacerCount = max(0, layout.activeSlots - layout.detailText.count)
+        let detailContent = layout.resetText + " " + layout.statusText
+        let detailPaddingCount = max(0, rendered.detailLine.count - (titleColumnWidth + 1) - detailContent.count)
         let detail = NSMutableAttributedString(
-            string: "\n" + String(repeating: " ", count: titleColumnWidth + 1 + spacerCount),
+            string: "\n" + String(repeating: " ", count: detailPaddingCount),
             attributes: [
                 .font: detailFont,
                 .foregroundColor: NSColor.secondaryLabelColor
             ]
         )
+        let resetPrefix = layout.resetText + " "
         detail.append(NSAttributedString(
-            string: layout.resetText + " ",
+            string: resetPrefix,
             attributes: [
                 .font: detailFont,
                 .foregroundColor: NSColor.secondaryLabelColor
@@ -1194,16 +1202,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             displayScale: displayScale,
             slots: slots
         )
+        let rendered = QuotaRowTextRenderer.render(
+            layout: layout,
+            usedOnLeft: usedOnLeft,
+            slots: slots,
+            titleColumnWidth: 0
+        )
         let remainingColor = remainingColor(for: percentText, paceSeverity: paceSeverity)
         let usedColor = NSColor.tertiaryLabelColor
         let markerColor = NSColor.secondaryLabelColor
         let markerLine: NSAttributedString?
-        if let markerIndex = layout.markerIndex {
-            let clamped = max(0, min(slots, markerIndex))
-            let markerLabel = "▼"
-            let markerStart = max(0, min(slots - markerLabel.count, clamped))
+        if let markerString = rendered.markerLine {
             markerLine = NSAttributedString(
-                string: String(repeating: " ", count: markerStart) + markerLabel,
+                string: markerString,
                 attributes: [
                     .font: font,
                     .foregroundColor: markerColor

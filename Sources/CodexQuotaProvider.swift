@@ -83,23 +83,7 @@ struct CodexQuotaTrendSummary {
 
     func menuText(language: AppLanguage = .english, weeklyPacingMode: WeeklyPacingMode = .balanced56) -> String? {
         guard let chart = chartPresentation(language: language, weeklyPacingMode: weeklyPacingMode) else { return nil }
-
-        let rows = chart.axisThresholds.map { threshold -> String in
-            let bars = chart.days.map { day -> String in
-                let glyph = day.hours >= threshold ? "██" : "  "
-                return glyph.padding(toLength: chart.columnWidth, withPad: " ", startingAt: 0)
-            }.joined()
-            return String(format: "%2dh ┤ %@", threshold, bars)
-        }
-
-        let axis = "     └" + chart.days.enumerated().map { index, _ in
-            index == chart.days.count - 1 ? "───" : "──┬"
-        }.joined()
-        let footer = "     " + chart.days.map { day in
-            day.label.padding(toLength: chart.columnWidth, withPad: " ", startingAt: 0)
-        }.joined()
-
-        return ([chart.title] + rows + [axis, footer]).joined(separator: "\n")
+        return DailyUsageChartRenderer.render(chart)
     }
 
     func sparklineText(language: AppLanguage = .english) -> String? {

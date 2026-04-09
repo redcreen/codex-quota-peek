@@ -494,6 +494,49 @@ func testQuotaRowLayoutKeepsBarWidthStableAcrossDisplayScales() {
     expect(scaled.remainingSlots + scaled.usedSlots == 28, "quota row layout keeps bar width stable even when display scale changes")
 }
 
+func testQuotaRowTextRendererKeepsUsedRemainingDirectionAndRightAlignedDetail() {
+    let layout = QuotaRowLayout.build(
+        label: "7 days",
+        language: .english,
+        percentText: "36%!!",
+        reset: "Apr 16",
+        markerThresholdPercent: 29,
+        usedOnLeft: true
+    )
+    let rendered = QuotaRowTextRenderer.render(
+        layout: layout,
+        usedOnLeft: true,
+        slots: 28,
+        titleColumnWidth: 4
+    )
+
+    expect(rendered.barBody.hasPrefix(String(repeating: "░", count: layout.usedSlots)), "quota row text renderer keeps used glyphs on the left for weekly rows")
+    expect(rendered.barBody.hasSuffix(String(repeating: "█", count: layout.remainingSlots)), "quota row text renderer keeps remaining glyphs on the right for weekly rows")
+    expect(rendered.detailLine.hasSuffix("Resets Apr 16 left 36% !!"), "quota row text renderer keeps the detail suffix stable")
+    expect(rendered.detailLine.count >= 5 + 28, "quota row text renderer right-aligns detail text to the bar width")
+}
+
+func testQuotaRowTextRendererMirrorsFiveHourRowsCorrectly() {
+    let layout = QuotaRowLayout.build(
+        label: "5 hours",
+        language: .english,
+        percentText: "96%",
+        reset: "19:04",
+        markerThresholdPercent: 12,
+        usedOnLeft: false
+    )
+    let rendered = QuotaRowTextRenderer.render(
+        layout: layout,
+        usedOnLeft: false,
+        slots: 28,
+        titleColumnWidth: 4
+    )
+
+    expect(rendered.barBody.hasPrefix(String(repeating: "█", count: layout.remainingSlots)), "quota row text renderer keeps remaining glyphs on the left for 5h rows")
+    expect(rendered.barBody.hasSuffix(String(repeating: "░", count: layout.usedSlots)), "quota row text renderer keeps used glyphs on the right for 5h rows")
+    expect(rendered.markerLine?.contains("▼") == true, "quota row text renderer keeps a visible marker line when thresholds exist")
+}
+
 func testAuthSnapshotStoreReadsSavedAccountMetadata() {
     let tempRoot = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("codex-quota-peek-tests-\(UUID().uuidString)")
     try! FileManager.default.createDirectory(at: tempRoot, withIntermediateDirectories: true)
@@ -832,6 +875,29 @@ func testDailyUsageLedgerTracksDailyBudgetInsteadOfOnlyCumulativeTrend() {
     expect(days[2].isAheadOfDailyPace == false, "daily usage ledger highlights days against their own budget, not only cumulative total")
 }
 
+func testDailyUsageChartRendererKeepsAxisAndFooterAligned() {
+    let summary = CodexQuotaTrendSummary(
+        dailyUsageBars: [
+            .init(date: Date(timeIntervalSince1970: 1_775_291_731), usedPercent: 10, cumulativeUsedPercent: 10, expectedUsedPercent: 8, expectedDailyUsedPercent: 8, isFuture: false),
+            .init(date: Date(timeIntervalSince1970: 1_775_378_131), usedPercent: 12, cumulativeUsedPercent: 22, expectedUsedPercent: 16, expectedDailyUsedPercent: 8, isFuture: false),
+            .init(date: Date(timeIntervalSince1970: 1_775_464_531), usedPercent: 5, cumulativeUsedPercent: 27, expectedUsedPercent: 24, expectedDailyUsedPercent: 8, isFuture: false),
+            .init(date: Date(timeIntervalSince1970: 1_775_550_931), usedPercent: 0, cumulativeUsedPercent: 27, expectedUsedPercent: 32, expectedDailyUsedPercent: 8, isFuture: true),
+            .init(date: Date(timeIntervalSince1970: 1_775_637_331), usedPercent: 0, cumulativeUsedPercent: 27, expectedUsedPercent: 32, expectedDailyUsedPercent: 0, isFuture: true),
+            .init(date: Date(timeIntervalSince1970: 1_775_723_731), usedPercent: 0, cumulativeUsedPercent: 27, expectedUsedPercent: 32, expectedDailyUsedPercent: 0, isFuture: true),
+            .init(date: Date(timeIntervalSince1970: 1_775_810_131), usedPercent: 0, cumulativeUsedPercent: 27, expectedUsedPercent: 32, expectedDailyUsedPercent: 0, isFuture: true)
+        ]
+    )
+    let chart = summary.chartPresentation(language: .english, weeklyPacingMode: .balanced56)!
+    let text = DailyUsageChartRenderer.render(chart)
+    let lines = text.components(separatedBy: "\n")
+
+    expect(lines.count == 7, "daily usage chart renderer keeps title, four rows, axis, and footer")
+    expect(lines[1].contains("┤"), "daily usage chart renderer keeps the y-axis on data rows")
+    expect(lines[5].contains("└"), "daily usage chart renderer keeps the x-axis baseline")
+    expect(lines[6].hasPrefix("     "), "daily usage chart renderer indents the footer to the chart origin")
+    expect(lines[6].contains("4") && lines[6].contains("10"), "daily usage chart renderer keeps the full seven-day footer labels")
+}
+
 func testChineseLanguagePresentationLocalizesCoreLabels() {
     let presentation = StatusPresentation(
         snapshot: makeSnapshot(primaryUsed: 10, secondaryUsed: 20),
@@ -894,6 +960,7 @@ func testEnglishMenuContractSnapshotKeepsCoreMenuStructure() {
     expect(snapshot.weeklyOptions == ["40h", "56h", "70h"], "english menu snapshot keeps all weekly selector options")
     expect(snapshot.weeklyExplanation.contains("40h/week"), "english menu snapshot keeps weekly explanation text")
     expect(snapshot.updatedLine?.contains("Source: API") == true, "english menu snapshot keeps updated/source line")
+    expect(snapshot.creditsLine == nil, "english menu snapshot can omit credits when unavailable")
     expect(snapshot.actionTitles.contains("Refresh Now (API)"), "english menu snapshot keeps refresh action")
     expect(snapshot.actionTitles.contains("Preferences..."), "english menu snapshot keeps preferences action")
 }
@@ -993,6 +1060,26 @@ func testMenuContractSnapshotKeepsActionOrderAndCredits() {
         ],
         "menu contract preserves core action ordering"
     )
+}
+
+func testMenuContractSnapshotKeepsSelectorAndExplanationTogether() {
+    let presentation = StatusPresentation(
+        snapshot: makeSnapshot(primaryUsed: 4, secondaryUsed: 64),
+        accountInfo: CodexAccountInfo(displayName: "67560691@qq.com", email: "67560691@qq.com", planDisplayName: "Pro"),
+        generatedAt: Date(),
+        source: .api,
+        language: .english
+    )
+
+    let snapshot = MenuContractBuilder.build(
+        presentation: presentation,
+        language: .english,
+        weeklyPacingMode: .heavy70,
+        showsLastUpdated: true
+    )
+
+    expect(snapshot.weeklySelectorTitle == "Weekly work hours", "menu contract keeps the weekly selector block title")
+    expect(snapshot.weeklyExplanation.contains("70h/week"), "menu contract keeps the explanation tied to the selected preset")
 }
 
 func testMenuContractSnapshotFallsBackToPlaceholderAccount() {
@@ -1199,6 +1286,8 @@ struct TestRunner {
         testQuotaRowLayoutBuildsCompactLabelsAndDetailText()
         testQuotaRowLayoutMarkerIndexFollowsMarkerPercent()
         testQuotaRowLayoutKeepsBarWidthStableAcrossDisplayScales()
+        testQuotaRowTextRendererKeepsUsedRemainingDirectionAndRightAlignedDetail()
+        testQuotaRowTextRendererMirrorsFiveHourRowsCorrectly()
         testAuthSnapshotStoreReadsSavedAccountMetadata()
         testCliHelpPrefersRefreshOverUpdate()
         testRefreshRequestGateOnlyAppliesLatestRequest()
@@ -1209,11 +1298,13 @@ struct TestRunner {
         testWeeklyTooltipHoursChangeWhileMarkerPercentStaysFixed()
         testWeeklyPaceMathActiveElapsedFractionUsesPresetSchedule()
         testDailyUsageLedgerTracksDailyBudgetInsteadOfOnlyCumulativeTrend()
+        testDailyUsageChartRendererKeepsAxisAndFooterAligned()
         testChineseLanguagePresentationLocalizesCoreLabels()
         testEnglishMenuContractSnapshotKeepsCoreMenuStructure()
         testChineseMenuContractSnapshotKeepsCoreMenuStructure()
         testMenuContractSnapshotRespectsLastUpdatedVisibility()
         testMenuContractSnapshotKeepsActionOrderAndCredits()
+        testMenuContractSnapshotKeepsSelectorAndExplanationTogether()
         testMenuContractSnapshotFallsBackToPlaceholderAccount()
         testSystemLanguagePreferenceFallsBackToMacOSLocale()
         testNotificationPolicyTriggersOnlyOnEscalation()
