@@ -302,8 +302,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         button.highlight(true)
-        let menuOrigin = NSPoint(x: 0, y: button.bounds.height + 4)
-        menu.popUp(positioning: nil, at: menuOrigin, in: button)
+        statusItem.popUpMenu(menu)
     }
 
     private func refreshAsync(mode: QuotaRefreshMode, completion: (() -> Void)? = nil) {
