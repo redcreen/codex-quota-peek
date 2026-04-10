@@ -261,33 +261,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         [0.15, 0.6, 1.5].forEach { delay in
             let workItem = DispatchWorkItem { [weak self] in
-                self?.ensureStatusItemAttached()
+                self?.ensureStatusItemAttachedDuringStartup()
             }
             pendingStatusItemRecoveryWorkItems.append(workItem)
             DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
         }
     }
 
-    private func ensureStatusItemAttached() {
-        guard let button = statusItem.button else {
-            configureStatusItem()
-            return
-        }
+    private func ensureStatusItemAttachedDuringStartup() {
+        guard let button = statusItem.button else { return }
 
-        if statusItem.menu !== menu {
+        if statusItem.menu == nil {
             statusItem.menu = menu
         }
 
-        let needsRecovery = button.image == nil || menu.items.isEmpty || statusItem.length <= 0
-        guard needsRecovery else {
-            button.needsDisplay = true
-            button.display()
-            return
+        if button.image == nil {
+            let image = badgeView.renderedImage()
+            button.image = image
+            statusItem.length = image.size.width
         }
 
-        configureStatusItem()
-        configureMenu()
-        apply(lastPresentation)
+        button.needsDisplay = true
+        button.display()
     }
 
     private func configureMenu() {
@@ -562,7 +557,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             button.display()
         }
         statusItem.length = image.size.width
-        ensureStatusItemAttached()
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
             guard let self, let button = self.statusItem.button else { return }
