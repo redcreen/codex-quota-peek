@@ -245,8 +245,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.isVisible = true
         button.title = ""
         button.imagePosition = .imageOnly
+        button.target = self
+        button.action = #selector(toggleStatusMenu(_:))
+        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         menu.delegate = self
-        statusItem.menu = menu
+        statusItem.menu = nil
 
         badgeView.line1 = lastPresentation.line1
         badgeView.line2 = lastPresentation.line2
@@ -271,10 +274,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func ensureStatusItemAttachedDuringStartup() {
         guard let button = statusItem.button else { return }
 
-        if statusItem.menu == nil {
-            statusItem.menu = menu
-        }
-
         if button.image == nil {
             let image = badgeView.renderedImage()
             button.image = image
@@ -292,6 +291,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.items = builtMenu.items
 
         updateLaunchAtLoginMenuItem()
+    }
+
+    @objc
+    private func toggleStatusMenu(_ sender: Any?) {
+        guard let button = statusItem.button else { return }
+        if isMenuOpen {
+            menu.cancelTracking()
+            return
+        }
+
+        button.highlight(true)
+        let menuOrigin = NSPoint(x: 0, y: button.bounds.height + 4)
+        menu.popUp(positioning: nil, at: menuOrigin, in: button)
     }
 
     private func refreshAsync(mode: QuotaRefreshMode, completion: (() -> Void)? = nil) {
@@ -708,6 +720,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuDidClose(_ menu: NSMenu) {
         isMenuOpen = false
+        statusItem.button?.highlight(false)
         if needsAccountsRefresh {
             needsAccountsRefresh = false
             rebuildAccountItems()
