@@ -2,10 +2,10 @@ import AppKit
 import Foundation
 
 enum MenuFactory {
-    static func buildMenu(language: AppLanguage, target: AnyObject) -> NSMenu {
-        let menu = NSMenu()
+    static func configure(menu: NSMenu, language: AppLanguage, target: AnyObject) {
         menu.autoenablesItems = false
         menu.minimumWidth = 340
+        menu.removeAllItems()
         menu.items = [
             titleItem(),
             .separator(),
@@ -36,7 +36,6 @@ enum MenuFactory {
             .separator(),
             actionItem(title: language.quitTitle, tag: MenuTag.quit, action: Selector(("quit:")), keyEquivalent: "q", target: target)
         ]
-        return menu
     }
 
     private static func titleItem() -> NSMenuItem {

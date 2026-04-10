@@ -51,6 +51,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var lastPrimaryExplanationText: String?
     private var lastSecondaryExplanationText: String?
     private var pendingStatusItemRecoveryWorkItems: [DispatchWorkItem] = []
+    private var needsMenuPresentationRefresh = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -282,11 +283,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func configureMenu() {
-        let builtMenu = MenuFactory.buildMenu(language: selectedAppLanguage, target: self)
-        menu.autoenablesItems = builtMenu.autoenablesItems
-        menu.minimumWidth = builtMenu.minimumWidth
-        menu.items = builtMenu.items
-
+        MenuFactory.configure(menu: menu, language: selectedAppLanguage, target: self)
         updateLaunchAtLoginMenuItem()
     }
 
@@ -565,6 +562,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         if isMenuOpen {
+            needsMenuPresentationRefresh = true
+            return
+        }
+
+        if isMenuOpen {
             needsAccountsRefresh = true
         } else {
             rebuildAccountItems()
@@ -694,17 +696,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuWillOpen(_ menu: NSMenu) {
         isMenuOpen = true
-        let mode: QuotaRefreshMode = QuotaRefreshPolicy.shouldPreferAPIMenuOpenRefresh(
-            lastSource: lastSourceForDisplay,
-            lastGeneratedAt: lastGeneratedAtForDisplay
-        ) ? .startupAPI : .automatic
-        refreshAsync(mode: mode)
-        refreshAccountsAsync()
     }
 
     func menuDidClose(_ menu: NSMenu) {
         isMenuOpen = false
         statusItem.button?.highlight(false)
+        if needsMenuPresentationRefresh {
+            needsMenuPresentationRefresh = false
+            apply(lastPresentation)
+            return
+        }
         if needsAccountsRefresh {
             needsAccountsRefresh = false
             rebuildAccountItems()

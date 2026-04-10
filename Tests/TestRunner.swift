@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 @discardableResult
@@ -1217,7 +1218,8 @@ func testMenuContractSnapshotKeepsSelectorAndExplanationTogether() {
 
 func testMenuFactoryBuildsCoreMenuTagsAndOrder() {
     final class DummyTarget: NSObject {}
-    let menu = MenuFactory.buildMenu(language: .english, target: DummyTarget())
+    let menu = NSMenu()
+    MenuFactory.configure(menu: menu, language: .english, target: DummyTarget())
     let tags = menu.items.map(\.tag)
 
     expect(tags.contains(MenuTag.title), "menu factory keeps the title item")
@@ -1239,7 +1241,8 @@ func testMenuFactoryBuildsCoreMenuTagsAndOrder() {
 
 func testMenuUpdaterAppliesVisibilityAndWeeklyState() {
     final class DummyTarget: NSObject {}
-    let menu = MenuFactory.buildMenu(language: .english, target: DummyTarget())
+    let menu = NSMenu()
+    MenuFactory.configure(menu: menu, language: .english, target: DummyTarget())
     let input = MenuUpdaterInput(
         language: .english,
         presentation: StatusPresentation(
