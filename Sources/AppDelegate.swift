@@ -245,11 +245,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.isVisible = true
         button.title = ""
         button.imagePosition = .imageOnly
-        button.target = self
-        button.action = #selector(toggleStatusMenu(_:))
-        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         menu.delegate = self
-        statusItem.menu = nil
+        statusItem.menu = menu
 
         badgeView.line1 = lastPresentation.line1
         badgeView.line2 = lastPresentation.line2
@@ -291,18 +288,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.items = builtMenu.items
 
         updateLaunchAtLoginMenuItem()
-    }
-
-    @objc
-    private func toggleStatusMenu(_ sender: Any?) {
-        guard let button = statusItem.button else { return }
-        if isMenuOpen {
-            menu.cancelTracking()
-            return
-        }
-
-        button.highlight(true)
-        statusItem.popUpMenu(menu)
     }
 
     private func refreshAsync(mode: QuotaRefreshMode, completion: (() -> Void)? = nil) {
