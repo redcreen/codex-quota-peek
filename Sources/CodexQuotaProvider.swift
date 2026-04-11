@@ -142,13 +142,13 @@ final class CodexQuotaProvider {
     }
 
     func loadSnapshotForAutomaticRefresh() throws -> CodexQuotaFetchResult {
-        if let live = try latestFromRealtimeLogs() {
+        if let live = try? latestFromRealtimeLogs() {
             return live
         }
-        if let archived = try latestFromArchivedSessions() {
+        if let archived = try? latestFromArchivedSessions() {
             return archived
         }
-        if let remote = try latestFromUsageAPI() {
+        if let remote = try? latestFromUsageAPI() {
             return remote
         }
         throw NSError(
@@ -170,13 +170,13 @@ final class CodexQuotaProvider {
     }
 
     func loadSnapshotUsingAPIOrFallback() throws -> CodexQuotaFetchResult {
-        if let remote = try latestFromUsageAPI() {
+        if let remote = try? latestFromUsageAPI() {
             return remote
         }
-        if let live = try latestFromRealtimeLogs() {
+        if let live = try? latestFromRealtimeLogs() {
             return live
         }
-        if let archived = try latestFromArchivedSessions() {
+        if let archived = try? latestFromArchivedSessions() {
             return archived
         }
         throw NSError(
@@ -199,7 +199,9 @@ final class CodexQuotaProvider {
         limit 500;
         """
 
-        let output = try runSQLite(databasePath: dbPath, sql: sql)
+        guard let output = try? runSQLite(databasePath: dbPath, sql: sql) else {
+            return nil
+        }
         let parsedRows = output
             .split(separator: "\n")
             .compactMap { Self.parseRealtimeLogRow(String($0)) }

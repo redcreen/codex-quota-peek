@@ -197,6 +197,30 @@ func testDisplayStateStoreRebuildsPresentationFromCachedInputs() {
     expect(presentation?.sourceText == "Source: API", "display state store preserves the source label")
 }
 
+func testAutomaticRefreshFallsBackWhenRealtimeLogsSchemaIsInvalid() {
+    let tempRoot = URL(fileURLWithPath: NSTemporaryDirectory())
+        .appendingPathComponent("codex-quota-peek-tests-\(UUID().uuidString)")
+    let codexDir = tempRoot.appendingPathComponent(".codex")
+    let archivedDir = codexDir.appendingPathComponent("archived_sessions")
+
+    try! FileManager.default.createDirectory(at: archivedDir, withIntermediateDirectories: true)
+    FileManager.default.createFile(atPath: codexDir.appendingPathComponent("logs_1.sqlite").path, contents: Data(), attributes: nil)
+
+    let archivedLine = """
+    {"type":"event_msg","payload":{"type":"token_count","info":{"rate_limits":{"plan_type":"pro","primary":{"used_percent":14,"window_minutes":300,"reset_after_seconds":120,"reset_at":1775292000},"secondary":{"used_percent":11,"window_minutes":10080,"reset_after_seconds":3600,"reset_at":1775896800}}}}}
+    """
+    try! archivedLine.write(to: archivedDir.appendingPathComponent("sample.jsonl"), atomically: true, encoding: .utf8)
+
+    let provider = CodexQuotaProvider(homeDirectory: tempRoot)
+    let result = try! provider.loadSnapshotForAutomaticRefresh()
+
+    expect(result.source == .archivedSessions, "automatic refresh falls back to archived sessions when local logs are unreadable")
+    expect(result.snapshot.rateLimits.primary?.remainingPercent == 86, "fallback keeps archived primary quota values")
+    expect(result.snapshot.rateLimits.secondary?.remainingPercent == 89, "fallback keeps archived weekly quota values")
+
+    try? FileManager.default.removeItem(at: tempRoot)
+}
+
 func testAutomaticRefreshPrefersAPIWhenLogsShowOlderResetWindow() {
     let recentAPI = CodexQuotaFetchResult(
         snapshot: CodexQuotaSnapshot(
