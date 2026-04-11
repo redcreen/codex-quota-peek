@@ -84,7 +84,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc
     private func refreshNow(_ sender: Any?) {
-        shouldReopenMenuAfterRefresh = true
+        if isMenuOpen {
+            shouldReopenMenuAfterRefresh = true
+            menu.cancelTracking()
+            DispatchQueue.main.async { [weak self] in
+                self?.refreshAsync(mode: .apiManual)
+            }
+            return
+        }
         refreshAsync(mode: .apiManual)
     }
 
@@ -682,6 +689,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuWillOpen(_ menu: NSMenu) {
         isMenuOpen = true
+        if QuotaRefreshPolicy.shouldPreferAPIMenuOpenRefresh(
+            lastSource: displayState.displayedSource,
+            lastGeneratedAt: displayState.displayedGeneratedAt
+        ) {
+            shouldReopenMenuAfterRefresh = true
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.menu.cancelTracking()
+                self.refreshAsync(mode: .startupAPI)
+            }
+        }
     }
 
     func menuDidClose(_ menu: NSMenu) {

@@ -44,6 +44,14 @@ struct DisplayStateStore {
         snapshotForDisplay != nil
     }
 
+    var displayedSource: CodexQuotaFetchSource? {
+        sourceForDisplay
+    }
+
+    var displayedGeneratedAt: Date? {
+        generatedAtForDisplay
+    }
+
     func rebuildPresentation(
         weeklyPacingMode: WeeklyPacingMode,
         language: AppLanguage
