@@ -40,6 +40,7 @@ cp "$ICON_PNG" "$ICONSET_DIR/icon_512x512@2x.png"
   "$ROOT_DIR/Sources/AccountMenuBuilder.swift" \
   "$ROOT_DIR/Sources/AppLanguage.swift" \
   "$ROOT_DIR/Sources/CodexAuthSnapshotStore.swift" \
+  "$ROOT_DIR/Sources/DisplayStateStore.swift" \
   "$ROOT_DIR/Sources/MenuTag.swift" \
   "$ROOT_DIR/Sources/MenuFactory.swift" \
   "$ROOT_DIR/Sources/MenuAttributedContentBuilder.swift" \

@@ -36,18 +36,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var accountRefreshWorkItem: DispatchWorkItem?
     private var shouldReopenMenuAfterRefresh = false
     private var feedbackHideWorkItem: DispatchWorkItem?
-    private var lastSuccessfulAPIResult: CodexQuotaFetchResult?
-    private var lastAcceptedResult: CodexQuotaFetchResult?
+    private var displayState = DisplayStateStore()
     private var accountItemLookup: [Int: CodexKnownAccount] = [:]
     private var refreshRequestGate = RefreshRequestGate()
     private var hasTriggeredStartupAPIRefresh = false
     private var lastNotificationSnapshot: QuotaNotificationSnapshot?
     private var preferencesWindowController: PreferencesWindowController!
-    private var lastSnapshotForDisplay: CodexQuotaSnapshot?
-    private var lastAccountInfoForDisplay: CodexAccountInfo?
-    private var lastTrendSummaryForDisplay: CodexQuotaTrendSummary?
-    private var lastSourceForDisplay: CodexQuotaFetchSource?
-    private var lastGeneratedAtForDisplay: Date?
     private var lastPrimaryExplanationText: String?
     private var lastSecondaryExplanationText: String?
     private var pendingStatusItemRecoveryWorkItems: [DispatchWorkItem] = []
@@ -345,7 +339,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                         ? "API refresh failed; keeping current value"
                         : "API 刷新失败，已保留当前数据"
                 } else {
-                    if self.lastSnapshotForDisplay != nil {
+                    if self.displayState.hasDisplaySnapshot {
                         presentation = self.lastPresentation
                     } else {
                         presentation = .unavailable(error.localizedDescription, language: selectedAppLanguage)
@@ -359,11 +353,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     return
                 }
                 if let fetchedSnapshot, let fetchedSource, let generatedAt {
-                    self.lastSnapshotForDisplay = fetchedSnapshot
-                    self.lastAccountInfoForDisplay = fetchedAccountInfo
-                    self.lastTrendSummaryForDisplay = fetchedTrendSummary
-                    self.lastSourceForDisplay = fetchedSource
-                    self.lastGeneratedAtForDisplay = generatedAt
+                    self.displayState.recordDisplayInputs(
+                        snapshot: fetchedSnapshot,
+                        accountInfo: fetchedAccountInfo,
+                        trendSummary: fetchedTrendSummary,
+                        source: fetchedSource,
+                        generatedAt: generatedAt
+                    )
                 }
                 self.apply(presentation)
                 if let feedbackMessage {
@@ -385,17 +381,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         _ fetchedResult: CodexQuotaFetchResult,
         for mode: QuotaRefreshMode
     ) -> CodexQuotaFetchResult {
-        let preferred = QuotaRefreshPolicy.preferredResult(
-            fetchedResult: fetchedResult,
-            mode: mode,
-            lastSuccessfulAPIResult: lastSuccessfulAPIResult,
-            lastAcceptedResult: lastAcceptedResult
-        )
-        if fetchedResult.source == .api {
-            lastSuccessfulAPIResult = fetchedResult
-        }
-        lastAcceptedResult = preferred
-        return preferred
+        displayState.resolvePreferredResult(fetchedResult, mode: mode)
     }
 
     private func triggerStartupAPIRefreshIfNeeded() {
@@ -1009,23 +995,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func reapplyCachedPresentationForCurrentMode() {
-        guard
-            let snapshot = lastSnapshotForDisplay,
-            let source = lastSourceForDisplay,
-            let generatedAt = lastGeneratedAtForDisplay
-        else {
-            return
-        }
-
-        let presentation = StatusPresentation(
-            snapshot: snapshot,
-            accountInfo: lastAccountInfoForDisplay,
-            generatedAt: generatedAt,
-            source: source,
-            trendSummary: lastTrendSummaryForDisplay,
+        guard let presentation = displayState.rebuildPresentation(
             weeklyPacingMode: selectedWeeklyPacingMode,
             language: selectedAppLanguage
-        )
+        ) else { return }
         apply(presentation)
     }
 }

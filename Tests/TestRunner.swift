@@ -134,6 +134,69 @@ func testAutomaticRefreshAllowsLogsAfterTheyCatchUp() {
     expect(preferred.snapshot.rateLimits.primary?.remainingPercent == 93, "fresh logs replace API snapshot when newer")
 }
 
+func testDisplayStateStoreTracksAcceptedAPIResults() {
+    var store = DisplayStateStore()
+    let api = makeResult(
+        source: .api,
+        sourceDate: Date(timeIntervalSince1970: 2_000),
+        primaryUsed: 5,
+        secondaryUsed: 8
+    )
+
+    let preferred = store.resolvePreferredResult(api, mode: .startupAPI)
+
+    expect(preferred.source == .api, "display state store keeps the fetched API result")
+    expect(store.lastSuccessfulAPIResult?.source == .api, "display state store records the last successful API result")
+    expect(store.lastAcceptedResult?.source == .api, "display state store records the last accepted result")
+}
+
+func testDisplayStateStoreRetainsNewerAcceptedResultOverStaleLogs() {
+    var store = DisplayStateStore()
+    let recentAPI = makeResult(
+        source: .api,
+        sourceDate: Date(timeIntervalSince1970: 2_000),
+        primaryUsed: 5,
+        secondaryUsed: 8
+    )
+    _ = store.resolvePreferredResult(recentAPI, mode: .startupAPI)
+
+    let staleLogs = makeResult(
+        source: .realtimeLogs,
+        sourceDate: Date(timeIntervalSince1970: 1_900),
+        primaryUsed: 18,
+        secondaryUsed: 12
+    )
+    let preferred = store.resolvePreferredResult(staleLogs, mode: .automatic)
+
+    expect(preferred.source == .api, "display state store keeps the newer accepted API result over stale logs")
+    expect(store.lastAcceptedResult?.source == .api, "display state store keeps the accepted result pinned after stale logs")
+}
+
+func testDisplayStateStoreRebuildsPresentationFromCachedInputs() {
+    var store = DisplayStateStore()
+    let snapshot = makeSnapshot(primaryUsed: 12, secondaryUsed: 40)
+    let generatedAt = Date(timeIntervalSince1970: 1_000)
+    let account = CodexAccountInfo(displayName: "User", email: "user@example.com", planDisplayName: "Pro")
+
+    store.recordDisplayInputs(
+        snapshot: snapshot,
+        accountInfo: account,
+        trendSummary: nil,
+        source: .api,
+        generatedAt: generatedAt
+    )
+
+    let presentation = store.rebuildPresentation(
+        weeklyPacingMode: .heavy70,
+        language: .english
+    )
+
+    expect(presentation?.line1 == "H 88%", "display state store rebuilds the primary badge line")
+    expect(presentation?.line2.contains("W 60%") == true, "display state store rebuilds the weekly badge line")
+    expect(presentation?.accountRow?.value == "user@example.com", "display state store preserves the account row value")
+    expect(presentation?.sourceText == "Source: API", "display state store preserves the source label")
+}
+
 func testAutomaticRefreshPrefersAPIWhenLogsShowOlderResetWindow() {
     let recentAPI = CodexQuotaFetchResult(
         snapshot: CodexQuotaSnapshot(
