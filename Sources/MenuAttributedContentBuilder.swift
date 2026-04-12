@@ -214,6 +214,7 @@ enum MenuAttributedContentBuilder {
         let progressBar = styledProgressBar(
             forPercentText: percent,
             markerThresholdPercent: markerThresholdPercent,
+            paceSeverity: paceSeverity,
             displayScale: displayScale,
             usedOnLeft: usedOnLeft,
             font: barFont,
@@ -290,6 +291,7 @@ enum MenuAttributedContentBuilder {
     private static func styledProgressBar(
         forPercentText percentText: String,
         markerThresholdPercent: Double?,
+        paceSeverity: StatusPresentation.PaceSeverity?,
         displayScale: Double,
         usedOnLeft: Bool,
         font: NSFont,
@@ -313,6 +315,7 @@ enum MenuAttributedContentBuilder {
         )
         let remainingColor = quotaColor(for: percentText)
         let usedColor = NSColor.tertiaryLabelColor
+        let usedExceededColor = paceFillColor(for: paceSeverity)
         let markerColor = NSColor.secondaryLabelColor
         let markerLine: NSAttributedString?
         if let markerString = rendered.markerLine {
@@ -328,13 +331,28 @@ enum MenuAttributedContentBuilder {
         }
 
         let bar = NSMutableAttributedString()
-        if usedOnLeft, layout.usedSlots > 0 {
+        let expectedUsedSlots = max(0, min(slots, layout.markerIndex ?? layout.usedSlots))
+        let normalUsedSlots = min(layout.usedSlots, expectedUsedSlots)
+        let exceededUsedSlots = max(0, layout.usedSlots - expectedUsedSlots)
+
+        if usedOnLeft, normalUsedSlots > 0 {
             bar.append(
                 NSAttributedString(
-                    string: String(repeating: "░", count: layout.usedSlots),
+                    string: String(repeating: "░", count: normalUsedSlots),
                     attributes: [
                         .font: font,
                         .foregroundColor: usedColor
+                    ]
+                )
+            )
+        }
+        if usedOnLeft, exceededUsedSlots > 0 {
+            bar.append(
+                NSAttributedString(
+                    string: String(repeating: "░", count: exceededUsedSlots),
+                    attributes: [
+                        .font: font,
+                        .foregroundColor: usedExceededColor
                     ]
                 )
             )
@@ -361,10 +379,21 @@ enum MenuAttributedContentBuilder {
                 )
             )
         }
-        if !usedOnLeft, layout.usedSlots > 0 {
+        if !usedOnLeft, exceededUsedSlots > 0 {
             bar.append(
                 NSAttributedString(
-                    string: String(repeating: "░", count: layout.usedSlots),
+                    string: String(repeating: "░", count: exceededUsedSlots),
+                    attributes: [
+                        .font: font,
+                        .foregroundColor: usedExceededColor
+                    ]
+                )
+            )
+        }
+        if !usedOnLeft, normalUsedSlots > 0 {
+            bar.append(
+                NSAttributedString(
+                    string: String(repeating: "░", count: normalUsedSlots),
                     attributes: [
                         .font: font,
                         .foregroundColor: usedColor
@@ -438,6 +467,17 @@ enum MenuAttributedContentBuilder {
             return NSColor.systemRed
         case .normal, nil:
             return NSColor.secondaryLabelColor
+        }
+    }
+
+    private static func paceFillColor(for severity: StatusPresentation.PaceSeverity?) -> NSColor {
+        switch severity {
+        case .warning:
+            return NSColor.systemYellow
+        case .critical, .severe:
+            return NSColor.systemRed
+        case nil:
+            return NSColor.tertiaryLabelColor
         }
     }
 

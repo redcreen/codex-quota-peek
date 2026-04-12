@@ -588,6 +588,126 @@ func testQuotaRowUsesRemainingColorSeparatelyFromPaceMarkerColor() {
     expect(sameColor(barColor, .systemGreen), "progress bar fill follows remaining quota color rather than pace warning color")
 }
 
+func testQuotaRowShowsOnlyExceededUsedSegmentInPaceColor() {
+    let row = StatusPresentation.MenuRow(
+        label: "7 days",
+        percentText: "57%!",
+        resetText: "Apr 17",
+        resetDate: nil,
+        isUsingFasterThanAverage: true,
+        paceText: "Pace above avg",
+        paceSeverity: .warning,
+        paceOverrunPercent: 14,
+        usedPercent: 43,
+        paceThresholdPercent: 29,
+        markerThresholdPercent: 29,
+        tooltipText: nil
+    )
+    let presentation = StatusPresentation(
+        line1: "H 95%",
+        line2: "W 57%!",
+        tooltip: "quota",
+        accountRow: nil,
+        planRow: nil,
+        primaryRow: nil,
+        secondaryRow: row,
+        paceMessage: nil,
+        paceSeverity: .warning,
+        trendText: nil,
+        trendSummary: nil,
+        sparklineText: nil,
+        updatedAtText: "12s ago",
+        sourceText: "Source: API",
+        creditsText: nil,
+        language: .english
+    )
+
+    let result = MenuAttributedContentBuilder.build(
+        presentation: presentation,
+        language: .english,
+        showsPaceAlert: true,
+        showsLastUpdated: true,
+        selectedWeeklyPacingMode: .balanced56,
+        weeklyPaceExplanation: "weekly",
+        weeklyPaceInlineExplanation: "inline"
+    )
+
+    let text = result.input.secondary.string
+    let usedIndices = text.enumerated().compactMap { index, character in
+        character == "░" ? index : nil
+    }
+    let remainingIndices = text.enumerated().compactMap { index, character in
+        character == "█" ? index : nil
+    }
+
+    expect(usedIndices.count > 1, "weekly row includes multiple used slots when pace warning exists")
+    expect(!remainingIndices.isEmpty, "weekly row keeps remaining slots after the used segment")
+
+    let firstUsedColor = result.input.secondary.attribute(.foregroundColor, at: usedIndices.first!, effectiveRange: nil) as? NSColor
+    let lastUsedColor = result.input.secondary.attribute(.foregroundColor, at: usedIndices.last!, effectiveRange: nil) as? NSColor
+    let remainingColor = result.input.secondary.attribute(.foregroundColor, at: remainingIndices.first!, effectiveRange: nil) as? NSColor
+
+    expect(sameColor(firstUsedColor, .tertiaryLabelColor), "used slots before the normal marker stay gray")
+    expect(sameColor(lastUsedColor, .systemYellow), "only the used slots beyond the normal marker switch to pace warning color")
+    expect(sameColor(remainingColor, .systemGreen), "remaining slots stay quota-colored after the exceeded used segment")
+}
+
+func testQuotaRowKeepsUsedSegmentGrayWhenPaceIsNormal() {
+    let row = StatusPresentation.MenuRow(
+        label: "7 days",
+        percentText: "57%",
+        resetText: "Apr 17",
+        resetDate: nil,
+        isUsingFasterThanAverage: false,
+        paceText: nil,
+        paceSeverity: nil,
+        paceOverrunPercent: nil,
+        usedPercent: 43,
+        paceThresholdPercent: 50,
+        markerThresholdPercent: 50,
+        tooltipText: nil
+    )
+    let presentation = StatusPresentation(
+        line1: "H 95%",
+        line2: "W 57%",
+        tooltip: "quota",
+        accountRow: nil,
+        planRow: nil,
+        primaryRow: nil,
+        secondaryRow: row,
+        paceMessage: nil,
+        paceSeverity: nil,
+        trendText: nil,
+        trendSummary: nil,
+        sparklineText: nil,
+        updatedAtText: "12s ago",
+        sourceText: "Source: API",
+        creditsText: nil,
+        language: .english
+    )
+
+    let result = MenuAttributedContentBuilder.build(
+        presentation: presentation,
+        language: .english,
+        showsPaceAlert: true,
+        showsLastUpdated: true,
+        selectedWeeklyPacingMode: .balanced56,
+        weeklyPaceExplanation: "weekly",
+        weeklyPaceInlineExplanation: "inline"
+    )
+
+    let text = result.input.secondary.string
+    let usedIndices = text.enumerated().compactMap { index, character in
+        character == "░" ? index : nil
+    }
+
+    expect(!usedIndices.isEmpty, "weekly row keeps used slots when pace is normal")
+    let usedColors = usedIndices.compactMap {
+        result.input.secondary.attribute(.foregroundColor, at: $0, effectiveRange: nil) as? NSColor
+    }
+    expect(usedColors.allSatisfy { sameColor($0, .tertiaryLabelColor) }, "used slots stay entirely gray when usage has not exceeded the marker")
+}
+
 func testQuotaRowTooltipsIncludeDurationBreakdown() {
     let snapshot = CodexQuotaSnapshot(
         planType: "pro",
@@ -1716,6 +1836,8 @@ struct TestRunner {
         testDisplayStateStoreAdvancesTimestampWhenDisplayNumbersChange()
         testQuotaDisplayColorThresholds()
         testQuotaRowUsesRemainingColorSeparatelyFromPaceMarkerColor()
+        testQuotaRowShowsOnlyExceededUsedSegmentInPaceColor()
+        testQuotaRowKeepsUsedSegmentGrayWhenPaceIsNormal()
         testQuotaRowTooltipsIncludeDurationBreakdown()
         testQuotaRowTooltipsUseReadableSmallDurations()
         testQuotaExplanationBuilderFormatsEdgeDurations()
