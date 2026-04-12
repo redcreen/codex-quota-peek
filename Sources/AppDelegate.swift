@@ -703,6 +703,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuWillOpen(_ menu: NSMenu) {
         isMenuOpen = true
+        refreshRelativeFreshnessLabels()
         if QuotaRefreshPolicy.shouldPreferAPIMenuOpenRefresh(
             lastSource: displayState.displayedSource,
             lastGeneratedAt: displayState.displayedGeneratedAt
@@ -711,6 +712,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 self?.refreshAsync(mode: .startupAPI)
             }
         }
+    }
+
+    private func refreshRelativeFreshnessLabels() {
+        let language = selectedAppLanguage
+        guard let presentation = displayState.rebuildPresentation(
+            weeklyPacingMode: selectedWeeklyPacingMode,
+            language: language,
+            now: Date()
+        ) else { return }
+        lastPresentation = presentation
+        let content = MenuAttributedContentBuilder.build(
+            presentation: presentation,
+            language: language,
+            showsPaceAlert: showsPaceAlert,
+            showsLastUpdated: showsLastUpdated,
+            selectedWeeklyPacingMode: selectedWeeklyPacingMode,
+            weeklyPaceExplanation: weeklyPaceExplanation,
+            weeklyPaceInlineExplanation: weeklyPaceInlineExplanation
+        )
+        lastPrimaryExplanationText = content.primaryExplanationText
+        lastSecondaryExplanationText = content.secondaryExplanationText
+        MenuUpdater.apply(menu: menu, input: content.input)
     }
 
     func menuDidClose(_ menu: NSMenu) {

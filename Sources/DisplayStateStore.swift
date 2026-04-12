@@ -71,7 +71,8 @@ struct DisplayStateStore {
 
     func rebuildPresentation(
         weeklyPacingMode: WeeklyPacingMode,
-        language: AppLanguage
+        language: AppLanguage,
+        now: Date = Date()
     ) -> StatusPresentation? {
         guard
             let snapshot = snapshotForDisplay,
@@ -88,7 +89,8 @@ struct DisplayStateStore {
             source: source,
             trendSummary: trendSummaryForDisplay,
             weeklyPacingMode: weeklyPacingMode,
-            language: language
+            language: language,
+            now: now
         )
     }
 

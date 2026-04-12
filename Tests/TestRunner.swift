@@ -207,6 +207,34 @@ func testDisplayStateStoreRebuildsPresentationFromCachedInputs() {
     expect(presentation?.sourceText == "Source: API", "display state store preserves the source label")
 }
 
+func testDisplayStateStoreRebuildPresentationRecomputesRelativeFreshness() {
+    var store = DisplayStateStore()
+    let snapshot = makeSnapshot(primaryUsed: 12, secondaryUsed: 40)
+    let generatedAt = Date(timeIntervalSince1970: 1_000)
+
+    _ = store.recordDisplayInputs(
+        snapshot: snapshot,
+        accountInfo: nil,
+        trendSummary: nil,
+        source: .api,
+        generatedAt: generatedAt
+    )
+
+    let early = store.rebuildPresentation(
+        weeklyPacingMode: .balanced56,
+        language: .english,
+        now: Date(timeIntervalSince1970: 1_003)
+    )
+    let later = store.rebuildPresentation(
+        weeklyPacingMode: .balanced56,
+        language: .english,
+        now: Date(timeIntervalSince1970: 1_120)
+    )
+
+    expect(early?.updatedAtText == "3s ago", "rebuilding presentation recalculates the relative freshness from the current time")
+    expect(later?.updatedAtText == "2m ago", "relative freshness continues to advance even when the cached display data stays the same")
+}
+
 func testAutomaticRefreshFallsBackWhenRealtimeLogsSchemaIsInvalid() {
     let tempRoot = URL(fileURLWithPath: NSTemporaryDirectory())
         .appendingPathComponent("codex-quota-peek-tests-\(UUID().uuidString)")
@@ -1858,6 +1886,8 @@ struct TestRunner {
     testSparklineSampling()
     testTrendRowsStayInsideCurrentResetWindow()
     testRelativeUpdatedAtLabels()
+        testDisplayStateStoreRebuildsPresentationFromCachedInputs()
+        testDisplayStateStoreRebuildPresentationRecomputesRelativeFreshness()
         testDisplayStateStoreKeepsTimestampWhenDisplayNumbersDoNotChange()
         testDisplayStateStoreAdvancesTimestampWhenDisplayNumbersChange()
         testDisplayStateStoreManualRefreshAdvancesTimestampEvenWhenDisplayNumbersDoNotChange()

@@ -188,7 +188,8 @@ struct StatusPresentation {
         source: CodexQuotaFetchSource,
         trendSummary: CodexQuotaTrendSummary? = nil,
         weeklyPacingMode: WeeklyPacingMode = .balanced56,
-        language: AppLanguage = .english
+        language: AppLanguage = .english,
+        now: Date = Date()
     ) {
         let primary = snapshot.rateLimits.primary
         let secondary = snapshot.rateLimits.secondary
@@ -238,7 +239,7 @@ struct StatusPresentation {
         trendText = trendSummary?.menuText(language: language, weeklyPacingMode: weeklyPacingMode)
         self.trendSummary = trendSummary
         sparklineText = trendSummary?.sparklineText(language: language)
-        updatedAtText = StatusPresentation.relativeUpdatedAtLabel(for: generatedAt, language: language)
+        updatedAtText = StatusPresentation.relativeUpdatedAtLabel(for: generatedAt, now: now, language: language)
         creditsText = StatusPresentation.creditsText(for: snapshot.credits, language: language)
         sourceText = language.sourceText(for: source)
         self.language = language
