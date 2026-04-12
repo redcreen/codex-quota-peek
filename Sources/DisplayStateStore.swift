@@ -42,14 +42,15 @@ struct DisplayStateStore {
         accountInfo: CodexAccountInfo?,
         trendSummary: CodexQuotaTrendSummary?,
         source: CodexQuotaFetchSource,
-        generatedAt: Date
+        generatedAt: Date,
+        forceFreshnessUpdate: Bool = false
     ) -> Date {
         let signature = makeDisplaySignature(from: snapshot)
         snapshotForDisplay = snapshot
         accountInfoForDisplay = accountInfo
         trendSummaryForDisplay = trendSummary
         sourceForDisplay = source
-        if displaySignature != signature || generatedAtForDisplay == nil {
+        if forceFreshnessUpdate || displaySignature != signature || generatedAtForDisplay == nil {
             generatedAtForDisplay = generatedAt
             displaySignature = signature
         }

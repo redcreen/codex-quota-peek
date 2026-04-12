@@ -366,7 +366,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                         accountInfo: fetchedAccountInfo,
                         trendSummary: fetchedTrendSummary,
                         source: fetchedSource,
-                        generatedAt: generatedAt
+                        generatedAt: generatedAt,
+                        forceFreshnessUpdate: mode == .apiManual
                     )
                     if let rebuilt = self.displayState.rebuildPresentation(
                         weeklyPacingMode: self.selectedWeeklyPacingMode,

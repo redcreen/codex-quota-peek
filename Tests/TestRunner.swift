@@ -508,6 +508,32 @@ func testDisplayStateStoreAdvancesTimestampWhenDisplayNumbersChange() {
     expect(store.displayedGeneratedAt == secondDate, "display state publishes the new freshness point after a real display change")
 }
 
+func testDisplayStateStoreManualRefreshAdvancesTimestampEvenWhenDisplayNumbersDoNotChange() {
+    var store = DisplayStateStore()
+    let firstDate = Date(timeIntervalSince1970: 1_000)
+    let secondDate = Date(timeIntervalSince1970: 1_120)
+
+    _ = store.recordDisplayInputs(
+        snapshot: makeSnapshot(primaryUsed: 12, secondaryUsed: 40),
+        accountInfo: nil,
+        trendSummary: nil,
+        source: .api,
+        generatedAt: firstDate
+    )
+
+    let secondRecorded = store.recordDisplayInputs(
+        snapshot: makeSnapshot(primaryUsed: 12, secondaryUsed: 40),
+        accountInfo: nil,
+        trendSummary: nil,
+        source: .api,
+        generatedAt: secondDate,
+        forceFreshnessUpdate: true
+    )
+
+    expect(secondRecorded == secondDate, "manual API refresh advances timestamp even when display values stay the same")
+    expect(store.displayedGeneratedAt == secondDate, "display state publishes the manual refresh time when explicitly forced")
+}
+
 func testQuotaDisplayColorThresholds() {
     expect(QuotaDisplayPolicy.colorLevel(forPercentText: "82%") == .normal, "high remaining percent is green tier")
     expect(QuotaDisplayPolicy.colorLevel(forPercentText: "49%!") == .warning, "below fifty percent is yellow tier")
@@ -1834,6 +1860,7 @@ struct TestRunner {
     testRelativeUpdatedAtLabels()
         testDisplayStateStoreKeepsTimestampWhenDisplayNumbersDoNotChange()
         testDisplayStateStoreAdvancesTimestampWhenDisplayNumbersChange()
+        testDisplayStateStoreManualRefreshAdvancesTimestampEvenWhenDisplayNumbersDoNotChange()
         testQuotaDisplayColorThresholds()
         testQuotaRowUsesRemainingColorSeparatelyFromPaceMarkerColor()
         testQuotaRowShowsOnlyExceededUsedSegmentInPaceColor()
