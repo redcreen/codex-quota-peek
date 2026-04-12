@@ -706,11 +706,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             lastSource: displayState.displayedSource,
             lastGeneratedAt: displayState.displayedGeneratedAt
         ) {
-            shouldReopenMenuAfterRefresh = true
             DispatchQueue.main.async { [weak self] in
-                guard let self else { return }
-                self.menu.cancelTracking()
-                self.refreshAsync(mode: .startupAPI)
+                self?.refreshAsync(mode: .startupAPI)
             }
         }
     }
