@@ -703,7 +703,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuWillOpen(_ menu: NSMenu) {
         isMenuOpen = true
-        refreshRelativeFreshnessLabels()
         if QuotaRefreshPolicy.shouldPreferAPIMenuOpenRefresh(
             lastSource: displayState.displayedSource,
             lastGeneratedAt: displayState.displayedGeneratedAt
@@ -711,6 +710,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             DispatchQueue.main.async { [weak self] in
                 self?.refreshAsync(mode: .startupAPI)
             }
+        }
+    }
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        refreshRelativeFreshnessLabels()
+        if needsAccountsRefresh {
+            needsAccountsRefresh = false
+            rebuildAccountItems()
         }
     }
 
