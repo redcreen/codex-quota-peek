@@ -177,6 +177,18 @@ enum QuotaDisplayPolicy {
         return (value, marker)
     }
 
+    static func paceMarkerColorLevel(for percentText: String) -> QuotaDisplayColorLevel? {
+        let markerCount = percentText.filter { $0 == "!" }.count
+        switch markerCount {
+        case 0:
+            return nil
+        case 1:
+            return .warning
+        default:
+            return .critical
+        }
+    }
+
     static func progressBar(forPercentText percentText: String, slots: Int = 18) -> String {
         guard let percent = Int(
             percentText

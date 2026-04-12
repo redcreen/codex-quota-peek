@@ -12,6 +12,16 @@ func expect(_ condition: @autoclosure () -> Bool, _ message: String) -> Bool {
     exit(1)
 }
 
+func sameColor(_ lhs: NSColor?, _ rhs: NSColor) -> Bool {
+    guard
+        let lhs = lhs?.usingColorSpace(.deviceRGB),
+        let rhs = rhs.usingColorSpace(.deviceRGB)
+    else {
+        return false
+    }
+    return lhs == rhs
+}
+
 func makeWindow(usedPercent: Double, windowMinutes: Int = 300, resetAfterSeconds: Int = 120, resetAt: TimeInterval = 1_775_291_731) -> LimitWindow {
     LimitWindow(
         usedPercent: usedPercent,
@@ -502,6 +512,9 @@ func testQuotaDisplayColorThresholds() {
     expect(QuotaDisplayPolicy.colorLevel(forPercentText: "82%") == .normal, "high remaining percent is green tier")
     expect(QuotaDisplayPolicy.colorLevel(forPercentText: "49%!") == .warning, "below fifty percent is yellow tier")
     expect(QuotaDisplayPolicy.colorLevel(forPercentText: "29%!!") == .critical, "below thirty percent is red tier")
+    expect(QuotaDisplayPolicy.paceMarkerColorLevel(for: "57%") == nil, "no marker means no pace color level")
+    expect(QuotaDisplayPolicy.paceMarkerColorLevel(for: "57%!") == .warning, "single marker uses warning pace color level")
+    expect(QuotaDisplayPolicy.paceMarkerColorLevel(for: "57%!!") == .critical, "multiple markers use critical pace color level")
     let split = QuotaDisplayPolicy.splitPercentComponents("95%!!")
     expect(split.0 == "95%" && split.1 == "!!", "percent text splits into value and pace marker")
     expect(QuotaDisplayPolicy.menuWindowTitle(for: "5 hours") == "5 hours", "five-hour menu title stays explicit")
@@ -515,6 +528,64 @@ func testQuotaDisplayColorThresholds() {
         slots: 10
     )
     expect(segments.remaining == 4 && segments.used == 6 && segments.markerIndex == 9, "progress segments render remaining on the left, used on the right, and include a normal-progress marker")
+}
+
+func testQuotaRowUsesRemainingColorSeparatelyFromPaceMarkerColor() {
+    let row = StatusPresentation.MenuRow(
+        label: "7 days",
+        percentText: "57%!",
+        resetText: "Apr 17",
+        resetDate: nil,
+        isUsingFasterThanAverage: true,
+        paceText: "Pace above avg",
+        paceSeverity: .warning,
+        paceOverrunPercent: 6,
+        usedPercent: 43,
+        paceThresholdPercent: 37,
+        markerThresholdPercent: 37,
+        tooltipText: nil
+    )
+    let presentation = StatusPresentation(
+        line1: "H 95%",
+        line2: "W 57%!",
+        tooltip: "quota",
+        accountRow: nil,
+        planRow: nil,
+        primaryRow: nil,
+        secondaryRow: row,
+        paceMessage: nil,
+        paceSeverity: .warning,
+        trendText: nil,
+        trendSummary: nil,
+        sparklineText: nil,
+        updatedAtText: "12s ago",
+        sourceText: "Source: API",
+        creditsText: nil,
+        language: .english
+    )
+
+    let result = MenuAttributedContentBuilder.build(
+        presentation: presentation,
+        language: .english,
+        showsPaceAlert: true,
+        showsLastUpdated: true,
+        selectedWeeklyPacingMode: .balanced56,
+        weeklyPaceExplanation: "weekly",
+        weeklyPaceInlineExplanation: "inline"
+    )
+
+    let text = result.input.secondary.string as NSString
+    let percentRange = text.range(of: "57%")
+    let markerRange = text.range(of: "!")
+    let barRange = text.range(of: "█")
+
+    let percentColor = result.input.secondary.attribute(.foregroundColor, at: percentRange.location, effectiveRange: nil) as? NSColor
+    let markerColor = result.input.secondary.attribute(.foregroundColor, at: markerRange.location, effectiveRange: nil) as? NSColor
+    let barColor = result.input.secondary.attribute(.foregroundColor, at: barRange.location, effectiveRange: nil) as? NSColor
+
+    expect(sameColor(percentColor, .systemGreen), "remaining percent stays green when quota is healthy even if pace warning exists")
+    expect(sameColor(markerColor, .systemYellow), "pace marker is highlighted separately in warning yellow")
+    expect(sameColor(barColor, .systemGreen), "progress bar fill follows remaining quota color rather than pace warning color")
 }
 
 func testQuotaRowTooltipsIncludeDurationBreakdown() {
@@ -1644,6 +1715,7 @@ struct TestRunner {
         testDisplayStateStoreKeepsTimestampWhenDisplayNumbersDoNotChange()
         testDisplayStateStoreAdvancesTimestampWhenDisplayNumbersChange()
         testQuotaDisplayColorThresholds()
+        testQuotaRowUsesRemainingColorSeparatelyFromPaceMarkerColor()
         testQuotaRowTooltipsIncludeDurationBreakdown()
         testQuotaRowTooltipsUseReadableSmallDurations()
         testQuotaExplanationBuilderFormatsEdgeDurations()

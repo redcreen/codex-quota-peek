@@ -213,11 +213,7 @@ enum MenuAttributedContentBuilder {
         )
         let progressBar = styledProgressBar(
             forPercentText: percent,
-            overrunPercent: paceOverrunPercent,
-            usedPercent: usedPercent,
-            thresholdPercent: paceThresholdPercent,
             markerThresholdPercent: markerThresholdPercent,
-            paceSeverity: paceSeverity,
             displayScale: displayScale,
             usedOnLeft: usedOnLeft,
             font: barFont,
@@ -266,26 +262,34 @@ enum MenuAttributedContentBuilder {
                 ]
             )
         )
+        let statusPrefix = "\(language.leftLabel) \(layout.percentValue)"
         detail.append(
             NSAttributedString(
-                string: layout.statusText,
+                string: statusPrefix,
                 attributes: [
                     .font: detailFont,
                     .foregroundColor: quotaColor(for: percent)
                 ]
             )
         )
+        if !layout.percentMarker.isEmpty {
+            detail.append(
+                NSAttributedString(
+                    string: " \(layout.percentMarker)",
+                    attributes: [
+                        .font: detailFont,
+                        .foregroundColor: paceColor(for: layout.percentMarker)
+                    ]
+                )
+            )
+        }
         header.append(detail)
         return header
     }
 
     private static func styledProgressBar(
         forPercentText percentText: String,
-        overrunPercent: Double?,
-        usedPercent: Double,
-        thresholdPercent: Double?,
         markerThresholdPercent: Double?,
-        paceSeverity: StatusPresentation.PaceSeverity?,
         displayScale: Double,
         usedOnLeft: Bool,
         font: NSFont,
@@ -307,7 +311,7 @@ enum MenuAttributedContentBuilder {
             slots: slots,
             titleColumnWidth: 0
         )
-        let remainingColor = remainingColor(for: percentText, paceSeverity: paceSeverity)
+        let remainingColor = quotaColor(for: percentText)
         let usedColor = NSColor.tertiaryLabelColor
         let markerColor = NSColor.secondaryLabelColor
         let markerLine: NSAttributedString?
@@ -426,17 +430,14 @@ enum MenuAttributedContentBuilder {
         return NSColor.systemGreen
     }
 
-    private static func remainingColor(for percentText: String, paceSeverity: StatusPresentation.PaceSeverity?) -> NSColor {
-        guard paceSeverity != nil else {
-            return NSColor.systemGreen
-        }
-        switch paceSeverity {
+    private static func paceColor(for marker: String) -> NSColor {
+        switch QuotaDisplayPolicy.paceMarkerColorLevel(for: marker) {
         case .warning:
             return NSColor.systemYellow
-        case .critical, .severe:
+        case .critical:
             return NSColor.systemRed
-        case nil:
-            return NSColor.systemGreen
+        case .normal, nil:
+            return NSColor.secondaryLabelColor
         }
     }
 
