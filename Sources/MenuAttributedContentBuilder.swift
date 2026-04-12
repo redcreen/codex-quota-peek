@@ -192,6 +192,7 @@ enum MenuAttributedContentBuilder {
         usedOnLeft: Bool
     ) -> NSAttributedString {
         let barFont = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
+        let labelFont = NSFont.monospacedSystemFont(ofSize: 13, weight: .semibold)
         let detailFont = NSFont.monospacedSystemFont(ofSize: 9.5, weight: .medium)
         let progressSlots = 28
         let titleColumnWidth = 4
@@ -238,7 +239,7 @@ enum MenuAttributedContentBuilder {
             NSAttributedString(
                 string: layout.compactLabel.padding(toLength: titleColumnWidth, withPad: " ", startingAt: 0) + " ",
                 attributes: [
-                    .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
+                    .font: labelFont,
                     .foregroundColor: NSColor.labelColor
                 ]
             )
