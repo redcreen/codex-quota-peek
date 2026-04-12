@@ -1,6 +1,16 @@
 import Foundation
 
 struct DisplayStateStore {
+    private struct DisplaySignature: Equatable {
+        let primaryRemainingPercent: Int?
+        let primaryResetAt: Int?
+        let secondaryRemainingPercent: Int?
+        let secondaryResetAt: Int?
+        let creditsBalance: String?
+        let creditsHasCredits: Bool?
+        let creditsUnlimited: Bool?
+    }
+
     private(set) var lastSuccessfulAPIResult: CodexQuotaFetchResult?
     private(set) var lastAcceptedResult: CodexQuotaFetchResult?
     private(set) var snapshotForDisplay: CodexQuotaSnapshot?
@@ -8,6 +18,7 @@ struct DisplayStateStore {
     private(set) var trendSummaryForDisplay: CodexQuotaTrendSummary?
     private(set) var sourceForDisplay: CodexQuotaFetchSource?
     private(set) var generatedAtForDisplay: Date?
+    private var displaySignature: DisplaySignature?
 
     mutating func resolvePreferredResult(
         _ fetchedResult: CodexQuotaFetchResult,
@@ -32,12 +43,17 @@ struct DisplayStateStore {
         trendSummary: CodexQuotaTrendSummary?,
         source: CodexQuotaFetchSource,
         generatedAt: Date
-    ) {
+    ) -> Date {
+        let signature = makeDisplaySignature(from: snapshot)
         snapshotForDisplay = snapshot
         accountInfoForDisplay = accountInfo
         trendSummaryForDisplay = trendSummary
         sourceForDisplay = source
-        generatedAtForDisplay = generatedAt
+        if displaySignature != signature || generatedAtForDisplay == nil {
+            generatedAtForDisplay = generatedAt
+            displaySignature = signature
+        }
+        return generatedAtForDisplay ?? generatedAt
     }
 
     var hasDisplaySnapshot: Bool {
@@ -72,6 +88,18 @@ struct DisplayStateStore {
             trendSummary: trendSummaryForDisplay,
             weeklyPacingMode: weeklyPacingMode,
             language: language
+        )
+    }
+
+    private func makeDisplaySignature(from snapshot: CodexQuotaSnapshot) -> DisplaySignature {
+        DisplaySignature(
+            primaryRemainingPercent: snapshot.rateLimits.primary?.remainingPercent,
+            primaryResetAt: snapshot.rateLimits.primary?.resetAt.map { Int($0.rounded()) },
+            secondaryRemainingPercent: snapshot.rateLimits.secondary?.remainingPercent,
+            secondaryResetAt: snapshot.rateLimits.secondary?.resetAt.map { Int($0.rounded()) },
+            creditsBalance: snapshot.credits?.balance,
+            creditsHasCredits: snapshot.credits?.hasCredits,
+            creditsUnlimited: snapshot.credits?.unlimited
         )
     }
 }

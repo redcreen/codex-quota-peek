@@ -316,7 +316,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 let result = resolvePreferredResult(fetchedResult, for: mode)
                 let accountInfo = provider.loadAccountInfo()
                 let trendSummary = try? provider.loadTrendSummary()
-                let currentGeneratedAt = Date()
+                let currentGeneratedAt = result.sourceDate ?? Date()
                 presentation = StatusPresentation(
                     snapshot: result.snapshot,
                     accountInfo: accountInfo,
@@ -359,21 +359,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 guard self.refreshRequestGate.shouldApply(requestID) else {
                     return
                 }
+                var presentationToApply = presentation
                 if let fetchedSnapshot, let fetchedSource, let generatedAt {
-                    self.displayState.recordDisplayInputs(
+                    _ = self.displayState.recordDisplayInputs(
                         snapshot: fetchedSnapshot,
                         accountInfo: fetchedAccountInfo,
                         trendSummary: fetchedTrendSummary,
                         source: fetchedSource,
                         generatedAt: generatedAt
                     )
+                    if let rebuilt = self.displayState.rebuildPresentation(
+                        weeklyPacingMode: self.selectedWeeklyPacingMode,
+                        language: self.selectedAppLanguage
+                    ) {
+                        presentationToApply = rebuilt
+                    }
+                } else if self.displayState.hasDisplaySnapshot,
+                          let rebuilt = self.displayState.rebuildPresentation(
+                            weeklyPacingMode: self.selectedWeeklyPacingMode,
+                            language: self.selectedAppLanguage
+                          ) {
+                    presentationToApply = rebuilt
                 }
-                self.apply(presentation)
+                self.apply(presentationToApply)
                 if let feedbackMessage {
                     self.showFeedback(feedbackMessage)
                 }
                 completion?()
-                self.maybeSendNotification(for: presentation)
+                self.maybeSendNotification(for: presentationToApply)
                 if self.shouldReopenMenuAfterRefresh {
                     self.shouldReopenMenuAfterRefresh = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in

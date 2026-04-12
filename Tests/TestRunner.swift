@@ -178,7 +178,7 @@ func testDisplayStateStoreRebuildsPresentationFromCachedInputs() {
     let generatedAt = Date(timeIntervalSince1970: 1_000)
     let account = CodexAccountInfo(displayName: "User", email: "user@example.com", planDisplayName: "Pro")
 
-    store.recordDisplayInputs(
+    _ = store.recordDisplayInputs(
         snapshot: snapshot,
         accountInfo: account,
         trendSummary: nil,
@@ -443,9 +443,59 @@ func testTrendRowsStayInsideCurrentResetWindow() {
 
 func testRelativeUpdatedAtLabels() {
     let now = Date(timeIntervalSince1970: 2_000)
-    expect(StatusPresentation.relativeUpdatedAtLabel(for: Date(timeIntervalSince1970: 1_997), now: now) == "just updated", "fresh timestamps show just updated")
-    expect(StatusPresentation.relativeUpdatedAtLabel(for: Date(timeIntervalSince1970: 1_950), now: now) == "50s", "sub-minute timestamps show seconds")
-    expect(StatusPresentation.relativeUpdatedAtLabel(for: Date(timeIntervalSince1970: 1_880), now: now) == "2m", "older timestamps show minutes")
+    expect(StatusPresentation.relativeUpdatedAtLabel(for: Date(timeIntervalSince1970: 1_997), now: now) == "3s ago", "fresh timestamps show relative seconds")
+    expect(StatusPresentation.relativeUpdatedAtLabel(for: Date(timeIntervalSince1970: 1_950), now: now) == "50s ago", "sub-minute timestamps show seconds ago")
+    expect(StatusPresentation.relativeUpdatedAtLabel(for: Date(timeIntervalSince1970: 1_880), now: now) == "2m ago", "older timestamps show minutes ago")
+}
+
+func testDisplayStateStoreKeepsTimestampWhenDisplayNumbersDoNotChange() {
+    var store = DisplayStateStore()
+    let snapshot = makeSnapshot(primaryUsed: 12, secondaryUsed: 34)
+    let firstDate = Date(timeIntervalSince1970: 1_000)
+    let secondDate = Date(timeIntervalSince1970: 2_000)
+
+    let firstRecorded = store.recordDisplayInputs(
+        snapshot: snapshot,
+        accountInfo: nil,
+        trendSummary: nil,
+        source: .api,
+        generatedAt: firstDate
+    )
+    let secondRecorded = store.recordDisplayInputs(
+        snapshot: snapshot,
+        accountInfo: nil,
+        trendSummary: nil,
+        source: .realtimeLogs,
+        generatedAt: secondDate
+    )
+
+    expect(firstRecorded == firstDate, "display state stores the first changed timestamp")
+    expect(secondRecorded == firstDate, "display state preserves timestamp when visible numbers are unchanged")
+    expect(store.displayedGeneratedAt == firstDate, "display state keeps original freshness point for unchanged display values")
+}
+
+func testDisplayStateStoreAdvancesTimestampWhenDisplayNumbersChange() {
+    var store = DisplayStateStore()
+    let firstDate = Date(timeIntervalSince1970: 1_000)
+    let secondDate = Date(timeIntervalSince1970: 2_000)
+
+    _ = store.recordDisplayInputs(
+        snapshot: makeSnapshot(primaryUsed: 12, secondaryUsed: 34),
+        accountInfo: nil,
+        trendSummary: nil,
+        source: .api,
+        generatedAt: firstDate
+    )
+    let secondRecorded = store.recordDisplayInputs(
+        snapshot: makeSnapshot(primaryUsed: 12, secondaryUsed: 40),
+        accountInfo: nil,
+        trendSummary: nil,
+        source: .api,
+        generatedAt: secondDate
+    )
+
+    expect(secondRecorded == secondDate, "display state advances timestamp when visible quota numbers change")
+    expect(store.displayedGeneratedAt == secondDate, "display state publishes the new freshness point after a real display change")
 }
 
 func testQuotaDisplayColorThresholds() {
@@ -1142,7 +1192,7 @@ func testChineseLanguagePresentationLocalizesCoreLabels() {
 
     expect(presentation.accountRow?.label == "账号", "presentation localizes account label")
     expect(presentation.sourceText == "来源：本地日志", "presentation localizes source label")
-    expect(presentation.updatedAtText == "刚刚更新", "presentation localizes relative update label")
+    expect(presentation.updatedAtText == "1s前更新", "presentation localizes relative update label")
     expect(presentation.trendText?.contains("每日用量") == true, "presentation localizes daily usage chart")
 }
 
@@ -1591,6 +1641,8 @@ struct TestRunner {
     testSparklineSampling()
     testTrendRowsStayInsideCurrentResetWindow()
     testRelativeUpdatedAtLabels()
+        testDisplayStateStoreKeepsTimestampWhenDisplayNumbersDoNotChange()
+        testDisplayStateStoreAdvancesTimestampWhenDisplayNumbersChange()
         testQuotaDisplayColorThresholds()
         testQuotaRowTooltipsIncludeDurationBreakdown()
         testQuotaRowTooltipsUseReadableSmallDurations()

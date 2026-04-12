@@ -187,9 +187,9 @@ enum AppLanguage: String, CaseIterable {
     var showLastUpdatedDetail: String {
         switch self {
         case .english:
-            return "Show relative freshness labels like just updated, 12s, or 3m."
+            return "Show relative freshness labels like 12s ago or 3m ago."
         case .chinese:
-            return "显示如刚刚更新、12 秒、3 分钟这样的相对时间标签。"
+            return "显示如 12s前更新、3m前更新 这样的相对时间标签。"
         }
     }
 
@@ -403,13 +403,12 @@ enum AppLanguage: String, CaseIterable {
     }
 
     func relativeUpdatedAtLabel(seconds: Int) -> String {
-        if seconds <= 5 {
-            return justUpdatedText
+        let clampedSeconds = max(1, seconds)
+        if clampedSeconds < 60 {
+            return self == .english ? "\(clampedSeconds)s ago" : "\(clampedSeconds)s前更新"
         }
-        if seconds < 60 {
-            return self == .english ? "\(seconds)s" : "\(seconds) 秒"
-        }
-        return self == .english ? "\(seconds / 60)m" : "\(seconds / 60) 分钟"
+        let minutes = max(1, clampedSeconds / 60)
+        return self == .english ? "\(minutes)m ago" : "\(minutes)m前更新"
     }
 
     func creditsText(balance: String?, hasCredits: Bool?, unlimited: Bool?) -> String? {

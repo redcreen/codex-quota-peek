@@ -43,6 +43,7 @@ enum MenuAttributedContentBuilder {
 
         let updatedAt = showsLastUpdated
             ? styledUpdatedAt(
+                language: language,
                 prefix: language.updatedPrefix,
                 text: presentation.updatedAtText,
                 source: presentation.sourceText
@@ -439,9 +440,10 @@ enum MenuAttributedContentBuilder {
         }
     }
 
-    private static func styledUpdatedAt(prefix: String, text: String, source: String) -> NSAttributedString {
-        NSAttributedString(
-            string: "\(prefix) \(text)  \(source)",
+    private static func styledUpdatedAt(language: AppLanguage, prefix: String, text: String, source: String) -> NSAttributedString {
+        let line = language == .english ? "\(prefix) \(text)  \(source)" : "\(text)  \(source)"
+        return NSAttributedString(
+            string: line,
             attributes: [
                 .font: NSFont.systemFont(ofSize: 11, weight: .regular),
                 .foregroundColor: NSColor.secondaryLabelColor
