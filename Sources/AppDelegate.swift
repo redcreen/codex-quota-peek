@@ -46,6 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var lastSecondaryExplanationText: String?
     private var pendingStatusItemRecoveryWorkItems: [DispatchWorkItem] = []
     private var needsMenuPresentationRefresh = false
+    private var manualRefreshInFlight = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -84,6 +85,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc
     private func refreshNow(_ sender: Any?) {
+        manualRefreshInFlight = true
         if isMenuOpen {
             shouldReopenMenuAfterRefresh = true
             menu.cancelTracking()
@@ -289,6 +291,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func refreshAsync(mode: QuotaRefreshMode, completion: (() -> Void)? = nil) {
+        guard RefreshSchedulingPolicy.shouldStart(mode: mode, manualRefreshInFlight: manualRefreshInFlight) else {
+            completion?()
+            return
+        }
         let requestID = refreshRequestGate.issue()
         let provider = self.provider
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -357,6 +363,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
             DispatchQueue.main.async {
                 guard self.refreshRequestGate.shouldApply(requestID) else {
+                    if mode == .apiManual {
+                        self.manualRefreshInFlight = false
+                    }
                     return
                 }
                 var presentationToApply = presentation
@@ -385,6 +394,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 self.apply(presentationToApply)
                 if let feedbackMessage {
                     self.showFeedback(feedbackMessage)
+                }
+                if mode == .apiManual {
+                    self.manualRefreshInFlight = false
                 }
                 completion?()
                 self.maybeSendNotification(for: presentationToApply)
@@ -569,12 +581,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         if isMenuOpen {
-            needsMenuPresentationRefresh = true
+            needsMenuPresentationRefresh = false
+            let content = MenuAttributedContentBuilder.build(
+                presentation: presentation,
+                language: language,
+                showsPaceAlert: showsPaceAlert,
+                showsLastUpdated: showsLastUpdated,
+                selectedWeeklyPacingMode: selectedWeeklyPacingMode,
+                weeklyPaceExplanation: weeklyPaceExplanation,
+                weeklyPaceInlineExplanation: weeklyPaceInlineExplanation
+            )
+            lastPrimaryExplanationText = content.primaryExplanationText
+            lastSecondaryExplanationText = content.secondaryExplanationText
+            MenuUpdater.apply(
+                menu: menu,
+                input: content.input
+            )
+            if needsAccountsRefresh {
+                needsAccountsRefresh = false
+                rebuildAccountItems()
+            }
             return
-        }
-
-        if isMenuOpen {
-            needsAccountsRefresh = true
         } else {
             rebuildAccountItems()
         }
