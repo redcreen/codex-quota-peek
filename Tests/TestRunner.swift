@@ -650,6 +650,60 @@ func testQuotaRowUsesRemainingColorSeparatelyFromPaceMarkerColor() {
     expect(sameColor(barColor, .systemGreen), "progress bar fill follows remaining quota color rather than pace warning color")
 }
 
+func testQuotaRowKeepsQuotaColorGreenBelowFiftyPercentWhenOnlyPaceWarns() {
+    let row = StatusPresentation.MenuRow(
+        label: "7 days",
+        percentText: "46%!",
+        resetText: "Apr 17",
+        resetDate: nil,
+        isUsingFasterThanAverage: true,
+        paceText: "Pace above avg",
+        paceSeverity: .warning,
+        paceOverrunPercent: 6,
+        usedPercent: 54,
+        paceThresholdPercent: 37,
+        markerThresholdPercent: 37,
+        tooltipText: nil
+    )
+    let presentation = StatusPresentation(
+        line1: "H 95%",
+        line2: "W 46%!",
+        tooltip: "quota",
+        accountRow: nil,
+        planRow: nil,
+        primaryRow: nil,
+        secondaryRow: row,
+        paceMessage: nil,
+        paceSeverity: .warning,
+        trendText: nil,
+        trendSummary: nil,
+        sparklineText: nil,
+        updatedAtText: "12s ago",
+        sourceText: "Source: API",
+        creditsText: nil,
+        language: .english
+    )
+
+    let result = MenuAttributedContentBuilder.build(
+        presentation: presentation,
+        language: .english,
+        showsPaceAlert: true,
+        showsLastUpdated: true,
+        selectedWeeklyPacingMode: .balanced56,
+        weeklyPaceExplanation: "weekly",
+        weeklyPaceInlineExplanation: "inline"
+    )
+
+    let text = result.input.secondary.string as NSString
+    let percentRange = text.range(of: "46%")
+    let barRange = text.range(of: "█")
+    let percentColor = result.input.secondary.attribute(.foregroundColor, at: percentRange.location, effectiveRange: nil) as? NSColor
+    let barColor = result.input.secondary.attribute(.foregroundColor, at: barRange.location, effectiveRange: nil) as? NSColor
+
+    expect(sameColor(percentColor, .systemGreen), "quota percent stays green even below 50% when threshold coloring is disabled")
+    expect(sameColor(barColor, .systemGreen), "quota bar fill stays green even below 50% when threshold coloring is disabled")
+}
+
 func testQuotaRowShowsOnlyExceededUsedSegmentInPaceColor() {
     let row = StatusPresentation.MenuRow(
         label: "7 days",
@@ -1912,6 +1966,7 @@ struct TestRunner {
         testManualRefreshPrefersInvocationTimeOverFetchedSourceTime()
         testQuotaDisplayColorThresholds()
         testQuotaRowUsesRemainingColorSeparatelyFromPaceMarkerColor()
+        testQuotaRowKeepsQuotaColorGreenBelowFiftyPercentWhenOnlyPaceWarns()
         testQuotaRowShowsOnlyExceededUsedSegmentInPaceColor()
         testQuotaRowKeepsUsedSegmentGrayWhenPaceIsNormal()
         testQuotaRowTooltipsIncludeDurationBreakdown()

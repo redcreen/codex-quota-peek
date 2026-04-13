@@ -443,20 +443,14 @@ enum MenuAttributedContentBuilder {
     }
 
     private static func quotaColor(for percentText: String) -> NSColor {
-        guard let percent = Int(
+        guard Int(
             percentText
                 .replacingOccurrences(of: "%", with: "")
                 .replacingOccurrences(of: "!", with: "")
-        ) else {
+        ) != nil else {
             return NSColor.labelColor
         }
 
-        if percent < 30 {
-            return NSColor.systemRed
-        }
-        if percent < 50 {
-            return NSColor.systemYellow
-        }
         return NSColor.systemGreen
     }
 
