@@ -34,7 +34,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var authMonitorFileDescriptor: Int32 = -1
     private var refreshWorkItem: DispatchWorkItem?
     private var accountRefreshWorkItem: DispatchWorkItem?
-    private var shouldReopenMenuAfterRefresh = false
     private var feedbackHideWorkItem: DispatchWorkItem?
     private var displayState = DisplayStateStore()
     private var accountItemLookup: [Int: CodexKnownAccount] = [:]
@@ -86,14 +85,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc
     private func refreshNow(_ sender: Any?) {
         manualRefreshInFlight = true
-        if isMenuOpen {
-            shouldReopenMenuAfterRefresh = true
-            menu.cancelTracking()
-            DispatchQueue.main.async { [weak self] in
-                self?.refreshAsync(mode: .apiManual)
-            }
-            return
-        }
         refreshAsync(mode: .apiManual)
     }
 
@@ -322,7 +313,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 let result = resolvePreferredResult(fetchedResult, for: mode)
                 let accountInfo = provider.loadAccountInfo()
                 let trendSummary = try? provider.loadTrendSummary()
-                let currentGeneratedAt = result.sourceDate ?? Date()
+                let currentGeneratedAt = mode == .apiManual ? Date() : (result.sourceDate ?? Date())
                 presentation = StatusPresentation(
                     snapshot: result.snapshot,
                     accountInfo: accountInfo,
@@ -400,12 +391,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 }
                 completion?()
                 self.maybeSendNotification(for: presentationToApply)
-                if self.shouldReopenMenuAfterRefresh {
-                    self.shouldReopenMenuAfterRefresh = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
-                        self?.statusItem.button?.performClick(nil)
-                    }
-                }
             }
         }
     }
@@ -1076,7 +1061,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         defaults.set(mode.rawValue, forKey: PreferenceKey.weeklyPacingMode)
         syncPreferencesWindow()
         reapplyCachedPresentationForCurrentMode()
-        shouldReopenMenuAfterRefresh = true
         refreshAsync(mode: .automatic)
     }
 

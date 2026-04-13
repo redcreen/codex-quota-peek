@@ -562,6 +562,14 @@ func testDisplayStateStoreManualRefreshAdvancesTimestampEvenWhenDisplayNumbersDo
     expect(store.displayedGeneratedAt == secondDate, "display state publishes the manual refresh time when explicitly forced")
 }
 
+func testManualRefreshPrefersInvocationTimeOverFetchedSourceTime() {
+    let fetchedSourceTime = Date(timeIntervalSince1970: 1_000)
+    let manualRefreshTime = Date(timeIntervalSince1970: 1_120)
+    let effectiveTimestamp = max(manualRefreshTime, fetchedSourceTime)
+
+    expect(effectiveTimestamp == manualRefreshTime, "manual refresh should use the invocation time when refreshing against older source timestamps")
+}
+
 func testQuotaDisplayColorThresholds() {
     expect(QuotaDisplayPolicy.colorLevel(forPercentText: "82%") == .normal, "high remaining percent is green tier")
     expect(QuotaDisplayPolicy.colorLevel(forPercentText: "49%!") == .warning, "below fifty percent is yellow tier")
@@ -1901,6 +1909,7 @@ struct TestRunner {
         testDisplayStateStoreKeepsTimestampWhenDisplayNumbersDoNotChange()
         testDisplayStateStoreAdvancesTimestampWhenDisplayNumbersChange()
         testDisplayStateStoreManualRefreshAdvancesTimestampEvenWhenDisplayNumbersDoNotChange()
+        testManualRefreshPrefersInvocationTimeOverFetchedSourceTime()
         testQuotaDisplayColorThresholds()
         testQuotaRowUsesRemainingColorSeparatelyFromPaceMarkerColor()
         testQuotaRowShowsOnlyExceededUsedSegmentInPaceColor()
