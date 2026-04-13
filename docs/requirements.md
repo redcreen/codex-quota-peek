@@ -1,5 +1,7 @@
 # Requirements
 
+[English](requirements.md) | [中文](requirements.zh-CN.md)
+
 This document turns the current product behavior into an explicit requirements
 baseline so future changes can be validated against something stable instead of
 memory.
@@ -225,4 +227,3 @@ The following are considered release-blocking regressions:
 - help output
 - deterministic build smoke
 - optional live status smoke only when explicitly requested
-

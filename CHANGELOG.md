@@ -1,5 +1,7 @@
 # Changelog
 
+[English](CHANGELOG.md) | [中文](CHANGELOG.zh-CN.md)
+
 All notable changes to `Codex Quota Peek` are documented here.
 
 ## 0.1.0 - 2026-04-06

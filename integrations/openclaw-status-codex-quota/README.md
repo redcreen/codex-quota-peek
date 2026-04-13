@@ -1,5 +1,7 @@
 # Status Codex Quota
 
+[English](README.md) | [中文](README.zh-CN.md)
+
 `status-codex-quota` is an OpenClaw plugin that appends `codexQuotaPeek` output
 to OpenClaw status results.
 

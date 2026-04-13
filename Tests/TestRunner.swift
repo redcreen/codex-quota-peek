@@ -1072,6 +1072,16 @@ func testRefreshRequestGateOnlyAppliesLatestRequest() {
     expect(gate.shouldApply(second), "latest refresh request is allowed to apply")
 }
 
+func testRefreshSchedulingPolicyProtectsManualRefreshes() {
+    expect(RefreshSchedulingPolicy.shouldStart(mode: .automatic, manualRefreshInFlight: false), "automatic refresh can start when no manual refresh is running")
+    expect(RefreshSchedulingPolicy.shouldStart(mode: .startupAPI, manualRefreshInFlight: false), "startup API refresh can start when no manual refresh is running")
+    expect(RefreshSchedulingPolicy.shouldStart(mode: .apiManual, manualRefreshInFlight: false), "manual refresh can start normally")
+
+    expect(!RefreshSchedulingPolicy.shouldStart(mode: .automatic, manualRefreshInFlight: true), "automatic refresh is blocked while a manual refresh is in flight")
+    expect(!RefreshSchedulingPolicy.shouldStart(mode: .startupAPI, manualRefreshInFlight: true), "startup API refresh is blocked while a manual refresh is in flight")
+    expect(RefreshSchedulingPolicy.shouldStart(mode: .apiManual, manualRefreshInFlight: true), "manual refreshes remain allowed while another manual refresh is in flight")
+}
+
 func testAutomaticRefreshDoesNotRegressWithinSameResetWindow() {
     let currentAccepted = CodexQuotaFetchResult(
         snapshot: CodexQuotaSnapshot(
@@ -1909,6 +1919,7 @@ struct TestRunner {
         testAccountMenuBuilderBuildsStableSwitchLabels()
         testCliHelpPrefersRefreshOverUpdate()
         testRefreshRequestGateOnlyAppliesLatestRequest()
+        testRefreshSchedulingPolicyProtectsManualRefreshes()
         testAutomaticRefreshDoesNotRegressWithinSameResetWindow()
         testAutomaticRefreshFailureShouldKeepCurrentSnapshot()
         testStartupAPIRefreshFallsBackWithoutOverridingCurrentRules()

@@ -1,5 +1,7 @@
 # Release Guide
 
+[English](RELEASE.md) | [中文](RELEASE.zh-CN.md)
+
 This project ships a macOS app bundle, a CLI, a versioned DMG, a versioned zip package, and generated release notes.
 
 ## Local release steps

@@ -1,5 +1,7 @@
 # Signing and Notarization Plan
 
+[English](signing-and-notarization-plan.md) | [中文](signing-and-notarization-plan.zh-CN.md)
+
 This document describes the future release-hardening plan for `Codex Quota Peek`.
 
 ## Goal

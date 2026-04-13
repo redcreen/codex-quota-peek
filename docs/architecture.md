@@ -1,3 +1,5 @@
+[English](architecture.md) | [中文](architecture.zh-CN.md)
+
 # Architecture
 
 This document explains how Codex Quota Peek is implemented today and why the

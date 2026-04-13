@@ -1,5 +1,7 @@
 # Integrations
 
+[English](README.md) | [中文](README.zh-CN.md)
+
 This folder contains first-party integrations built and maintained alongside
 Codex Quota Peek.
 
