@@ -323,6 +323,32 @@ func testManualRefreshDoesNotForceCachedAPIOverFetchedLogs() {
     expect(preferred.source == .realtimeLogs, "manual refresh uses fetched fallback result if API is unavailable")
 }
 
+func testManualRefreshAcceptsNewAPIOverPreviouslyAcceptedDisplayState() {
+    let previousDisplay = makeResult(
+        source: .realtimeLogs,
+        sourceDate: Date(timeIntervalSince1970: 2_000),
+        primaryUsed: 40,
+        secondaryUsed: 72
+    )
+    let freshAPI = makeResult(
+        source: .api,
+        sourceDate: Date(timeIntervalSince1970: 2_100),
+        primaryUsed: 8,
+        secondaryUsed: 61
+    )
+
+    let preferred = QuotaRefreshPolicy.preferredResult(
+        fetchedResult: freshAPI,
+        mode: .apiManual,
+        lastSuccessfulAPIResult: previousDisplay,
+        lastAcceptedResult: previousDisplay
+    )
+
+    expect(preferred.source == .api, "manual refresh accepts the freshly fetched API result over the previous accepted display value")
+    expect(preferred.snapshot.rateLimits.primary?.remainingPercent == 92, "manual refresh keeps the new primary API quota")
+    expect(preferred.snapshot.rateLimits.secondary?.remainingPercent == 39, "manual refresh keeps the new weekly API quota")
+}
+
 func testSourceStrategyFetchPlans() {
     expect(
         QuotaRefreshPolicy.fetchPlan(for: .automatic, sourceStrategy: .auto) == .localFirst,
@@ -1951,6 +1977,7 @@ struct TestRunner {
         testAutomaticRefreshAllowsLogsAfterTheyCatchUp()
         testAutomaticRefreshPrefersAPIWhenLogsShowOlderResetWindow()
         testManualRefreshDoesNotForceCachedAPIOverFetchedLogs()
+        testManualRefreshAcceptsNewAPIOverPreviouslyAcceptedDisplayState()
         testSourceStrategyFetchPlans()
         testMenuOpenRefreshPrefersAPIForLogsOrStaleData()
         testDisplayPresentationUsesPaceMarkersAndSourceText()

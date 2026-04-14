@@ -74,6 +74,10 @@ enum QuotaRefreshPolicy {
         lastSuccessfulAPIResult: CodexQuotaFetchResult?,
         lastAcceptedResult: CodexQuotaFetchResult?
     ) -> CodexQuotaFetchResult {
+        if mode == .apiManual {
+            return fetchedResult
+        }
+
         if let lastAcceptedResult, shouldKeepLastAccepted(lastAcceptedResult, over: fetchedResult) {
             return lastAcceptedResult
         }
