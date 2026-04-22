@@ -45,7 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var lastSecondaryExplanationText: String?
     private var pendingStatusItemRecoveryWorkItems: [DispatchWorkItem] = []
     private var needsMenuPresentationRefresh = false
-    private var manualRefreshInFlight = false
+    private var manualRefreshStartedAt: Date?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -84,7 +84,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc
     private func refreshNow(_ sender: Any?) {
-        manualRefreshInFlight = true
+        manualRefreshStartedAt = Date()
         refreshAsync(mode: .apiManual)
     }
 
@@ -282,7 +282,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func refreshAsync(mode: QuotaRefreshMode, completion: (() -> Void)? = nil) {
-        guard RefreshSchedulingPolicy.shouldStart(mode: mode, manualRefreshInFlight: manualRefreshInFlight) else {
+        guard RefreshSchedulingPolicy.shouldStart(mode: mode, manualRefreshStartedAt: manualRefreshStartedAt) else {
             completion?()
             return
         }
@@ -355,7 +355,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             DispatchQueue.main.async {
                 guard self.refreshRequestGate.shouldApply(requestID) else {
                     if mode == .apiManual {
-                        self.manualRefreshInFlight = false
+                        self.manualRefreshStartedAt = nil
                     }
                     return
                 }
@@ -387,7 +387,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     self.showFeedback(feedbackMessage)
                 }
                 if mode == .apiManual {
-                    self.manualRefreshInFlight = false
+                    self.manualRefreshStartedAt = nil
                 }
                 completion?()
                 self.maybeSendNotification(for: presentationToApply)

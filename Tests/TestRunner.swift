@@ -1161,13 +1161,19 @@ func testRefreshRequestGateOnlyAppliesLatestRequest() {
 }
 
 func testRefreshSchedulingPolicyProtectsManualRefreshes() {
-    expect(RefreshSchedulingPolicy.shouldStart(mode: .automatic, manualRefreshInFlight: false), "automatic refresh can start when no manual refresh is running")
-    expect(RefreshSchedulingPolicy.shouldStart(mode: .startupAPI, manualRefreshInFlight: false), "startup API refresh can start when no manual refresh is running")
-    expect(RefreshSchedulingPolicy.shouldStart(mode: .apiManual, manualRefreshInFlight: false), "manual refresh can start normally")
+    let now = Date(timeIntervalSince1970: 1_000)
+    expect(RefreshSchedulingPolicy.shouldStart(mode: .automatic, manualRefreshStartedAt: nil, now: now), "automatic refresh can start when no manual refresh is running")
+    expect(RefreshSchedulingPolicy.shouldStart(mode: .startupAPI, manualRefreshStartedAt: nil, now: now), "startup API refresh can start when no manual refresh is running")
+    expect(RefreshSchedulingPolicy.shouldStart(mode: .apiManual, manualRefreshStartedAt: nil, now: now), "manual refresh can start normally")
 
-    expect(!RefreshSchedulingPolicy.shouldStart(mode: .automatic, manualRefreshInFlight: true), "automatic refresh is blocked while a manual refresh is in flight")
-    expect(!RefreshSchedulingPolicy.shouldStart(mode: .startupAPI, manualRefreshInFlight: true), "startup API refresh is blocked while a manual refresh is in flight")
-    expect(RefreshSchedulingPolicy.shouldStart(mode: .apiManual, manualRefreshInFlight: true), "manual refreshes remain allowed while another manual refresh is in flight")
+    let activeManualRefresh = now.addingTimeInterval(-5)
+    expect(!RefreshSchedulingPolicy.shouldStart(mode: .automatic, manualRefreshStartedAt: activeManualRefresh, now: now), "automatic refresh is blocked while a recent manual refresh is in flight")
+    expect(!RefreshSchedulingPolicy.shouldStart(mode: .startupAPI, manualRefreshStartedAt: activeManualRefresh, now: now), "startup API refresh is blocked while a recent manual refresh is in flight")
+    expect(RefreshSchedulingPolicy.shouldStart(mode: .apiManual, manualRefreshStartedAt: activeManualRefresh, now: now), "manual refreshes remain allowed while another manual refresh is in flight")
+
+    let staleManualRefresh = now.addingTimeInterval(-31)
+    expect(RefreshSchedulingPolicy.shouldStart(mode: .automatic, manualRefreshStartedAt: staleManualRefresh, now: now), "automatic refresh is unblocked when a manual refresh has been stuck past the timeout")
+    expect(RefreshSchedulingPolicy.shouldStart(mode: .startupAPI, manualRefreshStartedAt: staleManualRefresh, now: now), "startup API refresh is unblocked when a manual refresh has been stuck past the timeout")
 }
 
 func testAutomaticRefreshDoesNotRegressWithinSameResetWindow() {
