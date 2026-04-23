@@ -127,6 +127,8 @@ enum WeeklyPacingMode: String, CaseIterable {
 }
 
 enum QuotaDisplayPolicy {
+    static let usesThresholdQuotaColors = false
+
     static func weeklyPacingSectionTitle(language: AppLanguage = .english) -> String {
         language == .english ? "Weekly ! Alert" : "每周 ! 提醒"
     }

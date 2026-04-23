@@ -72,7 +72,7 @@ final class StatusBadgeView: NSView {
             at: NSPoint(x: baseX + prefixColumnWidth, y: yOffset),
             withAttributes: [
                 .font: NSFont.monospacedDigitSystemFont(ofSize: 8, weight: .semibold),
-                .foregroundColor: quotaColor(for: components.value)
+                .foregroundColor: Self.badgeQuotaColor
             ]
         )
 
@@ -101,24 +101,7 @@ final class StatusBadgeView: NSView {
         return (value, marker)
     }
 
-    private func quotaColor(for text: String) -> NSColor {
-        guard showsColors else { return .white }
-        guard let percent = Int(
-            text
-                .replacingOccurrences(of: "%", with: "")
-                .replacingOccurrences(of: "!", with: "")
-        ) else {
-            return .white
-        }
-
-        if percent < 30 {
-            return NSColor(calibratedRed: 1.0, green: 0.34, blue: 0.32, alpha: 1.0)
-        }
-        if percent < 50 {
-            return NSColor(calibratedRed: 0.98, green: 0.83, blue: 0.28, alpha: 1.0)
-        }
-        return NSColor(calibratedRed: 0.43, green: 0.93, blue: 0.58, alpha: 1.0)
-    }
+    static let badgeQuotaColor: NSColor = QuotaDisplayPolicy.usesThresholdQuotaColors ? .systemGreen : .white
 
     private func paceColor(for marker: String) -> NSColor {
         guard showsColors else { return .white }

@@ -618,6 +618,10 @@ func testQuotaDisplayColorThresholds() {
     expect(segments.remaining == 4 && segments.used == 6 && segments.markerIndex == 9, "progress segments render remaining on the left, used on the right, and include a normal-progress marker")
 }
 
+func testStatusBadgeQuotaTextDoesNotUseThresholdColors() {
+    expect(!QuotaDisplayPolicy.usesThresholdQuotaColors, "status badge quota text stays neutral instead of changing with remaining-percent thresholds")
+}
+
 func testQuotaRowUsesRemainingColorSeparatelyFromPaceMarkerColor() {
     let row = StatusPresentation.MenuRow(
         label: "7 days",
@@ -1998,6 +2002,7 @@ struct TestRunner {
         testDisplayStateStoreManualRefreshAdvancesTimestampEvenWhenDisplayNumbersDoNotChange()
         testManualRefreshPrefersInvocationTimeOverFetchedSourceTime()
         testQuotaDisplayColorThresholds()
+        testStatusBadgeQuotaTextDoesNotUseThresholdColors()
         testQuotaRowUsesRemainingColorSeparatelyFromPaceMarkerColor()
         testQuotaRowKeepsQuotaColorGreenBelowFiftyPercentWhenOnlyPaceWarns()
         testQuotaRowShowsOnlyExceededUsedSegmentInPaceColor()
