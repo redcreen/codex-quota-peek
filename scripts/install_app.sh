@@ -8,17 +8,18 @@ PROCESS_PATH="$TARGET_PATH/Contents/MacOS/CodexQuotaPeek"
 
 "$ROOT_DIR/scripts/build_app.sh"
 
-was_running=0
-if pgrep -f "$PROCESS_PATH" >/dev/null 2>&1; then
-  was_running=1
-  pkill -9 -f "$PROCESS_PATH" || true
-  sleep 1
-fi
+pkill -x CodexQuotaPeek >/dev/null 2>&1 || true
+pkill -9 -f "$PROCESS_PATH" >/dev/null 2>&1 || true
+
+for _ in {1..20}; do
+  if ! pgrep -x CodexQuotaPeek >/dev/null 2>&1 && ! pgrep -f "$PROCESS_PATH" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.2
+done
 
 /usr/bin/ditto "$APP_PATH" "$TARGET_PATH"
 echo "Installed app to: $TARGET_PATH"
 
-if [[ "$was_running" -eq 1 ]]; then
-  open "$TARGET_PATH"
-  echo "Restarted app after install."
-fi
+open "$TARGET_PATH"
+echo "Restarted app after install."
