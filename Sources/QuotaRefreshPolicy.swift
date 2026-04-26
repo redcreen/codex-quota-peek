@@ -43,6 +43,11 @@ enum QuotaFetchPlan {
 
 enum QuotaRefreshPolicy {
     private static let apiProtectionWindow: TimeInterval = 120
+    private static let automaticRefreshInterval: TimeInterval = 300
+
+    static var automaticRefreshTimerInterval: TimeInterval {
+        automaticRefreshInterval
+    }
 
     static func fetchPlan(for mode: QuotaRefreshMode, sourceStrategy: QuotaSourceStrategy) -> QuotaFetchPlan {
         switch mode {
@@ -66,6 +71,13 @@ enum QuotaRefreshPolicy {
         }
         guard let lastGeneratedAt else { return true }
         return now.timeIntervalSince(lastGeneratedAt) > apiProtectionWindow
+    }
+
+    static func shouldAdvanceFreshnessTimestamp(for mode: QuotaRefreshMode) -> Bool {
+        switch mode {
+        case .automatic, .apiManual, .startupAPI:
+            return true
+        }
     }
 
     static func preferredResult(

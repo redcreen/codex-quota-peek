@@ -1979,6 +1979,31 @@ func testNotificationPolicyRespectsCategoryPreferences() {
     expect(noPaceEvent == nil, "notification policy suppresses all disabled notification categories")
 }
 
+func testRefreshDiagnosticsLoggerLineIncludesSortedDetails() {
+    let line = RefreshDiagnosticsLogger.makeLine(
+        timestamp: "2026-04-26T12:00:00.000Z",
+        event: "refresh_applied",
+        mode: .automatic,
+        details: [
+            "line2": "W 25%!!",
+            "line1": "H 90%",
+            "sourceText": "Source: API"
+        ]
+    )
+
+    expect(
+        line == "[2026-04-26T12:00:00.000Z] refresh_applied mode=automatic line1=H 90% line2=W 25%!! sourceText=Source: API",
+        "diagnostics logger keeps a deterministic line format"
+    )
+}
+
+func testAutomaticRefreshTimerIntervalDefaultsToFiveMinutes() {
+    expect(
+        QuotaRefreshPolicy.automaticRefreshTimerInterval == 300,
+        "automatic refresh timer defaults to five minutes"
+    )
+}
+
 @main
 struct TestRunner {
     static func main() {
@@ -2047,6 +2072,8 @@ struct TestRunner {
         testNotificationPolicyStaysQuietForRepeatedState()
         testNotificationPolicyEmitsResetReminderOnce()
         testNotificationPolicyRespectsCategoryPreferences()
+        testRefreshDiagnosticsLoggerLineIncludesSortedDetails()
+        testAutomaticRefreshTimerIntervalDefaultsToFiveMinutes()
         print("All tests passed.")
     }
 }

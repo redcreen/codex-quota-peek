@@ -22,6 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let badgeView = StatusBadgeView(frame: NSRect(x: 0, y: 0, width: 56, height: 24))
     private let menu = NSMenu()
     private let homeDirectory = FileManager.default.homeDirectoryForCurrentUser
+    private let diagnosticsLogger = RefreshDiagnosticsLogger()
     private let defaults = UserDefaults.standard
     private var refreshTimer: Timer?
     private var lastPresentation = StatusPresentation.loading
@@ -71,9 +72,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.triggerStartupAPIRefreshIfNeeded()
         }
         refreshAccountsAsync()
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { [weak self] _ in
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: QuotaRefreshPolicy.automaticRefreshTimerInterval, repeats: true) { [weak self] _ in
             self?.refreshAsync(mode: .automatic)
         }
+        diagnosticsLogger.log(
+            event: "app_started",
+            details: [
+                "autoRefreshIntervalSeconds": String(Int(QuotaRefreshPolicy.automaticRefreshTimerInterval))
+            ]
+        )
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -283,9 +290,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func refreshAsync(mode: QuotaRefreshMode, completion: (() -> Void)? = nil) {
         guard RefreshSchedulingPolicy.shouldStart(mode: mode, manualRefreshStartedAt: manualRefreshStartedAt) else {
+            diagnosticsLogger.log(
+                event: "refresh_skipped",
+                mode: mode,
+                details: [
+                    "reason": "manual_refresh_lock",
+                    "manualRefreshStartedAt": manualRefreshStartedAt.map { ISO8601DateFormatter().string(from: $0) } ?? "--"
+                ]
+            )
             completion?()
             return
         }
+        diagnosticsLogger.log(
+            event: "refresh_started",
+            mode: mode,
+            details: [
+                "sourceStrategy": selectedSourceStrategy.rawValue,
+                "menuOpen": isMenuOpen ? "true" : "false"
+            ]
+        )
         let requestID = refreshRequestGate.issue()
         let provider = self.provider
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -328,6 +351,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 fetchedTrendSummary = trendSummary ?? nil
                 fetchedSource = result.source
                 generatedAt = currentGeneratedAt
+                diagnosticsLogger.log(
+                    event: "refresh_fetched",
+                    mode: mode,
+                    details: [
+                        "fetchedSource": fetchedResult.source.rawValue,
+                        "appliedSource": result.source.rawValue,
+                        "primary": result.snapshot.rateLimits.primary.map { "\($0.remainingPercent)%" } ?? "--",
+                        "secondary": result.snapshot.rateLimits.secondary.map { "\($0.remainingPercent)%" } ?? "--",
+                        "generatedAt": ISO8601DateFormatter().string(from: currentGeneratedAt)
+                    ]
+                )
                 feedbackMessage = mode == .apiManual
                     ? (selectedAppLanguage == .english ? "Refreshed from API" : "已通过 API 刷新")
                     : nil
@@ -350,6 +384,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     }
                     feedbackMessage = nil
                 }
+                diagnosticsLogger.log(
+                    event: "refresh_failed",
+                    mode: mode,
+                    details: [
+                        "error": error.localizedDescription,
+                        "keptPreviousDisplay": self.displayState.hasDisplaySnapshot ? "true" : "false"
+                    ]
+                )
             }
 
             DispatchQueue.main.async {
@@ -367,7 +409,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                         trendSummary: fetchedTrendSummary,
                         source: fetchedSource,
                         generatedAt: generatedAt,
-                        forceFreshnessUpdate: mode == .apiManual
+                        forceFreshnessUpdate: QuotaRefreshPolicy.shouldAdvanceFreshnessTimestamp(for: mode)
                     )
                     if let rebuilt = self.displayState.rebuildPresentation(
                         weeklyPacingMode: self.selectedWeeklyPacingMode,
@@ -383,6 +425,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     presentationToApply = rebuilt
                 }
                 self.apply(presentationToApply)
+                self.diagnosticsLogger.log(
+                    event: "refresh_applied",
+                    mode: mode,
+                    details: [
+                        "line1": presentationToApply.line1,
+                        "line2": presentationToApply.line2,
+                        "updated": presentationToApply.updatedAtText,
+                        "sourceText": presentationToApply.sourceText
+                    ]
+                )
                 if let feedbackMessage {
                     self.showFeedback(feedbackMessage)
                 }
@@ -505,6 +557,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func scheduleRefresh(delay: TimeInterval) {
         refreshWorkItem?.cancel()
         let workItem = DispatchWorkItem { [weak self] in
+            self?.diagnosticsLogger.log(
+                event: "refresh_scheduled_fired",
+                mode: .automatic,
+                details: ["delaySeconds": String(format: "%.2f", delay)]
+            )
             self?.refreshAsync(mode: .automatic)
         }
         refreshWorkItem = workItem
