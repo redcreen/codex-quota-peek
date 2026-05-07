@@ -8,6 +8,8 @@ VERSION="$(tr -d '[:space:]' < "$ROOT_DIR/VERSION")"
 APP_NAME="CodexQuotaPeek.app"
 DMG_NAME="CodexQuotaPeek-$VERSION.dmg"
 ZIP_NAME="CodexQuotaPeek-$VERSION.zip"
+LATEST_DMG_NAME="CodexQuotaPeek-latest.dmg"
+LATEST_ZIP_NAME="CodexQuotaPeek-latest.zip"
 RELEASE_NOTES_NAME="RELEASE_NOTES.md"
 DMG_STAGING_DIR="$RELEASE_DIR/.dmg-root"
 
@@ -19,6 +21,8 @@ rm -rf "$DMG_STAGING_DIR"
 mkdir -p "$DMG_STAGING_DIR"
 rm -f "$RELEASE_DIR/$ZIP_NAME"
 rm -f "$RELEASE_DIR/$DMG_NAME"
+rm -f "$RELEASE_DIR/$LATEST_DMG_NAME"
+rm -f "$RELEASE_DIR/$LATEST_ZIP_NAME"
 
 cp -R "$DIST_DIR/$APP_NAME" "$DMG_STAGING_DIR/$APP_NAME"
 ln -s /Applications "$DMG_STAGING_DIR/Applications"
@@ -33,10 +37,15 @@ ln -s /Applications "$DMG_STAGING_DIR/Applications"
   -format UDZO \
   "$RELEASE_DIR/$DMG_NAME" >/dev/null
 
+cp "$RELEASE_DIR/$ZIP_NAME" "$RELEASE_DIR/$LATEST_ZIP_NAME"
+cp "$RELEASE_DIR/$DMG_NAME" "$RELEASE_DIR/$LATEST_DMG_NAME"
+
 rm -rf "$DMG_STAGING_DIR"
 
 cp "$ROOT_DIR/CHANGELOG.md" "$RELEASE_DIR/CHANGELOG.md"
 
 echo "Packaged release at: $RELEASE_DIR/$DMG_NAME"
 echo "Packaged release at: $RELEASE_DIR/$ZIP_NAME"
+echo "Packaged release at: $RELEASE_DIR/$LATEST_DMG_NAME"
+echo "Packaged release at: $RELEASE_DIR/$LATEST_ZIP_NAME"
 echo "Release notes at: $RELEASE_DIR/$RELEASE_NOTES_NAME"

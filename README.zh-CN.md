@@ -14,9 +14,19 @@
 
 ## 快速开始
 
-当前公开构建还没有做 Apple 签名和 notarization，所以现在最稳的安装方式仍然是本地构建后安装。
+最快安装方式：
 
-方式一：克隆后安装 app
+```bash
+open "https://github.com/redcreen/codex-quota-peek/releases/latest/download/CodexQuotaPeek-latest.dmg"
+```
+
+然后：
+
+- 打开 DMG
+- 把 `CodexQuotaPeek.app` 拖到 `Applications`
+- 从 `/Applications/CodexQuotaPeek.app` 打开
+
+如果 macOS 因为未签名阻止打开，可以用 Finder 右键 `打开`，或者直接走源码安装：
 
 ```bash
 git clone https://github.com/redcreen/codex-quota-peek.git
@@ -24,18 +34,10 @@ cd codex-quota-peek
 ./scripts/install_app.sh
 ```
 
-方式二：同时安装 app 和 CLI
+可选 CLI 安装：
 
 ```bash
-./scripts/install_app.sh
 ./scripts/install_cli.sh
-```
-
-安装后可直接验证：
-
-```bash
-open /Applications/CodexQuotaPeek.app
-codexQuotaPeek status
 ```
 
 ## 安装

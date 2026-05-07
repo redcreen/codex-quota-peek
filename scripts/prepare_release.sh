@@ -22,6 +22,8 @@ Paste the generated release notes below into the GitHub Release body.
 
 - \`release/CodexQuotaPeek-$VERSION.dmg\`
 - \`release/CodexQuotaPeek-$VERSION.zip\`
+- \`release/CodexQuotaPeek-latest.dmg\`
+- \`release/CodexQuotaPeek-latest.zip\`
 
 ## Notes
 

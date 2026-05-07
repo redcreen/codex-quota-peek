@@ -2,7 +2,7 @@
 
 [English](RELEASE.md) | [中文](RELEASE.zh-CN.md)
 
-这个项目会产出 macOS app bundle、本地 CLI、带版本号的 DMG、带版本号的 ZIP，以及生成的 release notes。
+这个项目会产出 macOS app bundle、本地 CLI、带版本号的 DMG/ZIP、稳定 latest DMG/ZIP，以及生成的 release notes。
 
 ## 本地发版步骤
 
@@ -19,11 +19,13 @@
 - `release/CodexQuotaPeek-mac.zip`
 - `release/CodexQuotaPeek-<version>.dmg`
 - `release/CodexQuotaPeek-<version>.zip`
+- `release/CodexQuotaPeek-latest.dmg`
+- `release/CodexQuotaPeek-latest.zip`
 - `release/RELEASE_NOTES.md`
 - `release/GITHUB_RELEASE_DRAFT.md`
 
 5. 提交并推送版本号与 changelog 变更
-6. 创建或更新 GitHub Release，粘贴 `release/GITHUB_RELEASE_DRAFT.md`，并上传 ZIP/DMG 产物
+6. 创建或更新 GitHub Release，粘贴 `release/GITHUB_RELEASE_DRAFT.md`，并上传版本化与 latest 的 ZIP/DMG 产物
 
 ## 签名状态
 

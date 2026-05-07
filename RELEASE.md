@@ -2,7 +2,7 @@
 
 [English](RELEASE.md) | [中文](RELEASE.zh-CN.md)
 
-This project ships a macOS app bundle, a CLI, a versioned DMG, a versioned zip package, and generated release notes.
+This project ships a macOS app bundle, a CLI, versioned DMG/zip packages, stable latest DMG/zip packages, and generated release notes.
 
 ## Local release steps
 
@@ -19,11 +19,13 @@ This project ships a macOS app bundle, a CLI, a versioned DMG, a versioned zip p
 - `release/CodexQuotaPeek-mac.zip`
 - `release/CodexQuotaPeek-<version>.dmg`
 - `release/CodexQuotaPeek-<version>.zip`
+- `release/CodexQuotaPeek-latest.dmg`
+- `release/CodexQuotaPeek-latest.zip`
 - `release/RELEASE_NOTES.md`
 - `release/GITHUB_RELEASE_DRAFT.md`
 
 5. Commit and push the version/changelog changes
-6. Create or update a GitHub Release, paste `release/GITHUB_RELEASE_DRAFT.md`, and upload the zip
+6. Create or update a GitHub Release, paste `release/GITHUB_RELEASE_DRAFT.md`, and upload the versioned and latest DMG/zip assets
 
 ## Signing status
 

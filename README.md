@@ -16,9 +16,19 @@
 
 ## Quick Start
 
-The current public build is not yet Apple-signed or notarized, so the most reliable install path today is still local build-and-install.
+Fastest install:
 
-Option 1: clone and install the app
+```bash
+open "https://github.com/redcreen/codex-quota-peek/releases/latest/download/CodexQuotaPeek-latest.dmg"
+```
+
+Then:
+
+- open the DMG
+- drag `CodexQuotaPeek.app` into `Applications`
+- open `/Applications/CodexQuotaPeek.app`
+
+If macOS blocks the unsigned build, either use Finder `Right Click -> Open`, or install from source:
 
 ```bash
 git clone https://github.com/redcreen/codex-quota-peek.git
@@ -26,18 +36,10 @@ cd codex-quota-peek
 ./scripts/install_app.sh
 ```
 
-Option 2: build and install both the app and CLI
+Optional CLI install:
 
 ```bash
-./scripts/install_app.sh
 ./scripts/install_cli.sh
-```
-
-After install:
-
-```bash
-open /Applications/CodexQuotaPeek.app
-codexQuotaPeek status
 ```
 
 ## Install
@@ -145,43 +147,3 @@ Use the OpenClaw integration:
 ## License
 
 MIT
-[docs/architecture.md](/Users/redcreen/Project/codex%20limit/docs/architecture.md)
-
-Product requirements baseline:
-[docs/requirements.md](/Users/redcreen/Project/codex%20limit/docs/requirements.md)
-
-### Known Limits
-
-- The official Codex UI may sometimes surface newer quota values slightly earlier
-- This app tries to prefer fresher sources when possible, but different sources can still temporarily converge at different times
-
-### Build From Source
-
-```bash
-./scripts/test.sh
-./scripts/build_app.sh
-./scripts/build_cli.sh
-./scripts/package_release.sh
-./scripts/install_app.sh
-./scripts/install_cli.sh
-```
-
-### Release
-
-- Current release tag: `0.1.0`
-- Changelog: [CHANGELOG.md](/Users/redcreen/Project/codex%20limit/CHANGELOG.md)
-- Release guide: [RELEASE.md](/Users/redcreen/Project/codex%20limit/RELEASE.md)
-- Signing and notarization plan: [docs/signing-and-notarization-plan.md](/Users/redcreen/Project/codex%20limit/docs/signing-and-notarization-plan.md)
-
-### Roadmap
-
-Next product work focuses on:
-
-- a local daily-usage ledger to avoid rescanning logs
-- better daily usage colors based on whether each day stayed within pace
-- further product polish for `Preferences...`
-- more official integrations
-
-## Documentation Map
-- [Docs Home](docs/README.md)
-- [Test Plan](docs/test-plan.md)

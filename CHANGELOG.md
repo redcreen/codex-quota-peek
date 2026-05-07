@@ -4,6 +4,15 @@
 
 All notable changes to `Codex Quota Peek` are documented here.
 
+## 0.2.0 - 2026-05-07
+
+- Published the current menu bar app, CLI, and OpenClaw integration as the next public release.
+- Added a stable GitHub Release install path via `releases/latest/download/CodexQuotaPeek-latest.dmg`.
+- Added local refresh diagnostics logging to `~/.codex/codex-quota-peek.log` for timer/API/display troubleshooting.
+- Hardened automatic refresh, manual API refresh, and open-menu refresh handling to reduce stale or missing data.
+- Expanded regression coverage around menu contracts, refresh policies, marker math, daily usage rendering, and display state handling.
+- Refactored menu construction and update paths into smaller tested components.
+
 ## 0.1.0 - 2026-04-06
 
 - First tagged public build for GitHub release distribution.
